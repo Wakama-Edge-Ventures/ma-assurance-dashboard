@@ -41,9 +41,71 @@ export interface Cooperative {
   id: string;
   name: string;
   region: string;
+  filiere?: string;
   memberCount: number;
   aggregatedAreaHa: number;
   contactName: string;
+  source: DataSource;
+}
+
+export interface Parcelle {
+  id: string;
+  farmerId?: string;
+  cooperativeId?: string;
+  name: string;
+  culture?: string;
+  superficie?: number;
+  areaHa?: number;
+  lat?: number;
+  lng?: number;
+  polygone?: string;
+  ndvi?: number;
+  status?: string;
+  source: DataSource;
+}
+
+export interface WakamaAlert {
+  id: string;
+  farmerId?: string;
+  cooperativeId?: string;
+  parcelleId?: string;
+  type?: string;
+  severity: "INFO" | "WARNING" | "CRITICAL";
+  title?: string;
+  message: string;
+  read?: boolean;
+  createdAt: string;
+  source: DataSource;
+}
+
+export interface NdviSnapshot {
+  parcelleId: string;
+  ndvi: number;
+  capturedAt?: string;
+  source: DataSource;
+  provider?: string;
+}
+
+export interface IotNode {
+  id: string;
+  cooperativeId?: string;
+  farmerId?: string;
+  name?: string;
+  status?: string;
+  lat?: number;
+  lng?: number;
+  lastSeenAt?: string;
+  source: DataSource;
+}
+
+export interface IotReading {
+  id: string;
+  nodeId: string;
+  temperatureAir?: number;
+  humidityAir?: number;
+  soilMoisture?: number;
+  soilTemperature?: number;
+  capturedAt: string;
   source: DataSource;
 }
 

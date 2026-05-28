@@ -17,6 +17,7 @@
 - RAX/WRS est un cadre v1 a calibrer progressivement avec les donnees assureur.
 - Les donnees CNDP/PII exigent un traitement prudent, avec durcissement ulterieur.
 - Les futures integrations backend utiliseront `https://api.wakama.farm`.
+- Les entites Wakama existantes (`farmers`, `cooperatives`, `parcelles`, `NDVI`, `alerts`, `IoT`) sont des donnees partagees en lecture seule: ne pas dupliquer ni muter sans contrat backend explicite.
 
 ## Formulations autorisees
 - Utiliser: "preuve d'integrite horodatee".

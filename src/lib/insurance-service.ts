@@ -4,6 +4,10 @@ import {
   toCommercialOffer,
   toCooperative,
   toFarmer,
+  toIotNode,
+  toIotReading,
+  toNdviSnapshot,
+  toParcelle,
   toInsuranceApplication,
   toInsuranceClaim,
   toInsuranceFieldAudit,
@@ -11,6 +15,7 @@ import {
   toInsurancePolicy,
   toMonitoringAlert,
   toRaxEvaluation,
+  toWakamaAlert,
 } from "@/lib/dto-mappers";
 import {
   applications as seedApplications,
@@ -18,16 +23,25 @@ import {
   cooperatives as seedCooperatives,
   farmers as seedFarmers,
   fieldAudits as seedFieldAudits,
+  iotNodes as seedIotNodes,
+  iotReadings as seedIotReadings,
   missions as seedMissions,
   monitoringAlerts as seedMonitoringAlerts,
+  ndviSnapshots as seedNdviSnapshots,
+  parcelles as seedParcelles,
   policies as seedPolicies,
   pricingOffers as seedPricingOffers,
   raxEvaluations as seedRaxEvaluations,
+  wakamaAlerts as seedWakamaAlerts,
 } from "@/lib/demo-data";
 import {
   CommercialOffer,
   Cooperative,
   Farmer,
+  IotNode,
+  IotReading,
+  NdviSnapshot,
+  Parcelle,
   InsuranceApplication,
   InsuranceClaim,
   InsuranceFieldAudit,
@@ -35,6 +49,7 @@ import {
   InsurancePolicy,
   MonitoringAlert,
   RaxEvaluation,
+  WakamaAlert,
 } from "@/types";
 
 const USE_LIVE_API = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
@@ -50,6 +65,8 @@ interface DashboardOverview {
   claims: InsuranceClaim[];
   farmers: Farmer[];
   cooperatives: Cooperative[];
+  parcelles: Parcelle[];
+  wakamaAlerts: WakamaAlert[];
 }
 
 function warnFallback(endpoint: string, error: unknown) {
@@ -227,6 +244,91 @@ export async function getCooperatives(): Promise<Cooperative[]> {
   );
 }
 
+export async function getParcelles(): Promise<Parcelle[]> {
+  return fetchListWithFallback<Parcelle>("/v1/parcelles", seedParcelles, toParcelle);
+}
+
+export async function getParcelleById(id: string): Promise<Parcelle | null> {
+  const parcelles = await getParcelles();
+  return parcelles.find((item) => item.id === id) ?? null;
+}
+
+export async function getWakamaAlerts(): Promise<WakamaAlert[]> {
+  return fetchListWithFallback<WakamaAlert>("/v1/alerts", seedWakamaAlerts, toWakamaAlert);
+}
+
+export async function getWakamaAlertById(id: string): Promise<WakamaAlert | null> {
+  const alerts = await getWakamaAlerts();
+  return alerts.find((item) => item.id === id) ?? null;
+}
+
+export async function getNdviSnapshotByParcelleId(
+  parcelleId: string,
+): Promise<NdviSnapshot | null> {
+  const seedMatch =
+    seedNdviSnapshots.find((item) => item.parcelleId === parcelleId) ?? null;
+  if (!USE_LIVE_API) return seedMatch;
+
+  const endpoint = `/v1/ndvi/${parcelleId}`;
+  try {
+    const payload = await apiFetch<unknown>(endpoint);
+    const rawList = asArray(payload);
+    const mapped = rawList
+      .map((item) => toNdviSnapshot(item, parcelleId))
+      .filter((item): item is NdviSnapshot => item !== null)
+      .map((item) => withSource(item, "LIVE"));
+
+    if (rawList.length > 0 && mapped.length === 0) {
+      warnFallback(endpoint, new Error("Mapped array is empty after normalization"));
+      return seedMatch;
+    }
+
+    if (mapped.length > 0) {
+      return mapped.sort((a, b) => {
+        const da = new Date(a.capturedAt ?? 0).getTime();
+        const db = new Date(b.capturedAt ?? 0).getTime();
+        return db - da;
+      })[0];
+    }
+
+    const single = toNdviSnapshot(payload, parcelleId);
+    if (single) return withSource(single, "LIVE");
+    return seedMatch;
+  } catch (error) {
+    warnFallback(endpoint, error);
+    return seedMatch;
+  }
+}
+
+export async function getIotNodes(): Promise<IotNode[]> {
+  return fetchListWithFallback<IotNode>("/v1/iot/node", seedIotNodes, toIotNode);
+}
+
+export async function getIotReadingsByNodeId(nodeId: string): Promise<IotReading[]> {
+  const seedMatch = seedIotReadings
+    .filter((item) => item.nodeId === nodeId)
+    .map((item) => withSource(item, "SEED_DEMO"));
+  if (!USE_LIVE_API) return seedMatch;
+
+  const endpoint = `/v1/iot/readings/${nodeId}`;
+  try {
+    const payload = await apiFetch<unknown>(endpoint);
+    const rawList = asArray(payload);
+    const mapped = rawList
+      .map((item) => toIotReading(item))
+      .filter((item): item is IotReading => item !== null)
+      .map((item) => withSource(item, "LIVE"));
+    if (rawList.length > 0 && mapped.length === 0) {
+      warnFallback(endpoint, new Error("Mapped array is empty after normalization"));
+      return seedMatch;
+    }
+    return mapped;
+  } catch (error) {
+    warnFallback(endpoint, error);
+    return seedMatch;
+  }
+}
+
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const [
     applications,
@@ -239,6 +341,8 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
     claims,
     farmers,
     cooperatives,
+    parcelles,
+    wakamaAlerts,
   ] = await Promise.all([
     getInsuranceApplications(),
     getInsuranceMissions(),
@@ -250,6 +354,8 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
     getInsuranceClaims(),
     getFarmers(),
     getCooperatives(),
+    getParcelles(),
+    getWakamaAlerts(),
   ]);
 
   return {
@@ -263,5 +369,7 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
     claims,
     farmers,
     cooperatives,
+    parcelles,
+    wakamaAlerts,
   };
 }

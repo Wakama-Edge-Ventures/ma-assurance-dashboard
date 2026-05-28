@@ -1,23 +1,28 @@
-import { AlertTriangle, FileText, ShieldCheck, Wallet } from "lucide-react";
+import { AlertTriangle, FileText, Map, Users } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
 import { StatCard } from "@/components/ui/stat-card";
-import { getDashboardOverview } from "@/lib/insurance-service";
-import { formatMAD } from "@/lib/workflow";
+import {
+  getCooperatives,
+  getDashboardOverview,
+  getFarmers,
+  getParcelles,
+  getWakamaAlerts,
+} from "@/lib/insurance-service";
 
 export default async function DashboardPage() {
-  const { applications, claims, monitoringAlerts, policies } =
-    await getDashboardOverview();
-  const requested = applications.reduce(
-    (sum, application) => sum + application.requestedCoverageMad,
-    0,
-  );
-  const activePolicies = policies.filter((policy) => policy.status === "ACTIVE").length;
-  const openAlerts = monitoringAlerts.filter((alert) => !alert.resolved).length;
-  const openClaims = claims.filter((claim) => claim.status !== "APPROVED_BY_INSURER").length;
+  const [{ applications }, farmers, cooperatives, parcelles, wakamaAlerts] =
+    await Promise.all([
+      getDashboardOverview(),
+      getFarmers(),
+      getCooperatives(),
+      getParcelles(),
+      getWakamaAlerts(),
+    ]);
+  const activeAlerts = wakamaAlerts.filter((alert) => alert.severity !== "INFO").length;
 
   return (
     <div className="space-y-6">
@@ -35,22 +40,22 @@ export default async function DashboardPage() {
           icon={FileText}
         />
         <StatCard
-          title="Encours analyse"
-          value={formatMAD(requested)}
-          hint="Montant declare par les souscripteurs"
+          title="Agriculteurs / cooperatives"
+          value={`${farmers.length} / ${cooperatives.length}`}
+          hint="Contexte terrain partage Wakama"
           source="SEED_DEMO"
-          icon={Wallet}
+          icon={Users}
         />
         <StatCard
-          title="Polices actives"
-          value={String(activePolicies)}
-          hint="Emission et propriete par l'assureur"
+          title="Parcelles suivies"
+          value={String(parcelles.length)}
+          hint="Surfaces observees en read-only"
           source="SEED_DEMO"
-          icon={ShieldCheck}
+          icon={Map}
         />
         <StatCard
-          title="Alertes/claims ouverts"
-          value={`${openAlerts} / ${openClaims}`}
+          title="Alertes actives Wakama"
+          value={String(activeAlerts)}
           hint="Surveillance non bloquante"
           source="SEED_DEMO"
           icon={AlertTriangle}

@@ -56,6 +56,12 @@ NEXT_PUBLIC_USE_LIVE_API=false
 - Le mode live accepte les formats `[...]` et `{ data: [...] }`.
 - Si la donnee live est mal formee, le fallback `SEED_DEMO` est applique pour la stabilite MVP.
 
+## Existing Wakama API read-only data
+- Les entites Wakama existantes (`farmers`, `cooperatives`, `parcelles`, `alerts`, `ndvi`, `iot`) sont consommees en lecture seule depuis `https://api.wakama.farm`.
+- Avec `NEXT_PUBLIC_USE_LIVE_API=true`, le dashboard tente les endpoints live.
+- Si l'API est indisponible, le fallback `SEED_DEMO` est applique automatiquement pour maintenir la demo stable.
+- Aucune operation d'ecriture backend n'est effectuee par le dashboard assurance dans cette phase.
+
 ## Deployment (Coolify)
 - Builder via `npm install && npm run build`.
 - Runner via `npm run start`.

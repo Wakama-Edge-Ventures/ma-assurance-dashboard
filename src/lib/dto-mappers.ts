@@ -3,13 +3,18 @@ import {
   Cooperative,
   DataSource,
   Farmer,
+  IotNode,
+  IotReading,
+  NdviSnapshot,
   InsuranceApplication,
   InsuranceClaim,
   InsuranceFieldAudit,
   InsuranceMission,
   InsurancePolicy,
   MonitoringAlert,
+  Parcelle,
   RaxEvaluation,
+  WakamaAlert,
 } from "@/types";
 
 import { normalizeSource } from "./data-source";
@@ -389,6 +394,112 @@ export function toInsuranceClaim(raw: unknown): InsuranceClaim | null {
   };
 }
 
+export function toParcelle(raw: unknown): Parcelle | null {
+  const o = asObject(raw);
+  if (!o) return null;
+  const id = asString(o.id);
+  const name = asString(o.name);
+  if (!id || !name) return null;
+  const area =
+    asNumber(o.areaHa) ?? asNumber(o.superficie) ?? asNumber(o.surface) ?? asNumber(o.surfaceHa);
+  return {
+    id,
+    farmerId: asString(o.farmerId) ?? asString(o.farmer_id) ?? undefined,
+    cooperativeId: asString(o.cooperativeId) ?? asString(o.cooperative_id) ?? undefined,
+    name,
+    culture: asString(o.culture) ?? undefined,
+    superficie: area ?? undefined,
+    areaHa: area ?? undefined,
+    lat: asNumber(o.lat) ?? asNumber(o.latitude) ?? undefined,
+    lng: asNumber(o.lng) ?? asNumber(o.longitude) ?? undefined,
+    polygone: asString(o.polygone) ?? asString(o.polygon) ?? asString(o.geojson) ?? undefined,
+    ndvi: asNumber(o.ndvi) ?? undefined,
+    status: asString(o.status) ?? undefined,
+    source: asSource(o.source, "LIVE"),
+  };
+}
+
+export function toWakamaAlert(raw: unknown): WakamaAlert | null {
+  const o = asObject(raw);
+  if (!o) return null;
+  const id = asString(o.id) ?? asString(o.alertId);
+  const createdAt = asString(o.createdAt) ?? asString(o.created_at);
+  const severity =
+    (asString(o.severity) as WakamaAlert["severity"] | null) ??
+    (asString(o.level) as WakamaAlert["severity"] | null);
+  const message = asString(o.message) ?? asString(o.description);
+  if (!id || !createdAt || !severity || !message) return null;
+  return {
+    id,
+    farmerId: asString(o.farmerId) ?? asString(o.farmer_id) ?? undefined,
+    cooperativeId: asString(o.cooperativeId) ?? asString(o.cooperative_id) ?? undefined,
+    parcelleId: asString(o.parcelleId) ?? asString(o.parcelle_id) ?? undefined,
+    type: asString(o.type) ?? undefined,
+    severity,
+    title: asString(o.title) ?? undefined,
+    message,
+    read: asBoolean(o.read) ?? undefined,
+    createdAt,
+    source: asSource(o.source, "LIVE"),
+  };
+}
+
+export function toNdviSnapshot(
+  raw: unknown,
+  parcelleIdFallback?: string,
+): NdviSnapshot | null {
+  const o = asObject(raw);
+  if (!o) return null;
+  const parcelleId = asString(o.parcelleId) ?? asString(o.parcelle_id) ?? parcelleIdFallback ?? null;
+  const ndvi = asNumber(o.ndvi);
+  if (!parcelleId || ndvi === null) return null;
+  return {
+    parcelleId,
+    ndvi,
+    capturedAt: asString(o.capturedAt) ?? asString(o.captured_at) ?? undefined,
+    provider: asString(o.provider) ?? undefined,
+    source: asSource(o.source, "LIVE"),
+  };
+}
+
+export function toIotNode(raw: unknown): IotNode | null {
+  const o = asObject(raw);
+  if (!o) return null;
+  const id = asString(o.id);
+  if (!id) return null;
+  return {
+    id,
+    cooperativeId: asString(o.cooperativeId) ?? asString(o.cooperative_id) ?? undefined,
+    farmerId: asString(o.farmerId) ?? asString(o.farmer_id) ?? undefined,
+    name: asString(o.name) ?? undefined,
+    status: asString(o.status) ?? undefined,
+    lat: asNumber(o.lat) ?? asNumber(o.latitude) ?? undefined,
+    lng: asNumber(o.lng) ?? asNumber(o.longitude) ?? undefined,
+    lastSeenAt: asString(o.lastSeenAt) ?? asString(o.last_seen_at) ?? undefined,
+    source: asSource(o.source, "LIVE"),
+  };
+}
+
+export function toIotReading(raw: unknown): IotReading | null {
+  const o = asObject(raw);
+  if (!o) return null;
+  const id = asString(o.id);
+  const nodeId = asString(o.nodeId) ?? asString(o.node_id);
+  const capturedAt = asString(o.capturedAt) ?? asString(o.captured_at);
+  if (!id || !nodeId || !capturedAt) return null;
+  return {
+    id,
+    nodeId,
+    temperatureAir: asNumber(o.temperatureAir) ?? asNumber(o.temperature_air) ?? undefined,
+    humidityAir: asNumber(o.humidityAir) ?? asNumber(o.humidity_air) ?? undefined,
+    soilMoisture: asNumber(o.soilMoisture) ?? asNumber(o.soil_moisture) ?? undefined,
+    soilTemperature:
+      asNumber(o.soilTemperature) ?? asNumber(o.soil_temperature) ?? undefined,
+    capturedAt,
+    source: asSource(o.source, "LIVE"),
+  };
+}
+
 export function toFarmer(raw: unknown): Farmer | null {
   const o = asObject(raw);
   if (!o) return null;
@@ -419,6 +530,7 @@ export function toCooperative(raw: unknown): Cooperative | null {
     id,
     name,
     region: asString(o.region) ?? "Non renseignee",
+    filiere: asString(o.filiere) ?? asString(o.valueChain) ?? asString(o.value_chain) ?? undefined,
     memberCount,
     aggregatedAreaHa: asNumber(o.aggregatedAreaHa) ?? 0,
     contactName: asString(o.contactName) ?? "N/A",
