@@ -62,6 +62,11 @@ NEXT_PUBLIC_USE_LIVE_API=false
 - Si l'API est indisponible, le fallback `SEED_DEMO` est applique automatiquement pour maintenir la demo stable.
 - Aucune operation d'ecriture backend n'est effectuee par le dashboard assurance dans cette phase.
 
+## LIVE API shape debugging
+- Activer `NEXT_PUBLIC_DEBUG_API_SHAPES=true` pour diagnostiquer les changements de shape backend.
+- Les logs affichent uniquement des metadonnees non sensibles: endpoint, root keys, taille du tableau extrait et cles du premier item.
+- Les valeurs des enregistrements (PII) ne sont pas journalisees.
+
 ## Mock auth vs backend auth
 - Le login actuel est un mock local (protection UI demo) et ne represente pas une authentification backend.
 - Les tokens demo/mock ne sont pas envoyes a `https://api.wakama.farm`.

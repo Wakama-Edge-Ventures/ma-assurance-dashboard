@@ -34,6 +34,11 @@ export interface Farmer {
   region: string;
   primaryCrop: string;
   totalAreaHa: number;
+  cooperativeId?: string;
+  cooperativeName?: string;
+  kycStatus?: string;
+  lat?: number;
+  lng?: number;
   source: DataSource;
 }
 
@@ -45,6 +50,8 @@ export interface Cooperative {
   memberCount: number;
   aggregatedAreaHa: number;
   contactName: string;
+  lat?: number;
+  lng?: number;
   source: DataSource;
 }
 

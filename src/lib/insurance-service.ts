@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api";
 import { withSource } from "@/lib/data-source";
 import {
+  extractArrayFromApiResponse,
   toCommercialOffer,
   toCooperative,
   toFarmer,
@@ -53,6 +54,7 @@ import {
 } from "@/types";
 
 const USE_LIVE_API = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
+const DEBUG_API_SHAPES = process.env.NEXT_PUBLIC_DEBUG_API_SHAPES === "true";
 
 interface DashboardOverview {
   applications: InsuranceApplication[];
@@ -73,17 +75,52 @@ function warnFallback(endpoint: string, error: unknown) {
   console.warn("[Wakama API fallback]", endpoint, error);
 }
 
-function asArray(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value;
-  if (
-    value &&
-    typeof value === "object" &&
-    "data" in value &&
-    Array.isArray((value as { data?: unknown }).data)
-  ) {
-    return (value as { data: unknown[] }).data;
-  }
+function getRootKeys(value: unknown): string[] {
+  if (Array.isArray(value)) return ["[array]"];
+  if (value && typeof value === "object") return Object.keys(value as Record<string, unknown>);
   return [];
+}
+
+function isPayloadNonEmpty(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  if (value && typeof value === "object") return getRootKeys(value).length > 0;
+  return value !== null && value !== undefined && value !== "";
+}
+
+function getFirstItemKeys(list: unknown[]): string[] {
+  if (list.length === 0) return [];
+  const first = list[0];
+  if (!first || typeof first !== "object" || Array.isArray(first)) return [];
+  return Object.keys(first as Record<string, unknown>);
+}
+
+function warnShape(endpoint: string, payload: unknown) {
+  console.warn("[Wakama API shape]", endpoint, "root keys:", getRootKeys(payload));
+}
+
+function warnMappedEmpty(
+  endpoint: string,
+  rawLength: number,
+  mapperName: string,
+  firstItemKeys: string[],
+) {
+  console.warn(
+    `[Wakama API fallback] ${endpoint} mapped 0/${rawLength} with ${mapperName}. First item keys: ${JSON.stringify(firstItemKeys)}`,
+  );
+}
+
+function debugApiShape(endpoint: string, payload: unknown, rawList: unknown[]) {
+  if (!DEBUG_API_SHAPES) return;
+  console.warn(
+    "[Wakama API debug]",
+    endpoint,
+    "root keys:",
+    getRootKeys(payload),
+    "array length:",
+    rawList.length,
+    "first item keys:",
+    getFirstItemKeys(rawList),
+  );
 }
 
 function normalizeSeed<T extends object>(seed: T[]): Array<T & { source: "SEED_DEMO" }> {
@@ -96,20 +133,29 @@ async function fetchListWithFallback<T extends object>(
   endpoint: string,
   seed: T[],
   mapper: (raw: unknown) => (T & { source?: unknown }) | null,
+  mapperName: string,
+  preferredKeys: string[] = [],
 ): Promise<Array<T & { source: "LIVE" | "SEED_DEMO" }>> {
   const seedWithSource = normalizeSeed(seed);
   if (!USE_LIVE_API) return seedWithSource;
 
   try {
     const payload = await apiFetch<unknown>(endpoint);
-    const rawList = asArray(payload);
+    const rawList = extractArrayFromApiResponse(payload, preferredKeys);
+    debugApiShape(endpoint, payload, rawList);
+
+    if (isPayloadNonEmpty(payload) && rawList.length === 0) {
+      warnShape(endpoint, payload);
+      return seedWithSource;
+    }
+
     const mapped = rawList
       .map((item) => mapper(item))
       .filter((item): item is T & { source?: unknown } => item !== null)
       .map((item) => withSource(item, "LIVE"));
 
     if (rawList.length > 0 && mapped.length === 0) {
-      warnFallback(endpoint, new Error("Mapped array is empty after normalization"));
+      warnMappedEmpty(endpoint, rawList.length, mapperName, getFirstItemKeys(rawList));
       return seedWithSource;
     }
 
@@ -125,6 +171,7 @@ export async function getInsuranceApplications(): Promise<InsuranceApplication[]
     "/v1/insurance/applications",
     seedApplications,
     toInsuranceApplication,
+    "toInsuranceApplication",
   );
 }
 
@@ -140,6 +187,7 @@ export async function getInsuranceMissions(): Promise<InsuranceMission[]> {
     "/v1/insurance/missions",
     seedMissions,
     toInsuranceMission,
+    "toInsuranceMission",
   );
 }
 
@@ -155,6 +203,7 @@ export async function getInsuranceFieldAudits(): Promise<InsuranceFieldAudit[]> 
     "/v1/insurance/field-audits",
     seedFieldAudits,
     toInsuranceFieldAudit,
+    "toInsuranceFieldAudit",
   );
 }
 
@@ -170,6 +219,7 @@ export async function getRaxEvaluations(): Promise<RaxEvaluation[]> {
     "/v1/insurance/rax",
     seedRaxEvaluations,
     toRaxEvaluation,
+    "toRaxEvaluation",
   );
 }
 
@@ -183,6 +233,7 @@ export async function getCommercialOffers(): Promise<CommercialOffer[]> {
     "/v1/insurance/pricing",
     seedPricingOffers,
     toCommercialOffer,
+    "toCommercialOffer",
   );
 }
 
@@ -198,6 +249,7 @@ export async function getInsurancePolicies(): Promise<InsurancePolicy[]> {
     "/v1/insurance/policies",
     seedPolicies,
     toInsurancePolicy,
+    "toInsurancePolicy",
   );
 }
 
@@ -211,6 +263,7 @@ export async function getMonitoringAlerts(): Promise<MonitoringAlert[]> {
     "/v1/insurance/monitoring/alerts",
     seedMonitoringAlerts,
     toMonitoringAlert,
+    "toMonitoringAlert",
   );
 }
 
@@ -224,6 +277,7 @@ export async function getInsuranceClaims(): Promise<InsuranceClaim[]> {
     "/v1/insurance/claims",
     seedClaims,
     toInsuranceClaim,
+    "toInsuranceClaim",
   );
 }
 
@@ -233,7 +287,13 @@ export async function getInsuranceClaimById(id: string): Promise<InsuranceClaim 
 }
 
 export async function getFarmers(): Promise<Farmer[]> {
-  return fetchListWithFallback<Farmer>("/v1/farmers", seedFarmers, toFarmer);
+  return fetchListWithFallback<Farmer>(
+    "/v1/farmers",
+    seedFarmers,
+    toFarmer,
+    "toFarmer",
+    ["farmers", "items", "results", "data"],
+  );
 }
 
 export async function getCooperatives(): Promise<Cooperative[]> {
@@ -241,11 +301,19 @@ export async function getCooperatives(): Promise<Cooperative[]> {
     "/v1/cooperatives",
     seedCooperatives,
     toCooperative,
+    "toCooperative",
+    ["cooperatives", "items", "results", "data"],
   );
 }
 
 export async function getParcelles(): Promise<Parcelle[]> {
-  return fetchListWithFallback<Parcelle>("/v1/parcelles", seedParcelles, toParcelle);
+  return fetchListWithFallback<Parcelle>(
+    "/v1/parcelles",
+    seedParcelles,
+    toParcelle,
+    "toParcelle",
+    ["parcelles", "plots", "items", "results", "data"],
+  );
 }
 
 export async function getParcelleById(id: string): Promise<Parcelle | null> {
@@ -254,7 +322,13 @@ export async function getParcelleById(id: string): Promise<Parcelle | null> {
 }
 
 export async function getWakamaAlerts(): Promise<WakamaAlert[]> {
-  return fetchListWithFallback<WakamaAlert>("/v1/alerts", seedWakamaAlerts, toWakamaAlert);
+  return fetchListWithFallback<WakamaAlert>(
+    "/v1/alerts",
+    seedWakamaAlerts,
+    toWakamaAlert,
+    "toWakamaAlert",
+    ["alerts", "items", "results", "data"],
+  );
 }
 
 export async function getWakamaAlertById(id: string): Promise<WakamaAlert | null> {
@@ -272,14 +346,21 @@ export async function getNdviSnapshotByParcelleId(
   const endpoint = `/v1/ndvi/${parcelleId}`;
   try {
     const payload = await apiFetch<unknown>(endpoint);
-    const rawList = asArray(payload);
+    const rawList = extractArrayFromApiResponse(payload, ["items", "results", "data"]);
+    debugApiShape(endpoint, payload, rawList);
+
+    if (isPayloadNonEmpty(payload) && rawList.length === 0) {
+      warnShape(endpoint, payload);
+      return seedMatch;
+    }
+
     const mapped = rawList
       .map((item) => toNdviSnapshot(item, parcelleId))
       .filter((item): item is NdviSnapshot => item !== null)
       .map((item) => withSource(item, "LIVE"));
 
     if (rawList.length > 0 && mapped.length === 0) {
-      warnFallback(endpoint, new Error("Mapped array is empty after normalization"));
+      warnMappedEmpty(endpoint, rawList.length, "toNdviSnapshot", getFirstItemKeys(rawList));
       return seedMatch;
     }
 
@@ -301,7 +382,13 @@ export async function getNdviSnapshotByParcelleId(
 }
 
 export async function getIotNodes(): Promise<IotNode[]> {
-  return fetchListWithFallback<IotNode>("/v1/iot/node", seedIotNodes, toIotNode);
+  return fetchListWithFallback<IotNode>(
+    "/v1/iot/node",
+    seedIotNodes,
+    toIotNode,
+    "toIotNode",
+    ["nodes", "iotNodes", "items", "results", "data"],
+  );
 }
 
 export async function getIotReadingsByNodeId(nodeId: string): Promise<IotReading[]> {
@@ -313,13 +400,26 @@ export async function getIotReadingsByNodeId(nodeId: string): Promise<IotReading
   const endpoint = `/v1/iot/readings/${nodeId}`;
   try {
     const payload = await apiFetch<unknown>(endpoint);
-    const rawList = asArray(payload);
+    const rawList = extractArrayFromApiResponse(payload, [
+      "readings",
+      "items",
+      "results",
+      "data",
+    ]);
+    debugApiShape(endpoint, payload, rawList);
+
+    if (isPayloadNonEmpty(payload) && rawList.length === 0) {
+      warnShape(endpoint, payload);
+      return seedMatch;
+    }
+
     const mapped = rawList
       .map((item) => toIotReading(item))
       .filter((item): item is IotReading => item !== null)
       .map((item) => withSource(item, "LIVE"));
+
     if (rawList.length > 0 && mapped.length === 0) {
-      warnFallback(endpoint, new Error("Mapped array is empty after normalization"));
+      warnMappedEmpty(endpoint, rawList.length, "toIotReading", getFirstItemKeys(rawList));
       return seedMatch;
     }
     return mapped;

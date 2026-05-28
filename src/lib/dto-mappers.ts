@@ -30,6 +30,12 @@ function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function asStringLike(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return null;
+}
+
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim()) {
@@ -45,6 +51,76 @@ function asBoolean(value: unknown): boolean | null {
 
 function asSource(value: unknown, fallback: DataSource = "LIVE"): DataSource {
   return normalizeSource(value, fallback);
+}
+
+function getNestedValue(value: unknown, path: string): unknown {
+  const segments = path.split(".");
+  let current: unknown = value;
+
+  for (const segment of segments) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return undefined;
+    current = (current as Record<string, unknown>)[segment];
+  }
+
+  return current;
+}
+
+function pickFirstValue(
+  o: Record<string, unknown>,
+  keys: string[],
+): unknown {
+  for (const key of keys) {
+    const value = key.includes(".") ? getNestedValue(o, key) : o[key];
+    if (value !== undefined && value !== null) return value;
+  }
+  return undefined;
+}
+
+function dedupeKeys(keys: string[]): string[] {
+  return Array.from(new Set(keys));
+}
+
+export function extractArrayFromApiResponse(
+  raw: unknown,
+  preferredKeys: string[] = [],
+): unknown[] {
+  try {
+    if (Array.isArray(raw)) return raw;
+
+    const root = asObject(raw);
+    if (!root) return [];
+
+    const commonKeys = [
+      "data",
+      "items",
+      "results",
+      "farmers",
+      "cooperatives",
+      "parcelles",
+      "alerts",
+      "nodes",
+      "readings",
+    ];
+
+    const candidateKeys = dedupeKeys([...preferredKeys, ...commonKeys]);
+
+    for (const key of candidateKeys) {
+      const direct = root[key];
+      if (Array.isArray(direct)) return direct;
+    }
+
+    const nestedData = asObject(root.data);
+    if (!nestedData) return [];
+
+    for (const key of candidateKeys) {
+      const nested = nestedData[key];
+      if (Array.isArray(nested)) return nested;
+    }
+
+    return [];
+  } catch {
+    return [];
+  }
 }
 
 function normalizeTaxRate(value: number): number {
@@ -397,24 +473,40 @@ export function toInsuranceClaim(raw: unknown): InsuranceClaim | null {
 export function toParcelle(raw: unknown): Parcelle | null {
   const o = asObject(raw);
   if (!o) return null;
-  const id = asString(o.id);
-  const name = asString(o.name);
-  if (!id || !name) return null;
+  const id =
+    asStringLike(pickFirstValue(o, ["id", "parcelleId", "parcelle_id", "plotId", "plot_id"])) ??
+    null;
+  const farmerId =
+    asStringLike(pickFirstValue(o, ["farmerId", "farmer_id"])) ?? undefined;
+  const cooperativeId =
+    asStringLike(pickFirstValue(o, ["cooperativeId", "cooperative_id"])) ?? undefined;
+  const name =
+    asStringLike(pickFirstValue(o, ["name", "nom", "label"])) ??
+    undefined;
+  const culture = asStringLike(pickFirstValue(o, ["culture", "crop"])) ?? undefined;
+
+  if (!id || (!name && !culture && !farmerId)) return null;
+
   const area =
-    asNumber(o.areaHa) ?? asNumber(o.superficie) ?? asNumber(o.surface) ?? asNumber(o.surfaceHa);
+    asNumber(
+      pickFirstValue(o, ["areaHa", "superficie", "surface", "surfaceHa", "area_ha"]),
+    ) ?? undefined;
+
   return {
     id,
-    farmerId: asString(o.farmerId) ?? asString(o.farmer_id) ?? undefined,
-    cooperativeId: asString(o.cooperativeId) ?? asString(o.cooperative_id) ?? undefined,
-    name,
-    culture: asString(o.culture) ?? undefined,
-    superficie: area ?? undefined,
-    areaHa: area ?? undefined,
-    lat: asNumber(o.lat) ?? asNumber(o.latitude) ?? undefined,
-    lng: asNumber(o.lng) ?? asNumber(o.longitude) ?? undefined,
-    polygone: asString(o.polygone) ?? asString(o.polygon) ?? asString(o.geojson) ?? undefined,
-    ndvi: asNumber(o.ndvi) ?? undefined,
-    status: asString(o.status) ?? undefined,
+    farmerId,
+    cooperativeId,
+    name: name ?? culture ?? `Parcelle ${id}`,
+    culture,
+    superficie: area,
+    areaHa: area,
+    lat: asNumber(pickFirstValue(o, ["lat", "latitude"])) ?? undefined,
+    lng: asNumber(pickFirstValue(o, ["lng", "longitude"])) ?? undefined,
+    polygone:
+      asStringLike(pickFirstValue(o, ["polygone", "polygon", "geojson"])) ?? undefined,
+    ndvi:
+      asNumber(pickFirstValue(o, ["ndvi", "ndviValue", "ndvi_value"])) ?? undefined,
+    status: asStringLike(pickFirstValue(o, ["status", "statut"])) ?? undefined,
     source: asSource(o.source, "LIVE"),
   };
 }
@@ -503,37 +595,155 @@ export function toIotReading(raw: unknown): IotReading | null {
 export function toFarmer(raw: unknown): Farmer | null {
   const o = asObject(raw);
   if (!o) return null;
-  const id = asString(o.id);
-  const fullName = asString(o.fullName);
-  const totalAreaHa = asNumber(o.totalAreaHa);
-  if (!id || !fullName || totalAreaHa === null) return null;
+  const id =
+    asStringLike(pickFirstValue(o, ["id", "farmerId", "farmer_id"])) ?? null;
+
+  const firstName =
+    asStringLike(
+      pickFirstValue(o, ["firstName", "prenom", "first_name"]),
+    ) ?? undefined;
+  const lastName =
+    asStringLike(pickFirstValue(o, ["lastName", "nom", "last_name"])) ?? undefined;
+
+  const explicitName =
+    asStringLike(
+      pickFirstValue(o, ["fullName", "name", "nomComplet", "nom_complet"]),
+    ) ?? undefined;
+
+  const phone =
+    asStringLike(pickFirstValue(o, ["phone", "telephone", "téléphone", "mobile"])) ??
+    undefined;
+  const email = asStringLike(pickFirstValue(o, ["email"])) ?? undefined;
+
+  const joinedName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  const fullName = explicitName ?? (joinedName || undefined) ?? phone ?? email ?? null;
+
+  const totalAreaHa =
+    asNumber(
+      pickFirstValue(o, ["totalAreaHa", "total_area_ha", "surface", "superficie", "areaHa"]),
+    ) ?? 0;
+
+  if (!id || !fullName) return null;
+
+  const cooperativeFromObject = asObject(pickFirstValue(o, ["cooperative"]));
+  const cooperativeId =
+    asStringLike(
+      pickFirstValue(o, [
+        "cooperativeId",
+        "cooperative_id",
+        "coopId",
+        "cooperative.id",
+      ]),
+    ) ??
+    asStringLike(cooperativeFromObject?.id) ??
+    undefined;
+
+  const cooperativeName =
+    asStringLike(
+      pickFirstValue(o, [
+        "cooperativeName",
+        "cooperative_name",
+        "cooperative.name",
+        "cooperative.nom",
+      ]),
+    ) ??
+    asStringLike(cooperativeFromObject?.name) ??
+    asStringLike(cooperativeFromObject?.nom) ??
+    undefined;
+
+  const locationParts = [
+    asStringLike(pickFirstValue(o, ["region", "région", "province"])),
+    asStringLike(pickFirstValue(o, ["commune", "village", "city", "locality"])),
+  ].filter(Boolean);
+
   return {
     id,
     fullName,
-    nationalIdMasked: asString(o.nationalIdMasked) ?? "N/A",
-    phone: asString(o.phone) ?? "N/A",
-    region: asString(o.region) ?? "Non renseignee",
-    primaryCrop: asString(o.primaryCrop) ?? "Non renseignee",
+    nationalIdMasked:
+      asStringLike(pickFirstValue(o, ["nationalIdMasked", "national_id_masked"])) ?? "N/A",
+    phone: phone ?? "N/A",
+    region:
+      (locationParts.length > 0
+        ? locationParts.join(" / ")
+        : asStringLike(pickFirstValue(o, ["address"]))) ?? "Non renseignee",
+    primaryCrop:
+      asStringLike(pickFirstValue(o, ["primaryCrop", "culture", "mainCrop", "main_crop"])) ??
+      cooperativeName ??
+      "Non renseignee",
     totalAreaHa,
     source: asSource(o.source, "LIVE"),
+    cooperativeId,
+    cooperativeName,
+    kycStatus:
+      asStringLike(pickFirstValue(o, ["kycStatus", "kyc_status", "statusKyc"])) ?? undefined,
+    lat: asNumber(pickFirstValue(o, ["lat", "latitude"])) ?? undefined,
+    lng: asNumber(pickFirstValue(o, ["lng", "longitude"])) ?? undefined,
   };
 }
 
 export function toCooperative(raw: unknown): Cooperative | null {
   const o = asObject(raw);
   if (!o) return null;
-  const id = asString(o.id);
-  const name = asString(o.name);
-  const memberCount = asNumber(o.memberCount);
-  if (!id || !name || memberCount === null) return null;
+  const id =
+    asStringLike(pickFirstValue(o, ["id", "cooperativeId", "cooperative_id", "coopId"])) ??
+    null;
+  const name =
+    asStringLike(
+      pickFirstValue(o, [
+        "name",
+        "nom",
+        "cooperativeName",
+        "cooperative_name",
+        "raisonSociale",
+        "raison_sociale",
+      ]),
+    ) ?? null;
+  if (!id || !name) return null;
+
+  const memberCount =
+    asNumber(
+      pickFirstValue(o, [
+        "memberCount",
+        "membersCount",
+        "members_count",
+        "nbMembres",
+        "farmersCount",
+        "farmers_count",
+      ]),
+    ) ?? 0;
+
+  const aggregatedAreaHa =
+    asNumber(
+      pickFirstValue(o, [
+        "aggregatedAreaHa",
+        "aggregated_area_ha",
+        "surface",
+        "superficie",
+        "areaHa",
+      ]),
+    ) ?? 0;
+
   return {
     id,
     name,
-    region: asString(o.region) ?? "Non renseignee",
-    filiere: asString(o.filiere) ?? asString(o.valueChain) ?? asString(o.value_chain) ?? undefined,
+    region:
+      asStringLike(
+        pickFirstValue(o, ["region", "région", "province", "commune", "city", "village"]),
+      ) ??
+      asStringLike(pickFirstValue(o, ["address"])) ??
+      "Non renseignee",
+    filiere:
+      asStringLike(
+        pickFirstValue(o, ["filiere", "filière", "sector", "culture", "mainCrop", "main_crop"]),
+      ) ??
+      asStringLike(pickFirstValue(o, ["valueChain", "value_chain"])) ??
+      undefined,
     memberCount,
-    aggregatedAreaHa: asNumber(o.aggregatedAreaHa) ?? 0,
-    contactName: asString(o.contactName) ?? "N/A",
+    aggregatedAreaHa,
+    contactName:
+      asStringLike(pickFirstValue(o, ["contactName", "contact_name", "managerName"])) ?? "N/A",
     source: asSource(o.source, "LIVE"),
+    lat: asNumber(pickFirstValue(o, ["lat", "latitude"])) ?? undefined,
+    lng: asNumber(pickFirstValue(o, ["lng", "longitude"])) ?? undefined,
   };
 }
