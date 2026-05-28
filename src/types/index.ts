@@ -155,14 +155,21 @@ export interface CommercialOffer {
 
 export interface InsurancePolicy {
   id: string;
+  offerId?: string;
+  farmerId?: string;
   policyNumber: string;
   applicationId: string;
   insurerName: string;
+  totalInsuredCapital?: number;
+  totalPremiumTtc?: number;
+  coverageStartDate?: string;
+  coverageEndDate?: string;
+  issuedAt?: string;
   coverageMad: number;
   annualPremiumMad: number;
   effectiveDate: string;
   expiryDate: string;
-  status: "ACTIVE" | "SUSPENDED" | "EXPIRED";
+  status: "ACTIVE" | "SUSPENDED" | "EXPIRED" | "CLOSED" | "CLAIM_OPEN";
   source: DataSource;
 }
 

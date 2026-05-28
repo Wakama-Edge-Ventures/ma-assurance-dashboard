@@ -237,3 +237,43 @@ export function isExpiredDate(value: string | Date): boolean {
   if (Number.isNaN(date.getTime())) return false;
   return date.getTime() < Date.now();
 }
+
+export function getPolicyStatusLabel(value: string): string {
+  const labels: Record<string, string> = {
+    ACTIVE: "Active",
+    SUSPENDED: "Suspendue",
+    EXPIRED: "Expiree",
+    CLOSED: "Cloturee",
+    CLAIM_OPEN: "Sinistre en suivi",
+  };
+  return labels[value] ?? "Statut non renseigne";
+}
+
+export function getPolicyExpiryState(
+  startDate?: string | Date,
+  endDate?: string | Date,
+): "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "UNKNOWN" {
+  const start = startDate ? new Date(startDate) : null;
+  const end = endDate ? new Date(endDate) : null;
+  const now = new Date();
+
+  if (!end || Number.isNaN(end.getTime())) return "UNKNOWN";
+  if (end.getTime() < now.getTime()) return "EXPIRED";
+  if (start && !Number.isNaN(start.getTime()) && start.getTime() > now.getTime()) {
+    return "UNKNOWN";
+  }
+
+  const daysRemaining = (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  if (daysRemaining <= 45) return "EXPIRING_SOON";
+  return "ACTIVE";
+}
+
+export function getPolicyExpiryStateLabel(value: string): string {
+  const labels: Record<string, string> = {
+    ACTIVE: "En couverture",
+    EXPIRING_SOON: "Expiration proche",
+    EXPIRED: "Expiree",
+    UNKNOWN: "Etat inconnu",
+  };
+  return labels[value] ?? "Etat inconnu";
+}

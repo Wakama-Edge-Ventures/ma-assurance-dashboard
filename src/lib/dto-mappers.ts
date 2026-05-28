@@ -264,21 +264,44 @@ export function toCommercialOffer(raw: unknown): CommercialOffer | null {
 export function toInsurancePolicy(raw: unknown): InsurancePolicy | null {
   const o = asObject(raw);
   if (!o) return null;
-  const id = asString(o.id);
-  const policyNumber = asString(o.policyNumber);
-  const applicationId = asString(o.applicationId);
-  const coverageMad = asNumber(o.coverageMad);
-  const annualPremiumMad = asNumber(o.annualPremiumMad);
-  const effectiveDate = asString(o.effectiveDate);
-  const expiryDate = asString(o.expiryDate);
+  const id = asString(o.id) ?? asString(o.policyId);
+  const policyNumber = asString(o.policyNumber) ?? asString(o.policy_number);
+  const applicationId = asString(o.applicationId) ?? asString(o.application_id);
+
+  const totalInsuredCapital =
+    asNumber(o.totalInsuredCapital) ?? asNumber(o.total_insured_capital);
+  const totalPremiumTtc = asNumber(o.totalPremiumTtc) ?? asNumber(o.total_premium_ttc);
+
+  const coverageStartDate =
+    asString(o.coverageStartDate) ??
+    asString(o.coverage_start_date) ??
+    asString(o.effectiveDate);
+  const coverageEndDate =
+    asString(o.coverageEndDate) ??
+    asString(o.coverage_end_date) ??
+    asString(o.expiryDate);
+
+  const coverageMad = asNumber(o.coverageMad) ?? totalInsuredCapital;
+  const annualPremiumMad = asNumber(o.annualPremiumMad) ?? totalPremiumTtc;
+  const effectiveDate = coverageStartDate;
+  const expiryDate = coverageEndDate;
   const status = asString(o.status) as InsurancePolicy["status"] | null;
-  if (!id || !policyNumber || !applicationId || !effectiveDate || !expiryDate || !status) return null;
+  if (!id || !policyNumber || !applicationId || !effectiveDate || !expiryDate || !status) {
+    return null;
+  }
   if (coverageMad === null || annualPremiumMad === null) return null;
   return {
     id,
+    offerId: asString(o.offerId) ?? asString(o.offer_id) ?? undefined,
+    farmerId: asString(o.farmerId) ?? asString(o.farmer_id) ?? undefined,
     policyNumber,
     applicationId,
     insurerName: asString(o.insurerName) ?? "Assureur partenaire",
+    totalInsuredCapital: totalInsuredCapital ?? coverageMad,
+    totalPremiumTtc: totalPremiumTtc ?? annualPremiumMad,
+    coverageStartDate,
+    coverageEndDate,
+    issuedAt: asString(o.issuedAt) ?? asString(o.issued_at) ?? undefined,
     coverageMad,
     annualPremiumMad,
     effectiveDate,

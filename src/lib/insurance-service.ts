@@ -184,6 +184,11 @@ export async function getInsurancePolicies(): Promise<InsurancePolicy[]> {
   );
 }
 
+export async function getInsurancePolicyById(id: string): Promise<InsurancePolicy | null> {
+  const policies = await getInsurancePolicies();
+  return policies.find((item) => item.id === id) ?? null;
+}
+
 export async function getMonitoringAlerts(): Promise<MonitoringAlert[]> {
   return fetchListWithFallback<MonitoringAlert>(
     "/v1/insurance/monitoring/alerts",
