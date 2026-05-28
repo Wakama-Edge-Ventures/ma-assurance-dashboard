@@ -13,6 +13,7 @@ import {
 } from "@/types";
 
 import { normalizeSource } from "./data-source";
+import { calculateRaxBrut, calculateWrs, getRiskTierFromWrs } from "./workflow";
 
 function asObject(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -140,15 +141,34 @@ export function toRaxEvaluation(raw: unknown): RaxEvaluation | null {
   if (!o) return null;
   const id = asString(o.id);
   const applicationId = asString(o.applicationId);
-  const wrsScore = asNumber(o.wrsScore);
-  const raxScore = asNumber(o.raxScore);
-  const riskTier = asString(o.riskTier) as RaxEvaluation["riskTier"] | null;
-  if (!id || !applicationId || wrsScore === null || raxScore === null || !riskTier) return null;
+  const gravity = asNumber(o.gravity) ?? asNumber(o.g);
+  const frequency = asNumber(o.frequency) ?? asNumber(o.f);
+  const detection = asNumber(o.detection) ?? asNumber(o.d);
+  const explicitRaxBrut = asNumber(o.raxBrut);
+  const explicitRaxScore = asNumber(o.raxScore);
+  const explicitWrs =
+    asNumber(o.wrsScore) ?? asNumber(o.wrs) ?? asNumber(o.wrsNormalized);
+
+  const derivedRaxBrut =
+    gravity !== null && frequency !== null && detection !== null
+      ? calculateRaxBrut(gravity, frequency, detection)
+      : null;
+  const raxBrut = explicitRaxBrut ?? derivedRaxBrut ?? explicitRaxScore;
+  const wrsScore = explicitWrs ?? (raxBrut !== null ? calculateWrs(raxBrut) : null);
+  const riskTier =
+    (asString(o.riskTier) as RaxEvaluation["riskTier"] | null) ??
+    (wrsScore !== null ? getRiskTierFromWrs(wrsScore) : null);
+
+  if (!id || !applicationId || wrsScore === null || raxBrut === null || !riskTier) return null;
   return {
     id,
     applicationId,
+    gravity: gravity ?? undefined,
+    frequency: frequency ?? undefined,
+    detection: detection ?? undefined,
+    raxBrut: explicitRaxBrut ?? derivedRaxBrut ?? raxBrut,
     wrsScore,
-    raxScore,
+    raxScore: explicitRaxScore ?? raxBrut,
     riskTier,
     recommendation: asString(o.recommendation) ?? "",
     source: asSource(o.source, "LIVE"),

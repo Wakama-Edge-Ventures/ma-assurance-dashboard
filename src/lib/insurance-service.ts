@@ -156,6 +156,11 @@ export async function getRaxEvaluations(): Promise<RaxEvaluation[]> {
   );
 }
 
+export async function getRaxEvaluationById(id: string): Promise<RaxEvaluation | null> {
+  const evaluations = await getRaxEvaluations();
+  return evaluations.find((item) => item.id === id) ?? null;
+}
+
 export async function getCommercialOffers(): Promise<CommercialOffer[]> {
   return fetchListWithFallback<CommercialOffer>(
     "/v1/insurance/pricing",

@@ -162,8 +162,37 @@ export function getRiskTierDescription(tier: RiskTier): string {
   return descriptions[tier];
 }
 
+export function calculateRaxBrut(
+  gravity: number,
+  frequency: number,
+  detection: number,
+): number {
+  const g = Number.isFinite(gravity) ? gravity : 0;
+  const f = Number.isFinite(frequency) ? frequency : 0;
+  const d = Number.isFinite(detection) ? detection : 0;
+  return g * f * d;
+}
+
+export function calculateWrs(raxBrut: number): number {
+  const raw = (raxBrut / 25) * 100;
+  if (!Number.isFinite(raw)) return 0;
+  return Math.max(0, Math.min(100, raw));
+}
+
+export function getRiskTierFromWrs(wrs: number): RiskTier {
+  if (wrs <= 20) return "LOW_RISK";
+  if (wrs <= 50) return "MEDIUM_RISK";
+  if (wrs <= 75) return "HIGH_RISK";
+  return "UNINSURABLE";
+}
+
 export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
+}
+
+export function formatScore(value: number): string {
+  if (!Number.isFinite(value)) return "0.0";
+  return value.toFixed(1);
 }
 
 export function formatMAD(value: number): string {

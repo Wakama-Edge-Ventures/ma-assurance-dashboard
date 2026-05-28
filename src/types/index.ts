@@ -110,6 +110,10 @@ export interface InsuranceFieldAudit {
 export interface RaxEvaluation {
   id: string;
   applicationId: string;
+  gravity?: number;
+  frequency?: number;
+  detection?: number;
+  raxBrut?: number;
   wrsScore: number;
   raxScore: number;
   riskTier: RiskTier;
