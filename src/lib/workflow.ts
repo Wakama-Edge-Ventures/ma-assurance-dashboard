@@ -111,6 +111,37 @@ export function getMissionStatusOrder(status: InsuranceMission["status"]): numbe
   return order[status];
 }
 
+export function getAreaDeltaSeverity(
+  deltaPercent: number,
+): "OK" | "WARNING" | "CRITICAL" {
+  const normalized = Math.abs(deltaPercent);
+  if (normalized <= 3) return "OK";
+  if (normalized <= 10) return "WARNING";
+  return "CRITICAL";
+}
+
+export function getAreaDeltaSeverityLabel(
+  severity: "OK" | "WARNING" | "CRITICAL",
+): string {
+  const labels = {
+    OK: "Ecart acceptable",
+    WARNING: "Ecart a verifier",
+    CRITICAL: "Ecart critique",
+  } as const;
+  return labels[severity];
+}
+
+export function getAuditModeLabel(
+  mode: "WEB_DEMO" | "NATIVE_AGENT" | "API_IMPORT" | string,
+): string {
+  const labels: Record<string, string> = {
+    WEB_DEMO: "Web demo",
+    NATIVE_AGENT: "Agent native",
+    API_IMPORT: "Import API",
+  };
+  return labels[mode] ?? "Mode inconnu";
+}
+
 export function getRiskTierLabel(tier: RiskTier): string {
   const labels: Record<RiskTier, string> = {
     LOW_RISK: "Risque faible",

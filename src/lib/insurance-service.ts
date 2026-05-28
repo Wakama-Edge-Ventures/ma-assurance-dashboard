@@ -141,6 +141,13 @@ export async function getInsuranceFieldAudits(): Promise<InsuranceFieldAudit[]> 
   );
 }
 
+export async function getInsuranceFieldAuditById(
+  id: string,
+): Promise<InsuranceFieldAudit | null> {
+  const audits = await getInsuranceFieldAudits();
+  return audits.find((item) => item.id === id) ?? null;
+}
+
 export async function getRaxEvaluations(): Promise<RaxEvaluation[]> {
   return fetchListWithFallback<RaxEvaluation>(
     "/v1/insurance/rax",
