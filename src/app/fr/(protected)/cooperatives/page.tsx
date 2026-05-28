@@ -1,4 +1,4 @@
-import { Bell, Cpu, Map as MapIcon, Sprout, Users } from "lucide-react";
+import { Bell, Cpu, Map as MapIcon, Users } from "lucide-react";
 
 import {
   CooperativeRow,
@@ -14,6 +14,15 @@ import {
   getParcelles,
   getWakamaAlerts,
 } from "@/lib/insurance-service";
+
+export const dynamic = "force-dynamic";
+
+const severityOrder: Record<string, number> = {
+  UNKNOWN: 0,
+  INFO: 1,
+  WARNING: 2,
+  CRITICAL: 3,
+};
 
 export default async function CooperativesPage() {
   const [cooperatives, farmers, parcelles, alerts, iotNodes] = await Promise.all([
@@ -62,6 +71,14 @@ export default async function CooperativesPage() {
 
       return false;
     });
+    const highestAlertSeverity = cooperativeAlerts.reduce<
+      CooperativeRow["highestAlertSeverity"]
+    >((highest, current) => {
+      if (!highest) return current.severity;
+      return severityOrder[current.severity] > severityOrder[highest]
+        ? current.severity
+        : highest;
+    }, null);
     const cooperativeNodes = iotNodes.filter((node) => node.cooperativeId === cooperative.id);
 
     return {
@@ -73,6 +90,7 @@ export default async function CooperativesPage() {
       parcellesCount: cooperativeParcelles.length,
       iotCount: cooperativeNodes.length,
       alertsCount: cooperativeAlerts.length,
+      highestAlertSeverity,
       source: cooperative.source,
     };
   });
@@ -81,6 +99,8 @@ export default async function CooperativesPage() {
   const linkedParcelles = rows.reduce((sum, row) => sum + row.parcellesCount, 0);
   const linkedAlerts = rows.reduce((sum, row) => sum + row.alertsCount, 0);
   const totalIot = rows.reduce((sum, row) => sum + row.iotCount, 0);
+  const cooperativeWithAlerts = rows.filter((row) => row.alertsCount > 0).length;
+  const liveCooperatives = cooperatives.filter((item) => item.source === "LIVE").length;
 
   return (
     <div className="space-y-6">
@@ -90,36 +110,44 @@ export default async function CooperativesPage() {
       />
       <LiveApiStatusNote />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <StatCard
           title="Total cooperatives"
           value={String(cooperatives.length)}
-          source="SEED_DEMO"
+          source={liveCooperatives > 0 ? "LIVE" : "SEED_DEMO"}
           icon={Users}
         />
         <StatCard
-          title="Agriculteurs lies"
-          value={String(linkedFarmers)}
-          source="SEED_DEMO"
-          icon={Sprout}
+          title="Cooperatives LIVE"
+          value={String(liveCooperatives)}
+          hint={`SEED_DEMO: ${cooperatives.length - liveCooperatives}`}
+          source={liveCooperatives > 0 ? "LIVE" : "SEED_DEMO"}
+          icon={Users}
+        />
+        <StatCard
+          title="Alertes liees"
+          value={String(linkedAlerts)}
+          source={alerts.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO"}
+          icon={Bell}
+        />
+        <StatCard
+          title="Coops avec alertes"
+          value={String(cooperativeWithAlerts)}
+          source={alerts.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO"}
+          icon={Bell}
         />
         <StatCard
           title="Parcelles liees"
           value={String(linkedParcelles)}
-          source="SEED_DEMO"
+          source={parcelles.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO"}
           icon={MapIcon}
         />
         <StatCard
           title="IoT nodes"
           value={String(totalIot)}
-          source="SEED_DEMO"
+          hint={`Agriculteurs lies: ${linkedFarmers}`}
+          source={iotNodes.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO"}
           icon={Cpu}
-        />
-        <StatCard
-          title="Alertes actives"
-          value={String(linkedAlerts)}
-          source="SEED_DEMO"
-          icon={Bell}
         />
       </div>
 

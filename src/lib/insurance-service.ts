@@ -53,7 +53,8 @@ import {
   WakamaAlert,
 } from "@/types";
 
-const USE_LIVE_API = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
+const USE_LIVE_SHARED_API = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
+const USE_LIVE_INSURANCE_API = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
 const DEBUG_API_SHAPES = process.env.NEXT_PUBLIC_DEBUG_API_SHAPES === "true";
 const PAGINATION_PAGE_SIZE = 100;
 const MAX_PAGINATION_PAGES = 20;
@@ -71,6 +72,30 @@ interface DashboardOverview {
   cooperatives: Cooperative[];
   parcelles: Parcelle[];
   wakamaAlerts: WakamaAlert[];
+}
+
+export interface SharedWakamaDataOverview {
+  farmersCount: number;
+  farmersLiveCount: number;
+  farmersSeedDemoCount: number;
+  cooperativesCount: number;
+  cooperativesLiveCount: number;
+  cooperativesSeedDemoCount: number;
+  parcellesCount: number;
+  parcellesLiveCount: number;
+  parcellesSeedDemoCount: number;
+  wakamaAlertsCount: number;
+  wakamaAlertsLiveCount: number;
+  wakamaAlertsSeedDemoCount: number;
+  criticalAlertsCount: number;
+  warningAlertsCount: number;
+  infoAlertsCount: number;
+  iotNodesCount: number;
+  iotNodesLiveCount: number;
+  iotNodesSeedDemoCount: number;
+  liveCount: number;
+  seedDemoCount: number;
+  recentAlerts: WakamaAlert[];
 }
 
 function warnFallback(endpoint: string, error: unknown) {
@@ -225,9 +250,10 @@ async function fetchListWithFallback<T extends object>(
   mapper: (raw: unknown) => (T & { source?: unknown }) | null,
   mapperName: string,
   preferredKeys: string[] = [],
+  useLive = USE_LIVE_INSURANCE_API,
 ): Promise<Array<T & { source: "LIVE" | "SEED_DEMO" }>> {
   const seedWithSource = normalizeSeed(seed);
-  if (!USE_LIVE_API) return seedWithSource;
+  if (!useLive) return seedWithSource;
 
   try {
     const payload = await apiFetch<unknown>(endpoint);
@@ -253,9 +279,10 @@ async function fetchPaginatedListWithFallback<T extends object>(
   mapper: (raw: unknown) => (T & { source?: unknown }) | null,
   mapperName: string,
   preferredKeys: string[] = [],
+  useLive = USE_LIVE_SHARED_API,
 ): Promise<Array<T & { source: "LIVE" | "SEED_DEMO" }>> {
   const seedWithSource = normalizeSeed(seed);
-  if (!USE_LIVE_API) return seedWithSource;
+  if (!useLive) return seedWithSource;
 
   try {
     const firstEndpoint = buildPaginatedEndpoint(endpoint, 1, PAGINATION_PAGE_SIZE);
@@ -313,6 +340,8 @@ export async function getInsuranceApplications(): Promise<InsuranceApplication[]
     seedApplications,
     toInsuranceApplication,
     "toInsuranceApplication",
+    [],
+    USE_LIVE_INSURANCE_API,
   );
 }
 
@@ -329,6 +358,8 @@ export async function getInsuranceMissions(): Promise<InsuranceMission[]> {
     seedMissions,
     toInsuranceMission,
     "toInsuranceMission",
+    [],
+    USE_LIVE_INSURANCE_API,
   );
 }
 
@@ -345,6 +376,8 @@ export async function getInsuranceFieldAudits(): Promise<InsuranceFieldAudit[]> 
     seedFieldAudits,
     toInsuranceFieldAudit,
     "toInsuranceFieldAudit",
+    [],
+    USE_LIVE_INSURANCE_API,
   );
 }
 
@@ -361,6 +394,8 @@ export async function getRaxEvaluations(): Promise<RaxEvaluation[]> {
     seedRaxEvaluations,
     toRaxEvaluation,
     "toRaxEvaluation",
+    [],
+    USE_LIVE_INSURANCE_API,
   );
 }
 
@@ -375,6 +410,8 @@ export async function getCommercialOffers(): Promise<CommercialOffer[]> {
     seedPricingOffers,
     toCommercialOffer,
     "toCommercialOffer",
+    [],
+    USE_LIVE_INSURANCE_API,
   );
 }
 
@@ -391,6 +428,8 @@ export async function getInsurancePolicies(): Promise<InsurancePolicy[]> {
     seedPolicies,
     toInsurancePolicy,
     "toInsurancePolicy",
+    [],
+    USE_LIVE_INSURANCE_API,
   );
 }
 
@@ -405,6 +444,8 @@ export async function getMonitoringAlerts(): Promise<MonitoringAlert[]> {
     seedMonitoringAlerts,
     toMonitoringAlert,
     "toMonitoringAlert",
+    [],
+    USE_LIVE_INSURANCE_API,
   );
 }
 
@@ -419,6 +460,8 @@ export async function getInsuranceClaims(): Promise<InsuranceClaim[]> {
     seedClaims,
     toInsuranceClaim,
     "toInsuranceClaim",
+    [],
+    USE_LIVE_INSURANCE_API,
   );
 }
 
@@ -434,6 +477,7 @@ export async function getFarmers(): Promise<Farmer[]> {
     toFarmer,
     "toFarmer",
     ["farmers", "items", "results", "data"],
+    USE_LIVE_SHARED_API,
   );
 }
 
@@ -444,6 +488,7 @@ export async function getCooperatives(): Promise<Cooperative[]> {
     toCooperative,
     "toCooperative",
     ["cooperatives", "items", "results", "data"],
+    USE_LIVE_SHARED_API,
   );
 }
 
@@ -454,6 +499,7 @@ export async function getParcelles(): Promise<Parcelle[]> {
     toParcelle,
     "toParcelle",
     ["parcelles", "plots", "items", "results", "data"],
+    USE_LIVE_SHARED_API,
   );
 }
 
@@ -469,6 +515,7 @@ export async function getWakamaAlerts(): Promise<WakamaAlert[]> {
     toWakamaAlert,
     "toWakamaAlert",
     ["alerts", "items", "results", "data"],
+    USE_LIVE_SHARED_API,
   );
 }
 
@@ -482,7 +529,7 @@ export async function getNdviSnapshotByParcelleId(
 ): Promise<NdviSnapshot | null> {
   const seedMatch =
     seedNdviSnapshots.find((item) => item.parcelleId === parcelleId) ?? null;
-  if (!USE_LIVE_API) return seedMatch;
+  if (!USE_LIVE_SHARED_API) return seedMatch;
 
   const endpoint = `/v1/ndvi/${parcelleId}`;
   try {
@@ -529,6 +576,7 @@ export async function getIotNodes(): Promise<IotNode[]> {
     toIotNode,
     "toIotNode",
     ["nodes", "iotNodes", "items", "results", "data"],
+    USE_LIVE_SHARED_API,
   );
 }
 
@@ -536,7 +584,7 @@ export async function getIotReadingsByNodeId(nodeId: string): Promise<IotReading
   const seedMatch = seedIotReadings
     .filter((item) => item.nodeId === nodeId)
     .map((item) => withSource(item, "SEED_DEMO"));
-  if (!USE_LIVE_API) return seedMatch;
+  if (!USE_LIVE_SHARED_API) return seedMatch;
 
   const endpoint = `/v1/iot/readings/${nodeId}`;
   try {
@@ -568,6 +616,48 @@ export async function getIotReadingsByNodeId(nodeId: string): Promise<IotReading
     warnFallback(endpoint, error);
     return seedMatch;
   }
+}
+
+export async function getSharedWakamaDataOverview(): Promise<SharedWakamaDataOverview> {
+  const [farmers, cooperatives, parcelles, wakamaAlerts, iotNodes] = await Promise.all([
+    getFarmers(),
+    getCooperatives(),
+    getParcelles(),
+    getWakamaAlerts(),
+    getIotNodes(),
+  ]);
+
+  const combinedSources = [...farmers, ...cooperatives, ...parcelles, ...wakamaAlerts, ...iotNodes];
+  const liveCount = combinedSources.filter((item) => item.source === "LIVE").length;
+  const seedDemoCount = combinedSources.filter((item) => item.source === "SEED_DEMO").length;
+
+  const recentAlerts = [...wakamaAlerts]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 8);
+
+  return {
+    farmersCount: farmers.length,
+    farmersLiveCount: farmers.filter((item) => item.source === "LIVE").length,
+    farmersSeedDemoCount: farmers.filter((item) => item.source === "SEED_DEMO").length,
+    cooperativesCount: cooperatives.length,
+    cooperativesLiveCount: cooperatives.filter((item) => item.source === "LIVE").length,
+    cooperativesSeedDemoCount: cooperatives.filter((item) => item.source === "SEED_DEMO").length,
+    parcellesCount: parcelles.length,
+    parcellesLiveCount: parcelles.filter((item) => item.source === "LIVE").length,
+    parcellesSeedDemoCount: parcelles.filter((item) => item.source === "SEED_DEMO").length,
+    wakamaAlertsCount: wakamaAlerts.length,
+    wakamaAlertsLiveCount: wakamaAlerts.filter((item) => item.source === "LIVE").length,
+    wakamaAlertsSeedDemoCount: wakamaAlerts.filter((item) => item.source === "SEED_DEMO").length,
+    criticalAlertsCount: wakamaAlerts.filter((item) => item.severity === "CRITICAL").length,
+    warningAlertsCount: wakamaAlerts.filter((item) => item.severity === "WARNING").length,
+    infoAlertsCount: wakamaAlerts.filter((item) => item.severity === "INFO").length,
+    iotNodesCount: iotNodes.length,
+    iotNodesLiveCount: iotNodes.filter((item) => item.source === "LIVE").length,
+    iotNodesSeedDemoCount: iotNodes.filter((item) => item.source === "SEED_DEMO").length,
+    liveCount,
+    seedDemoCount,
+    recentAlerts,
+  };
 }
 
 export async function getDashboardOverview(): Promise<DashboardOverview> {

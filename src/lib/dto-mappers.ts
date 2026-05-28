@@ -556,7 +556,9 @@ export function toWakamaAlert(raw: unknown): WakamaAlert | null {
     farmerId:
       asStringLike(pickFirstValue(o, ["farmerId", "farmer_id"])) ?? undefined,
     cooperativeId:
-      asStringLike(pickFirstValue(o, ["cooperativeId", "cooperative_id", "coopId"])) ??
+      asStringLike(
+        pickFirstValue(o, ["cooperativeId", "cooperative_id", "coopId", "coop_id"]),
+      ) ??
       undefined,
     parcelleId:
       asStringLike(pickFirstValue(o, ["parcelleId", "parcelle_id"])) ?? undefined,

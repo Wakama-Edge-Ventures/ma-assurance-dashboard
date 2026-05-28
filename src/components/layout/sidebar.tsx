@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Bell,
   BriefcaseBusiness,
   ClipboardCheck,
   FileChartColumnIncreasing,
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/fr/pricing", label: "Pricing", icon: Landmark },
   { href: "/fr/policies", label: "Policies", icon: FileCheck2 },
   { href: "/fr/monitoring", label: "Monitoring", icon: Shield },
+  { href: "/fr/alerts", label: "Wakama Alerts", icon: Bell },
   { href: "/fr/claims", label: "Claims", icon: Handshake },
   { href: "/fr/farmers", label: "Farmers", icon: Tractor },
   { href: "/fr/cooperatives", label: "Cooperatives", icon: Users },

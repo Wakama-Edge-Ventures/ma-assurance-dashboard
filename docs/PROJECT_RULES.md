@@ -18,8 +18,10 @@
 - Les donnees CNDP/PII exigent un traitement prudent, avec durcissement ulterieur.
 - Les futures integrations backend utiliseront `https://api.wakama.farm`.
 - Les entites Wakama existantes (`farmers`, `cooperatives`, `parcelles`, `NDVI`, `alerts`, `IoT`) sont des donnees partagees en lecture seule: ne pas dupliquer ni muter sans contrat backend explicite.
+- Les services workflow assurance ne doivent pas appeler `/v1/insurance/*` tant que `NEXT_PUBLIC_USE_LIVE_INSURANCE_API=true` n'est pas explicitement active.
 - Les tokens mock d'auth UI ne doivent jamais etre traites comme des credentials backend valides: seuls de vrais tokens backend peuvent etre envoyes aux appels live API.
 - Les alertes Wakama existantes sont des signaux operationnels contextuels: ne jamais les presenter comme une approbation automatique de sinistre, une indemnisation ou une decision assureur.
+- Les logs de debug peuvent inclure endpoint, compteurs et cles de structure uniquement; ne jamais logger les objets PII complets.
 
 ## Formulations autorisees
 - Utiliser: "preuve d'integrite horodatee".

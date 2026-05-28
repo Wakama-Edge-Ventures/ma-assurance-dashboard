@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { WakamaAlertSeverityBadge } from "@/components/shared/wakama-alert-severity-badge";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { DataSource } from "@/types";
 
@@ -13,6 +14,7 @@ export interface FarmerRow {
   cooperativeName: string;
   parcellesCount: number;
   alertsCount: number;
+  highestAlertSeverity?: "CRITICAL" | "WARNING" | "INFO" | "UNKNOWN" | null;
   source: DataSource;
 }
 
@@ -83,6 +85,7 @@ export function FarmersTable({ rows }: FarmersTableProps) {
               <th className="px-3 py-3">Cooperative</th>
               <th className="px-3 py-3">Parcelles</th>
               <th className="px-3 py-3">Alertes</th>
+              <th className="px-3 py-3">Niveau</th>
               <th className="px-3 py-3">Source</th>
               <th className="px-3 py-3">Action</th>
             </tr>
@@ -98,6 +101,13 @@ export function FarmersTable({ rows }: FarmersTableProps) {
                 <td className="px-3 py-3 text-slate-200">{row.cooperativeName}</td>
                 <td className="px-3 py-3 text-slate-200">{row.parcellesCount}</td>
                 <td className="px-3 py-3 text-slate-200">{row.alertsCount}</td>
+                <td className="px-3 py-3 text-slate-200">
+                  {row.highestAlertSeverity ? (
+                    <WakamaAlertSeverityBadge severity={row.highestAlertSeverity} />
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td className="px-3 py-3">
                   <DataSourceBadge source={row.source} />
                 </td>

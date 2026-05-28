@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { WakamaAlertSeverityBadge } from "@/components/shared/wakama-alert-severity-badge";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { DataSource } from "@/types";
 
@@ -14,6 +15,7 @@ export interface CooperativeRow {
   parcellesCount: number;
   iotCount: number;
   alertsCount: number;
+  highestAlertSeverity?: "CRITICAL" | "WARNING" | "INFO" | "UNKNOWN" | null;
   source: DataSource;
 }
 
@@ -87,6 +89,7 @@ export function CooperativesTable({ rows }: CooperativesTableProps) {
               <th className="px-3 py-3">Parcelles</th>
               <th className="px-3 py-3">IoT</th>
               <th className="px-3 py-3">Alertes</th>
+              <th className="px-3 py-3">Niveau</th>
               <th className="px-3 py-3">Source</th>
             </tr>
           </thead>
@@ -103,6 +106,13 @@ export function CooperativesTable({ rows }: CooperativesTableProps) {
                 <td className="px-3 py-3 text-slate-200">{row.parcellesCount}</td>
                 <td className="px-3 py-3 text-slate-200">{row.iotCount}</td>
                 <td className="px-3 py-3 text-slate-200">{row.alertsCount}</td>
+                <td className="px-3 py-3 text-slate-200">
+                  {row.highestAlertSeverity ? (
+                    <WakamaAlertSeverityBadge severity={row.highestAlertSeverity} />
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td className="px-3 py-3">
                   <DataSourceBadge source={row.source} />
                 </td>
