@@ -277,3 +277,41 @@ export function getPolicyExpiryStateLabel(value: string): string {
   };
   return labels[value] ?? "Etat inconnu";
 }
+
+export function getMonitoringSeverityLabel(value: string): string {
+  const labels: Record<string, string> = {
+    INFO: "Information",
+    WARNING: "Alerte",
+    CRITICAL: "Critique",
+  };
+  return labels[value] ?? "Niveau inconnu";
+}
+
+export function getMonitoringSignalTypeLabel(value: string): string {
+  const labels: Record<string, string> = {
+    NDVI: "NDVI",
+    WEATHER: "Meteo",
+    IOT: "IoT",
+    FIELD: "Terrain",
+    SYSTEM: "Systeme",
+  };
+  return labels[value] ?? "Signal non renseigne";
+}
+
+export function getMonitoringStatusLabel(value: string): string {
+  const labels: Record<string, string> = {
+    OPEN: "Ouvert",
+    ACKNOWLEDGED: "Pris en compte",
+    RESOLVED: "Resolue",
+  };
+  return labels[value] ?? "Statut inconnu";
+}
+
+export function getMonitoringSeverityOrder(value: string): number {
+  const order: Record<string, number> = {
+    INFO: 1,
+    WARNING: 2,
+    CRITICAL: 3,
+  };
+  return order[value] ?? 0;
+}

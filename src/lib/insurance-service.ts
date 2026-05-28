@@ -197,6 +197,11 @@ export async function getMonitoringAlerts(): Promise<MonitoringAlert[]> {
   );
 }
 
+export async function getMonitoringAlertById(id: string): Promise<MonitoringAlert | null> {
+  const alerts = await getMonitoringAlerts();
+  return alerts.find((item) => item.id === id) ?? null;
+}
+
 export async function getInsuranceClaims(): Promise<InsuranceClaim[]> {
   return fetchListWithFallback<InsuranceClaim>(
     "/v1/insurance/claims",

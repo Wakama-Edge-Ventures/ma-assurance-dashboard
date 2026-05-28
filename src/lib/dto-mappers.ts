@@ -314,20 +314,36 @@ export function toInsurancePolicy(raw: unknown): InsurancePolicy | null {
 export function toMonitoringAlert(raw: unknown): MonitoringAlert | null {
   const o = asObject(raw);
   if (!o) return null;
-  const id = asString(o.id);
-  const policyId = asString(o.policyId);
-  const title = asString(o.title);
-  const createdAt = asString(o.createdAt);
-  const level = asString(o.level) as MonitoringAlert["level"] | null;
-  const resolved = asBoolean(o.resolved);
-  if (!id || !policyId || !title || !createdAt || !level || resolved === null) return null;
+  const id = asString(o.id) ?? asString(o.alertId);
+  const policyId = asString(o.policyId) ?? asString(o.policy_id);
+  const createdAt = asString(o.createdAt) ?? asString(o.created_at);
+  const severity =
+    (asString(o.severity) as MonitoringAlert["level"] | null) ??
+    (asString(o.level) as MonitoringAlert["level"] | null);
+  const type =
+    (asString(o.type) as MonitoringAlert["type"] | null) ??
+    (asString(o.signalType) as MonitoringAlert["type"] | null) ??
+    (asString(o.signal_type) as MonitoringAlert["type"] | null) ??
+    "SYSTEM";
+  const message = asString(o.message) ?? asString(o.title);
+  const status =
+    (asString(o.status) as MonitoringAlert["status"] | null) ??
+    ((asBoolean(o.resolved) ?? false) ? "RESOLVED" : "OPEN");
+
+  if (!id || !policyId || !createdAt || !severity || !message) return null;
   return {
     id,
     policyId,
-    level,
-    title,
+    applicationId: asString(o.applicationId) ?? asString(o.application_id) ?? undefined,
+    farmerId: asString(o.farmerId) ?? asString(o.farmer_id) ?? undefined,
+    type,
+    severity,
+    status,
+    message,
+    level: severity,
+    title: message,
     createdAt,
-    resolved,
+    resolved: status === "RESOLVED",
     source: asSource(o.source, "LIVE"),
   };
 }

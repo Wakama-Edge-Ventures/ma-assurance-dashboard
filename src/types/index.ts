@@ -176,6 +176,12 @@ export interface InsurancePolicy {
 export interface MonitoringAlert {
   id: string;
   policyId: string;
+  applicationId?: string;
+  farmerId?: string;
+  type?: "NDVI" | "WEATHER" | "IOT" | "FIELD" | "SYSTEM";
+  severity?: "INFO" | "WARNING" | "CRITICAL";
+  status?: "OPEN" | "ACKNOWLEDGED" | "RESOLVED";
+  message?: string;
   level: "INFO" | "WARNING" | "CRITICAL";
   title: string;
   createdAt: string;
