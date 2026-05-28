@@ -1,0 +1,259 @@
+import {
+  CommercialOffer,
+  Cooperative,
+  Farmer,
+  InsuranceApplication,
+  InsuranceClaim,
+  InsuranceFieldAudit,
+  InsuranceMission,
+  InsurancePolicy,
+  MonitoringAlert,
+  RaxEvaluation,
+} from "@/types";
+
+export const farmers: Farmer[] = [
+  {
+    id: "far_001",
+    fullName: "Youssef El Amrani",
+    nationalIdMasked: "BE******41",
+    phone: "+212600112233",
+    region: "Meknès",
+    primaryCrop: "Blé tendre",
+    totalAreaHa: 18,
+    source: "SEED_DEMO",
+  },
+  {
+    id: "far_002",
+    fullName: "Fatima Zahra B.",
+    nationalIdMasked: "CD******89",
+    phone: "+212611223344",
+    region: "Khénifra",
+    primaryCrop: "Olivier",
+    totalAreaHa: 27,
+    source: "SEED_DEMO",
+  },
+  {
+    id: "far_003",
+    fullName: "Abdelkader Laabi",
+    nationalIdMasked: "EE******67",
+    phone: "+212622334455",
+    region: "Béni Mellal",
+    primaryCrop: "Maïs",
+    totalAreaHa: 12,
+    source: "SEED_DEMO",
+  },
+];
+
+export const cooperatives: Cooperative[] = [
+  {
+    id: "coop_001",
+    name: "Coop Atlas Vert",
+    region: "Fès-Meknès",
+    memberCount: 42,
+    aggregatedAreaHa: 340,
+    contactName: "Nadia Ait Hamou",
+    source: "SEED_DEMO",
+  },
+  {
+    id: "coop_002",
+    name: "Coop Rhamna Résilience",
+    region: "Marrakech-Safi",
+    memberCount: 28,
+    aggregatedAreaHa: 210,
+    contactName: "Karim Tazi",
+    source: "SEED_DEMO",
+  },
+];
+
+export const applications: InsuranceApplication[] = [
+  {
+    id: "app_001",
+    reference: "APP-MA-0001",
+    farmerId: "far_001",
+    cooperativeId: "coop_001",
+    insurerName: "Assureur Partenaire A",
+    cropType: "Blé tendre",
+    areaHa: 15,
+    requestedCoverageMad: 250000,
+    status: "UNDER_REVIEW",
+    riskTier: "MEDIUM_RISK",
+    createdAt: "2026-05-10",
+    source: "SEED_DEMO",
+  },
+  {
+    id: "app_002",
+    reference: "APP-MA-0002",
+    farmerId: "far_002",
+    insurerName: "Assureur Partenaire B",
+    cropType: "Olivier",
+    areaHa: 21,
+    requestedCoverageMad: 390000,
+    status: "REQUIRES_FIELD_AUDIT",
+    riskTier: "HIGH_RISK",
+    createdAt: "2026-05-13",
+    source: "SEED_DEMO",
+  },
+  {
+    id: "app_003",
+    reference: "APP-MA-0003",
+    farmerId: "far_003",
+    cooperativeId: "coop_002",
+    insurerName: "Assureur Partenaire A",
+    cropType: "Maïs",
+    areaHa: 9,
+    requestedCoverageMad: 180000,
+    status: "PRICED",
+    riskTier: "LOW_RISK",
+    createdAt: "2026-05-19",
+    source: "SEED_DEMO",
+  },
+];
+
+export const missions: InsuranceMission[] = [
+  {
+    id: "mis_001",
+    applicationId: "app_001",
+    missionType: "SATELLITE_REVIEW",
+    assignedTo: "Équipe Télédétection",
+    scheduledFor: "2026-05-22",
+    status: "DONE",
+    region: "Meknès",
+    source: "SEED_DEMO",
+  },
+  {
+    id: "mis_002",
+    applicationId: "app_002",
+    missionType: "FIELD_VISIT",
+    assignedTo: "Inspecteur Idriss",
+    scheduledFor: "2026-05-29",
+    status: "PLANNED",
+    region: "Khénifra",
+    source: "SEED_DEMO",
+  },
+  {
+    id: "mis_003",
+    applicationId: "app_003",
+    missionType: "PHONE_VERIFICATION",
+    assignedTo: "Backoffice Casanearshore",
+    scheduledFor: "2026-05-27",
+    status: "IN_PROGRESS",
+    region: "Béni Mellal",
+    source: "SEED_DEMO",
+  },
+];
+
+export const fieldAudits: InsuranceFieldAudit[] = [
+  {
+    id: "aud_001",
+    missionId: "mis_001",
+    vegetationScore: 73,
+    irrigationType: "GOUTTE_A_GOUTTE",
+    anomalyDetected: false,
+    notes: "Couverture végétale cohérente avec la saison.",
+    completedAt: "2026-05-22",
+    source: "SEED_DEMO",
+  },
+  {
+    id: "aud_002",
+    missionId: "mis_003",
+    vegetationScore: 62,
+    irrigationType: "PLUVIAL",
+    anomalyDetected: true,
+    notes: "Écart d'humidité observé sur la parcelle nord.",
+    completedAt: "2026-05-27",
+    source: "SEED_DEMO",
+  },
+];
+
+export const raxEvaluations: RaxEvaluation[] = [
+  {
+    id: "rax_001",
+    applicationId: "app_001",
+    wrsScore: 67,
+    raxScore: 61,
+    riskTier: "MEDIUM_RISK",
+    recommendation: "Recommandation non décisionnelle: audit terrain léger.",
+    source: "SEED_DEMO",
+  },
+  {
+    id: "rax_002",
+    applicationId: "app_002",
+    wrsScore: 54,
+    raxScore: 47,
+    riskTier: "HIGH_RISK",
+    recommendation:
+      "Recommandation non décisionnelle: majoration technique et revue humaine.",
+    source: "SEED_DEMO",
+  },
+];
+
+export const pricingOffers: CommercialOffer[] = [
+  {
+    id: "off_001",
+    applicationId: "app_001",
+    insurerName: "Assureur Partenaire A",
+    technicalPremiumMad: 18500,
+    suggestedCommercialPremiumMad: 21000,
+    deductiblePct: 10,
+    status: "SENT_TO_INSURER",
+    source: "SEED_DEMO",
+  },
+  {
+    id: "off_002",
+    applicationId: "app_003",
+    insurerName: "Assureur Partenaire A",
+    technicalPremiumMad: 12800,
+    suggestedCommercialPremiumMad: 14100,
+    deductiblePct: 8,
+    status: "VALIDATED_BY_INSURER",
+    source: "SEED_DEMO",
+  },
+];
+
+export const policies: InsurancePolicy[] = [
+  {
+    id: "pol_001",
+    policyNumber: "POL-A-2026-00089",
+    applicationId: "app_003",
+    insurerName: "Assureur Partenaire A",
+    coverageMad: 180000,
+    annualPremiumMad: 14100,
+    effectiveDate: "2026-05-21",
+    expiryDate: "2027-05-20",
+    status: "ACTIVE",
+    source: "SEED_DEMO",
+  },
+];
+
+export const monitoringAlerts: MonitoringAlert[] = [
+  {
+    id: "alr_001",
+    policyId: "pol_001",
+    level: "WARNING",
+    title: "Stress hydrique détecté > seuil hebdomadaire",
+    createdAt: "2026-05-24",
+    resolved: false,
+    source: "SEED_DEMO",
+  },
+  {
+    id: "alr_002",
+    policyId: "pol_001",
+    level: "INFO",
+    title: "Synchronisation météo complétée",
+    createdAt: "2026-05-26",
+    resolved: true,
+    source: "SEED_DEMO",
+  },
+];
+
+export const claims: InsuranceClaim[] = [
+  {
+    id: "clm_001",
+    claimNumber: "CLM-2026-0041",
+    policyId: "pol_001",
+    claimType: "DROUGHT",
+    estimatedLossMad: 42000,
+    status: "UNDER_REVIEW",
+    source: "SEED_DEMO",
+  },
+];

@@ -1,0 +1,132 @@
+export type DataSource = "LIVE" | "SEED_DEMO";
+
+export type RiskTier =
+  | "LOW_RISK"
+  | "MEDIUM_RISK"
+  | "HIGH_RISK"
+  | "UNINSURABLE";
+
+export type ApplicationStatus =
+  | "DRAFT"
+  | "SUBMITTED"
+  | "UNDER_REVIEW"
+  | "REQUIRES_FIELD_AUDIT"
+  | "PRICED"
+  | "APPROVED_BY_INSURER"
+  | "REJECTED_BY_INSURER";
+
+export interface Farmer {
+  id: string;
+  fullName: string;
+  nationalIdMasked: string;
+  phone: string;
+  region: string;
+  primaryCrop: string;
+  totalAreaHa: number;
+  source: DataSource;
+}
+
+export interface Cooperative {
+  id: string;
+  name: string;
+  region: string;
+  memberCount: number;
+  aggregatedAreaHa: number;
+  contactName: string;
+  source: DataSource;
+}
+
+export interface InsuranceApplication {
+  id: string;
+  reference: string;
+  farmerId: string;
+  cooperativeId?: string;
+  insurerName: string;
+  cropType: string;
+  areaHa: number;
+  requestedCoverageMad: number;
+  status: ApplicationStatus;
+  riskTier: RiskTier;
+  createdAt: string;
+  source: DataSource;
+}
+
+export interface InsuranceMission {
+  id: string;
+  applicationId: string;
+  missionType: "FIELD_VISIT" | "PHONE_VERIFICATION" | "SATELLITE_REVIEW";
+  assignedTo: string;
+  scheduledFor: string;
+  status: "PLANNED" | "IN_PROGRESS" | "DONE";
+  region: string;
+  source: DataSource;
+}
+
+export interface InsuranceFieldAudit {
+  id: string;
+  missionId: string;
+  vegetationScore: number;
+  irrigationType: "PLUVIAL" | "GOUTTE_A_GOUTTE" | "GRAVITAIRE";
+  anomalyDetected: boolean;
+  notes: string;
+  completedAt: string;
+  source: DataSource;
+}
+
+export interface RaxEvaluation {
+  id: string;
+  applicationId: string;
+  wrsScore: number;
+  raxScore: number;
+  riskTier: RiskTier;
+  recommendation: string;
+  source: DataSource;
+}
+
+export interface CommercialOffer {
+  id: string;
+  applicationId: string;
+  insurerName: string;
+  technicalPremiumMad: number;
+  suggestedCommercialPremiumMad: number;
+  deductiblePct: number;
+  status: "DRAFT" | "SENT_TO_INSURER" | "VALIDATED_BY_INSURER";
+  source: DataSource;
+}
+
+export interface InsurancePolicy {
+  id: string;
+  policyNumber: string;
+  applicationId: string;
+  insurerName: string;
+  coverageMad: number;
+  annualPremiumMad: number;
+  effectiveDate: string;
+  expiryDate: string;
+  status: "ACTIVE" | "SUSPENDED" | "EXPIRED";
+  source: DataSource;
+}
+
+export interface MonitoringAlert {
+  id: string;
+  policyId: string;
+  level: "INFO" | "WARNING" | "CRITICAL";
+  title: string;
+  createdAt: string;
+  resolved: boolean;
+  source: DataSource;
+}
+
+export interface InsuranceClaim {
+  id: string;
+  claimNumber: string;
+  policyId: string;
+  claimType: "DROUGHT" | "FLOOD" | "PEST" | "OTHER";
+  estimatedLossMad: number;
+  status:
+    | "DECLARED"
+    | "UNDER_REVIEW"
+    | "APPROVED_BY_INSURER"
+    | "REJECTED_BY_INSURER";
+  source: DataSource;
+}
