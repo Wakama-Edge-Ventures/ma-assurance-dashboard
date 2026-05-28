@@ -169,6 +169,13 @@ export async function getCommercialOffers(): Promise<CommercialOffer[]> {
   );
 }
 
+export async function getCommercialOfferById(
+  id: string,
+): Promise<CommercialOffer | null> {
+  const offers = await getCommercialOffers();
+  return offers.find((item) => item.id === id) ?? null;
+}
+
 export async function getInsurancePolicies(): Promise<InsurancePolicy[]> {
   return fetchListWithFallback<InsurancePolicy>(
     "/v1/insurance/policies",

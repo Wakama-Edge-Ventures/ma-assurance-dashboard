@@ -208,3 +208,32 @@ export function formatDate(value: string | Date): string {
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("fr-MA", { dateStyle: "medium" }).format(date);
 }
+
+export function getFarmerDecisionLabel(value: string): string {
+  const labels: Record<string, string> = {
+    PENDING: "En attente",
+    ACCEPTED: "Acceptee",
+    REJECTED: "Refusee",
+    EXPIRED: "Expiree",
+  };
+  return labels[value] ?? "Non renseignee";
+}
+
+export function getOfferStatusLabel(value: string): string {
+  const labels: Record<string, string> = {
+    DRAFT: "Brouillon",
+    SENT_TO_INSURER: "Envoyee a l'assureur",
+    VALIDATED_BY_INSURER: "Validee assureur",
+    PENDING_FARMER: "En attente producteur",
+    FARMER_ACCEPTED: "Accord producteur",
+    FARMER_REJECTED: "Refus producteur",
+    EXPIRED: "Expiree",
+  };
+  return labels[value] ?? "Statut non renseigne";
+}
+
+export function isExpiredDate(value: string | Date): boolean {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  return date.getTime() < Date.now();
+}

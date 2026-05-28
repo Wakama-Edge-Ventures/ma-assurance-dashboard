@@ -124,11 +124,32 @@ export interface RaxEvaluation {
 export interface CommercialOffer {
   id: string;
   applicationId: string;
+  raxEvaluationId?: string;
   insurerName: string;
+  totalInsuredCapital?: number;
+  purePremiumAmount?: number;
+  managementFees?: number;
+  taxRateApplied?: number;
+  taxAmount?: number;
+  totalCommercialPremiumTtc?: number;
+  farmerDecision?: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+  farmerDecisionAt?: string;
+  farmerRejectionReason?: string;
+  generatedAt?: string;
+  expiresAt?: string;
+  shortUrlToken?: string;
+  agencyPickupToken?: string;
   technicalPremiumMad: number;
   suggestedCommercialPremiumMad: number;
   deductiblePct: number;
-  status: "DRAFT" | "SENT_TO_INSURER" | "VALIDATED_BY_INSURER";
+  status:
+    | "DRAFT"
+    | "SENT_TO_INSURER"
+    | "VALIDATED_BY_INSURER"
+    | "PENDING_FARMER"
+    | "FARMER_ACCEPTED"
+    | "FARMER_REJECTED"
+    | "EXPIRED";
   source: DataSource;
 }
 

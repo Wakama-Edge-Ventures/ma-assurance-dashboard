@@ -42,6 +42,13 @@ function asSource(value: unknown, fallback: DataSource = "LIVE"): DataSource {
   return normalizeSource(value, fallback);
 }
 
+function normalizeTaxRate(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  if (value > 1) return value / 100;
+  if (value < 0) return 0;
+  return value;
+}
+
 export function toInsuranceApplication(raw: unknown): InsuranceApplication | null {
   const o = asObject(raw);
   if (!o) return null;
@@ -178,21 +185,77 @@ export function toRaxEvaluation(raw: unknown): RaxEvaluation | null {
 export function toCommercialOffer(raw: unknown): CommercialOffer | null {
   const o = asObject(raw);
   if (!o) return null;
-  const id = asString(o.id);
+  const id = asString(o.id) ?? asString(o.offerId);
   const applicationId = asString(o.applicationId);
-  const technicalPremiumMad = asNumber(o.technicalPremiumMad);
-  const suggestedCommercialPremiumMad = asNumber(o.suggestedCommercialPremiumMad);
-  const deductiblePct = asNumber(o.deductiblePct);
-  const status = asString(o.status) as CommercialOffer["status"] | null;
-  if (!id || !applicationId || !status) return null;
-  if (technicalPremiumMad === null || suggestedCommercialPremiumMad === null || deductiblePct === null) return null;
+
+  const purePremiumAmount =
+    asNumber(o.purePremiumAmount) ??
+    asNumber(o.pure_premium_amount) ??
+    asNumber(o.technicalPremiumMad);
+  const managementFees =
+    asNumber(o.managementFees) ??
+    asNumber(o.management_fees) ??
+    (() => {
+      const suggested = asNumber(o.suggestedCommercialPremiumMad);
+      if (purePremiumAmount === null || suggested === null) return null;
+      return Math.max(0, suggested - purePremiumAmount);
+    })();
+  const taxRateRaw =
+    asNumber(o.taxRateApplied) ?? asNumber(o.tax_rate_applied) ?? asNumber(o.taxRate);
+  const taxRateApplied = taxRateRaw !== null ? normalizeTaxRate(taxRateRaw) : 0;
+  const taxAmount =
+    asNumber(o.taxAmount) ??
+    asNumber(o.tax_amount) ??
+    (purePremiumAmount !== null && managementFees !== null
+      ? (purePremiumAmount + managementFees) * taxRateApplied
+      : null);
+
+  const totalCommercialPremiumTtc =
+    asNumber(o.totalCommercialPremiumTtc) ??
+    asNumber(o.total_commercial_premium_ttc) ??
+    asNumber(o.suggestedCommercialPremiumMad) ??
+    (purePremiumAmount !== null && managementFees !== null && taxAmount !== null
+      ? purePremiumAmount + managementFees + taxAmount
+      : null);
+
+  const status =
+    (asString(o.status) as CommercialOffer["status"] | null) ??
+    (asString(o.offerStatus) as CommercialOffer["status"] | null) ??
+    "DRAFT";
+  if (!id || !applicationId || purePremiumAmount === null || totalCommercialPremiumTtc === null) {
+    return null;
+  }
+
   return {
     id,
     applicationId,
+    raxEvaluationId: asString(o.raxEvaluationId) ?? asString(o.raxId) ?? undefined,
     insurerName: asString(o.insurerName) ?? "Assureur partenaire",
-    technicalPremiumMad,
-    suggestedCommercialPremiumMad,
-    deductiblePct,
+    totalInsuredCapital:
+      asNumber(o.totalInsuredCapital) ?? asNumber(o.total_insured_capital) ?? undefined,
+    purePremiumAmount,
+    managementFees: managementFees ?? 0,
+    taxRateApplied,
+    taxAmount: taxAmount ?? 0,
+    totalCommercialPremiumTtc,
+    farmerDecision:
+      (asString(o.farmerDecision) as CommercialOffer["farmerDecision"] | null) ??
+      (asString(o.farmer_decision) as CommercialOffer["farmerDecision"] | null) ??
+      undefined,
+    farmerDecisionAt:
+      asString(o.farmerDecisionAt) ?? asString(o.farmer_decision_at) ?? undefined,
+    farmerRejectionReason:
+      asString(o.farmerRejectionReason) ??
+      asString(o.farmer_rejection_reason) ??
+      undefined,
+    generatedAt: asString(o.generatedAt) ?? asString(o.generated_at) ?? undefined,
+    expiresAt: asString(o.expiresAt) ?? asString(o.expires_at) ?? undefined,
+    shortUrlToken: asString(o.shortUrlToken) ?? asString(o.short_url_token) ?? undefined,
+    agencyPickupToken:
+      asString(o.agencyPickupToken) ?? asString(o.agency_pickup_token) ?? undefined,
+    technicalPremiumMad: purePremiumAmount,
+    suggestedCommercialPremiumMad: totalCommercialPremiumTtc,
+    deductiblePct: asNumber(o.deductiblePct) ?? 0,
     status,
     source: asSource(o.source, "LIVE"),
   };
