@@ -61,6 +61,8 @@ function resolveOfferMetrics(offer: {
   return { pure, fees, taxes, total, capital, taxRate };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function PricingDetailPage({ params }: PricingDetailPageProps) {
   const { id } = await params;
   const [offers, applications, farmers, raxEvaluations] = await Promise.all([

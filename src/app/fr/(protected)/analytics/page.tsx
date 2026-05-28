@@ -5,6 +5,8 @@ import {
   getInsurancePolicies,
 } from "@/lib/insurance-service";
 
+export const dynamic = "force-dynamic";
+
 export default async function AnalyticsPage() {
   const [applications, claims, policies] = await Promise.all([
     getInsuranceApplications(),

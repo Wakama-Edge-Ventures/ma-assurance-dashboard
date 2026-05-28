@@ -24,6 +24,8 @@ interface MonitoringDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function MonitoringDetailPage({ params }: MonitoringDetailPageProps) {
   const { id } = await params;
   const alert = await getMonitoringAlertById(id);

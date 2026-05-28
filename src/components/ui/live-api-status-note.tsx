@@ -1,11 +1,13 @@
 export function LiveApiStatusNote() {
-  const isLive = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
+  const isSharedLive = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
   const isInsuranceLive = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
+
+  const sharedLabel = isSharedLive ? "LIVE" : "SEED_DEMO";
+  const insuranceLabel = isInsuranceLive ? "LIVE" : "SEED_DEMO";
+
   return (
     <p className="text-xs text-brand-textMuted">
-      {isLive
-        ? `Mode API live active - fallback demo si indisponible. Le token demo local n'est pas envoye au backend.${isInsuranceLive ? " Endpoints assurance live actives." : " Endpoints assurance en SEED_DEMO."}`
-        : "Mode demo - donnees SEED_DEMO."}
+      {`Donnees Wakama partagees: ${sharedLabel}. Workflows assurance: ${insuranceLabel}. Fallback demo actif si API indisponible.`}
     </p>
   );
 }

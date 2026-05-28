@@ -5,6 +5,8 @@ import {
   getMonitoringAlerts,
 } from "@/lib/insurance-service";
 
+export const dynamic = "force-dynamic";
+
 export default async function ReportsPage() {
   const [applications, claims, monitoringAlerts] = await Promise.all([
     getInsuranceApplications(),

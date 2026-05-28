@@ -19,6 +19,8 @@ interface MissionDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function MissionDetailPage({ params }: MissionDetailPageProps) {
   const { id } = await params;
   const mission = await getInsuranceMissionById(id);

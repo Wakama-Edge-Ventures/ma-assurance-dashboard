@@ -17,6 +17,8 @@ import {
   getMonitoringSignalTypeLabel,
 } from "@/lib/workflow";
 
+export const dynamic = "force-dynamic";
+
 export default async function MonitoringPage() {
   const [alerts, policies, applications, farmers, raxEvaluations] = await Promise.all([
     getMonitoringAlerts(),

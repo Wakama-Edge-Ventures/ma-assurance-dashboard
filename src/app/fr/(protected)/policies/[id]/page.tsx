@@ -29,6 +29,8 @@ interface PolicyDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function PolicyDetailPage({ params }: PolicyDetailPageProps) {
   const { id } = await params;
   const [policy, policies, applications, farmers, offers, raxEvaluations, alerts] =

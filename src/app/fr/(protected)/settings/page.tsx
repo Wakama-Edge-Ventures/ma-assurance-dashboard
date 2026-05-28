@@ -1,5 +1,7 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
 
+export const dynamic = "force-dynamic";
+
 export default function SettingsPage() {
   return (
     <DashboardSection

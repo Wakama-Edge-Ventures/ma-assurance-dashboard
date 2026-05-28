@@ -19,6 +19,8 @@ interface ArbitrageDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function ArbitrageDetailPage({ params }: ArbitrageDetailPageProps) {
   const { id } = await params;
   const audit = await getInsuranceFieldAuditById(id);

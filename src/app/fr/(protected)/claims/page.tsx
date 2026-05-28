@@ -28,6 +28,8 @@ function resolveSeverity(input: { severity?: string; monitoringSeverity?: string
   return "INFO";
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function ClaimsPage() {
   const [claims, policies, alerts, applications, farmers] = await Promise.all([
     getInsuranceClaims(),

@@ -12,6 +12,8 @@ import {
 } from "@/lib/insurance-service";
 import { getAreaDeltaSeverity } from "@/lib/workflow";
 
+export const dynamic = "force-dynamic";
+
 export default async function ArbitragePage() {
   const [audits, applications, missions, farmers] = await Promise.all([
     getInsuranceFieldAudits(),

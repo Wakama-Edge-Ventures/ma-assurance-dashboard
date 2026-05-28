@@ -52,6 +52,8 @@ function resolveMetrics(row: {
   return { gravity, frequency, detection, raxBrut, wrs };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
   const { id } = await params;
   const evaluation = await getRaxEvaluationById(id);

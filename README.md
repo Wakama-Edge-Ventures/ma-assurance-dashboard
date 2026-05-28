@@ -29,9 +29,10 @@ npm run dev
 npm run lint
 npm run build
 npm run start
+npm run smoke:live-shared
 ```
 
-## Variables d'environnement
+## Variables d'environnement (local)
 Creer un fichier `.env.local`:
 ```bash
 NEXT_PUBLIC_API_BASE_URL=https://api.wakama.farm
@@ -39,6 +40,9 @@ NEXT_PUBLIC_USE_LIVE_API=true
 NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false
 NEXT_PUBLIC_DEBUG_API_SHAPES=false
 ```
+
+- `NEXT_PUBLIC_USE_LIVE_API=true`: active les lectures LIVE pour les donnees Wakama partagees.
+- `NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false`: garde les workflows assurance en `SEED_DEMO` tant que `/v1/insurance/*` n'est pas disponible.
 
 ## Compte de demo MVP
 - Email: `demo@wakama.farm`
@@ -101,5 +105,14 @@ NEXT_PUBLIC_DEBUG_API_SHAPES=false
 ## Deployment (Coolify)
 - Builder via `npm install && npm run build`.
 - Runner via `npm run start`.
-- Configurer `NEXT_PUBLIC_API_BASE_URL` dans les variables Coolify.
+- Configurer les variables frontend ci-dessous dans Coolify:
+```bash
+NEXT_PUBLIC_API_BASE_URL=https://api.wakama.farm
+NEXT_PUBLIC_USE_LIVE_API=true
+NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false
+NEXT_PUBLIC_DEBUG_API_SHAPES=false
+```
+- Pourquoi `NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false` pour l'instant:
+  les routes backend `/v1/insurance/*` ne sont pas encore disponibles en production cible; garder ce flag a `false` supprime les appels inutiles et conserve un parcours demo stable en `SEED_DEMO`.
+- Verifier l'etat des endpoints partages avec `npm run smoke:live-shared` avant release.
 - Pointer le domaine production vers `https://assurance.wakama.farm`.

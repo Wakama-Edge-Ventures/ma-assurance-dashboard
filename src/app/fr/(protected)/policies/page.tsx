@@ -13,6 +13,8 @@ import {
 } from "@/lib/insurance-service";
 import { formatDate, formatMAD, getPolicyExpiryState } from "@/lib/workflow";
 
+export const dynamic = "force-dynamic";
+
 export default async function PoliciesPage() {
   const [policies, offers, applications, farmers, alerts] = await Promise.all([
     getInsurancePolicies(),

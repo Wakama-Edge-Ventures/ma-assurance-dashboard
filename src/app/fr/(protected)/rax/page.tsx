@@ -46,6 +46,8 @@ function resolveMetrics(row: {
   return { gravity, frequency, detection, raxBrut, wrs };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function RaxPage() {
   const [evaluations, applications, farmers, audits] = await Promise.all([
     getRaxEvaluations(),

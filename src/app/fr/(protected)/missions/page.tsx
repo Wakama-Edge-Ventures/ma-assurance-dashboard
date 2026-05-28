@@ -12,6 +12,8 @@ import {
 } from "@/lib/insurance-service";
 import { getMissionStatusLabel } from "@/lib/workflow";
 
+export const dynamic = "force-dynamic";
+
 export default async function MissionsPage() {
   const [missions, applications, farmers, audits] = await Promise.all([
     getInsuranceMissions(),
