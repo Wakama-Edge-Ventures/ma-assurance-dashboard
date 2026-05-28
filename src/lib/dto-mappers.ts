@@ -351,17 +351,37 @@ export function toMonitoringAlert(raw: unknown): MonitoringAlert | null {
 export function toInsuranceClaim(raw: unknown): InsuranceClaim | null {
   const o = asObject(raw);
   if (!o) return null;
-  const id = asString(o.id);
-  const claimNumber = asString(o.claimNumber);
-  const policyId = asString(o.policyId);
-  const claimType = asString(o.claimType) as InsuranceClaim["claimType"] | null;
-  const estimatedLossMad = asNumber(o.estimatedLossMad);
+  const id = asString(o.id) ?? asString(o.claimId);
+  const claimNumber = asString(o.claimNumber) ?? id;
+  const policyId = asString(o.policyId) ?? asString(o.policy_id);
+  const claimType =
+    (asString(o.claimType) as InsuranceClaim["claimType"] | null) ??
+    (asString(o.claim_type) as InsuranceClaim["claimType"] | null) ??
+    (asString(o.type) as InsuranceClaim["claimType"] | null);
+  const estimatedLossMad =
+    asNumber(o.estimatedLossMad) ??
+    asNumber(o.estimatedAmount) ??
+    asNumber(o.estimated_amount);
   const status = asString(o.status) as InsuranceClaim["status"] | null;
-  if (!id || !claimNumber || !policyId || !claimType || !status || estimatedLossMad === null) return null;
+  if (!id || !claimNumber || !policyId || !claimType || !status || estimatedLossMad === null) {
+    return null;
+  }
   return {
     id,
     claimNumber,
     policyId,
+    applicationId: asString(o.applicationId) ?? asString(o.application_id) ?? undefined,
+    farmerId: asString(o.farmerId) ?? asString(o.farmer_id) ?? undefined,
+    monitoringAlertId:
+      asString(o.monitoringAlertId) ?? asString(o.monitoring_alert_id) ?? undefined,
+    severity:
+      (asString(o.severity) as InsuranceClaim["severity"] | null) ??
+      (asString(o.level) as InsuranceClaim["severity"] | null) ??
+      undefined,
+    estimatedAmount: asNumber(o.estimatedAmount) ?? asNumber(o.estimated_amount) ?? undefined,
+    description: asString(o.description) ?? asString(o.message) ?? undefined,
+    createdAt: asString(o.createdAt) ?? asString(o.created_at) ?? undefined,
+    updatedAt: asString(o.updatedAt) ?? asString(o.updated_at) ?? undefined,
     claimType,
     estimatedLossMad,
     status,

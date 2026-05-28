@@ -210,6 +210,11 @@ export async function getInsuranceClaims(): Promise<InsuranceClaim[]> {
   );
 }
 
+export async function getInsuranceClaimById(id: string): Promise<InsuranceClaim | null> {
+  const claims = await getInsuranceClaims();
+  return claims.find((item) => item.id === id) ?? null;
+}
+
 export async function getFarmers(): Promise<Farmer[]> {
   return fetchListWithFallback<Farmer>("/v1/farmers", seedFarmers, toFarmer);
 }

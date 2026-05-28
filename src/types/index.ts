@@ -191,13 +191,25 @@ export interface MonitoringAlert {
 
 export interface InsuranceClaim {
   id: string;
+  applicationId?: string;
+  farmerId?: string;
+  monitoringAlertId?: string;
   claimNumber: string;
   policyId: string;
+  severity?: "INFO" | "WARNING" | "CRITICAL";
+  estimatedAmount?: number;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
   claimType: "DROUGHT" | "FLOOD" | "PEST" | "OTHER";
   estimatedLossMad: number;
   status:
+    | "OPEN"
     | "DECLARED"
     | "UNDER_REVIEW"
+    | "APPROVED"
+    | "REJECTED"
+    | "CLOSED"
     | "APPROVED_BY_INSURER"
     | "REJECTED_BY_INSURER";
   source: DataSource;

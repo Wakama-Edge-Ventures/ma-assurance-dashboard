@@ -315,3 +315,50 @@ export function getMonitoringSeverityOrder(value: string): number {
   };
   return order[value] ?? 0;
 }
+
+export function getClaimStatusLabel(value: string): string {
+  const labels: Record<string, string> = {
+    OPEN: "Ouvert",
+    DECLARED: "Declare",
+    UNDER_REVIEW: "En revue assureur",
+    APPROVED: "Valide assureur",
+    REJECTED: "Rejete assureur",
+    CLOSED: "Cloture",
+    APPROVED_BY_INSURER: "Valide assureur",
+    REJECTED_BY_INSURER: "Rejete assureur",
+  };
+  return labels[value] ?? "Statut non renseigne";
+}
+
+export function getClaimTypeLabel(value: string): string {
+  const labels: Record<string, string> = {
+    DROUGHT: "Secheresse",
+    FLOOD: "Inondation",
+    PEST: "Ravageurs",
+    OTHER: "Autre",
+  };
+  return labels[value] ?? "Type non renseigne";
+}
+
+export function getClaimSeverityLabel(value: string): string {
+  const labels: Record<string, string> = {
+    INFO: "Information",
+    WARNING: "Alerte",
+    CRITICAL: "Critique",
+  };
+  return labels[value] ?? "Niveau inconnu";
+}
+
+export function getClaimStatusOrder(value: string): number {
+  const order: Record<string, number> = {
+    OPEN: 1,
+    DECLARED: 2,
+    UNDER_REVIEW: 3,
+    APPROVED: 4,
+    REJECTED: 4,
+    APPROVED_BY_INSURER: 4,
+    REJECTED_BY_INSURER: 4,
+    CLOSED: 5,
+  };
+  return order[value] ?? 0;
+}
