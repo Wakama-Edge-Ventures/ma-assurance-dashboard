@@ -55,6 +55,8 @@ import {
 
 const USE_LIVE_API = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
 const DEBUG_API_SHAPES = process.env.NEXT_PUBLIC_DEBUG_API_SHAPES === "true";
+const PAGINATION_PAGE_SIZE = 100;
+const MAX_PAGINATION_PAGES = 20;
 
 interface DashboardOverview {
   applications: InsuranceApplication[];
@@ -79,6 +81,21 @@ function getRootKeys(value: unknown): string[] {
   if (Array.isArray(value)) return ["[array]"];
   if (value && typeof value === "object") return Object.keys(value as Record<string, unknown>);
   return [];
+}
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function asFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
 }
 
 function isPayloadNonEmpty(value: unknown): boolean {
@@ -123,6 +140,79 @@ function debugApiShape(endpoint: string, payload: unknown, rawList: unknown[]) {
   );
 }
 
+function buildPaginatedEndpoint(baseEndpoint: string, page: number, pageSize: number): string {
+  const url = new URL(baseEndpoint, "https://wakama.local");
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("pageSize", String(pageSize));
+  return `${url.pathname}${url.search}`;
+}
+
+function getPaginationMeta(payload: unknown): {
+  total: number | null;
+  page: number | null;
+  pageSize: number | null;
+} {
+  const root = asObject(payload);
+  if (!root) {
+    return { total: null, page: null, pageSize: null };
+  }
+
+  const dataObj = asObject(root.data);
+
+  const total = asFiniteNumber(root.total) ?? asFiniteNumber(dataObj?.total) ?? null;
+  const page = asFiniteNumber(root.page) ?? asFiniteNumber(dataObj?.page) ?? null;
+  const pageSize =
+    asFiniteNumber(root.pageSize) ??
+    asFiniteNumber(root.limit) ??
+    asFiniteNumber(dataObj?.pageSize) ??
+    asFiniteNumber(dataObj?.limit) ??
+    null;
+
+  return { total, page, pageSize };
+}
+
+function mapLiveItems<T extends object>(
+  endpoint: string,
+  mapperName: string,
+  rawList: unknown[],
+  mapper: (raw: unknown) => (T & { source?: unknown }) | null,
+): Array<T & { source: "LIVE" | "SEED_DEMO" }> | null {
+  const mapped = rawList
+    .map((item) => mapper(item))
+    .filter((item): item is T & { source?: unknown } => item !== null)
+    .map((item) => withSource(item, "LIVE"));
+
+  if (rawList.length > 0 && mapped.length === 0) {
+    warnMappedEmpty(endpoint, rawList.length, mapperName, getFirstItemKeys(rawList));
+    return null;
+  }
+
+  return mapped;
+}
+
+function dedupeById<T extends object>(items: T[]): T[] {
+  const seen = new Set<string>();
+  const deduped: T[] = [];
+
+  for (const item of items) {
+    const idValue =
+      item && typeof item === "object" && "id" in item
+        ? (item as { id?: unknown }).id
+        : undefined;
+    const id = typeof idValue === "string" ? idValue : null;
+
+    if (!id) {
+      deduped.push(item);
+      continue;
+    }
+    if (seen.has(id)) continue;
+    seen.add(id);
+    deduped.push(item);
+  }
+
+  return deduped;
+}
+
 function normalizeSeed<T extends object>(seed: T[]): Array<T & { source: "SEED_DEMO" }> {
   return seed.map((item) => withSource(item, "SEED_DEMO")) as Array<
     T & { source: "SEED_DEMO" }
@@ -149,17 +239,68 @@ async function fetchListWithFallback<T extends object>(
       return seedWithSource;
     }
 
-    const mapped = rawList
-      .map((item) => mapper(item))
-      .filter((item): item is T & { source?: unknown } => item !== null)
-      .map((item) => withSource(item, "LIVE"));
+    const mapped = mapLiveItems(endpoint, mapperName, rawList, mapper);
+    return mapped ?? seedWithSource;
+  } catch (error) {
+    warnFallback(endpoint, error);
+    return seedWithSource;
+  }
+}
 
-    if (rawList.length > 0 && mapped.length === 0) {
-      warnMappedEmpty(endpoint, rawList.length, mapperName, getFirstItemKeys(rawList));
+async function fetchPaginatedListWithFallback<T extends object>(
+  endpoint: string,
+  seed: T[],
+  mapper: (raw: unknown) => (T & { source?: unknown }) | null,
+  mapperName: string,
+  preferredKeys: string[] = [],
+): Promise<Array<T & { source: "LIVE" | "SEED_DEMO" }>> {
+  const seedWithSource = normalizeSeed(seed);
+  if (!USE_LIVE_API) return seedWithSource;
+
+  try {
+    const firstEndpoint = buildPaginatedEndpoint(endpoint, 1, PAGINATION_PAGE_SIZE);
+    const firstPayload = await apiFetch<unknown>(firstEndpoint);
+    const firstList = extractArrayFromApiResponse(firstPayload, preferredKeys);
+    debugApiShape(firstEndpoint, firstPayload, firstList);
+
+    if (isPayloadNonEmpty(firstPayload) && firstList.length === 0) {
+      warnShape(firstEndpoint, firstPayload);
       return seedWithSource;
     }
 
-    return mapped;
+    let combinedRaw = [...firstList];
+    const pagination = getPaginationMeta(firstPayload);
+    const total = pagination.total;
+    const firstPageSize =
+      pagination.pageSize && pagination.pageSize > 0
+        ? pagination.pageSize
+        : PAGINATION_PAGE_SIZE;
+
+    if (total !== null && total > combinedRaw.length) {
+      const expectedPages = Math.ceil(total / firstPageSize);
+      const maxPages = Math.min(Math.max(expectedPages, 1), MAX_PAGINATION_PAGES);
+
+      for (let page = 2; page <= maxPages; page += 1) {
+        const pageEndpoint = buildPaginatedEndpoint(endpoint, page, PAGINATION_PAGE_SIZE);
+        const pagePayload = await apiFetch<unknown>(pageEndpoint);
+        const pageList = extractArrayFromApiResponse(pagePayload, preferredKeys);
+        debugApiShape(pageEndpoint, pagePayload, pageList);
+
+        if (isPayloadNonEmpty(pagePayload) && pageList.length === 0) {
+          warnShape(pageEndpoint, pagePayload);
+          break;
+        }
+
+        if (pageList.length === 0) break;
+
+        combinedRaw = combinedRaw.concat(pageList);
+        if (combinedRaw.length >= total) break;
+      }
+    }
+
+    const mapped = mapLiveItems(endpoint, mapperName, combinedRaw, mapper);
+    if (!mapped) return seedWithSource;
+    return dedupeById(mapped);
   } catch (error) {
     warnFallback(endpoint, error);
     return seedWithSource;
@@ -287,7 +428,7 @@ export async function getInsuranceClaimById(id: string): Promise<InsuranceClaim 
 }
 
 export async function getFarmers(): Promise<Farmer[]> {
-  return fetchListWithFallback<Farmer>(
+  return fetchPaginatedListWithFallback<Farmer>(
     "/v1/farmers",
     seedFarmers,
     toFarmer,
@@ -297,7 +438,7 @@ export async function getFarmers(): Promise<Farmer[]> {
 }
 
 export async function getCooperatives(): Promise<Cooperative[]> {
-  return fetchListWithFallback<Cooperative>(
+  return fetchPaginatedListWithFallback<Cooperative>(
     "/v1/cooperatives",
     seedCooperatives,
     toCooperative,
@@ -307,7 +448,7 @@ export async function getCooperatives(): Promise<Cooperative[]> {
 }
 
 export async function getParcelles(): Promise<Parcelle[]> {
-  return fetchListWithFallback<Parcelle>(
+  return fetchPaginatedListWithFallback<Parcelle>(
     "/v1/parcelles",
     seedParcelles,
     toParcelle,
@@ -322,7 +463,7 @@ export async function getParcelleById(id: string): Promise<Parcelle | null> {
 }
 
 export async function getWakamaAlerts(): Promise<WakamaAlert[]> {
-  return fetchListWithFallback<WakamaAlert>(
+  return fetchPaginatedListWithFallback<WakamaAlert>(
     "/v1/alerts",
     seedWakamaAlerts,
     toWakamaAlert,

@@ -19,6 +19,7 @@
 - Les futures integrations backend utiliseront `https://api.wakama.farm`.
 - Les entites Wakama existantes (`farmers`, `cooperatives`, `parcelles`, `NDVI`, `alerts`, `IoT`) sont des donnees partagees en lecture seule: ne pas dupliquer ni muter sans contrat backend explicite.
 - Les tokens mock d'auth UI ne doivent jamais etre traites comme des credentials backend valides: seuls de vrais tokens backend peuvent etre envoyes aux appels live API.
+- Les alertes Wakama existantes sont des signaux operationnels contextuels: ne jamais les presenter comme une approbation automatique de sinistre, une indemnisation ou une decision assureur.
 
 ## Formulations autorisees
 - Utiliser: "preuve d'integrite horodatee".

@@ -24,6 +24,20 @@ export default async function CooperativesPage() {
     getIotNodes(),
   ]);
 
+  const parcelleById = new Map(parcelles.map((item) => [item.id, item]));
+  const farmerCooperativeById = new Map<string, string>();
+
+  for (const farmer of farmers) {
+    if (farmer.cooperativeId) {
+      farmerCooperativeById.set(farmer.id, farmer.cooperativeId);
+    }
+  }
+  for (const parcelle of parcelles) {
+    if (parcelle.farmerId && parcelle.cooperativeId && !farmerCooperativeById.has(parcelle.farmerId)) {
+      farmerCooperativeById.set(parcelle.farmerId, parcelle.cooperativeId);
+    }
+  }
+
   const rows: CooperativeRow[] = cooperatives.map((cooperative) => {
     const cooperativeParcelles = parcelles.filter(
       (parcelle) => parcelle.cooperativeId === cooperative.id,
@@ -34,7 +48,20 @@ export default async function CooperativesPage() {
         .filter((value): value is string => Boolean(value)),
     );
     const fallbackFarmers = farmers.filter((farmer) => farmer.region === cooperative.region);
-    const cooperativeAlerts = alerts.filter((alert) => alert.cooperativeId === cooperative.id);
+    const cooperativeAlerts = alerts.filter((alert) => {
+      if (alert.cooperativeId === cooperative.id) return true;
+
+      if (alert.parcelleId) {
+        const linkedParcelle = parcelleById.get(alert.parcelleId);
+        if (linkedParcelle?.cooperativeId === cooperative.id) return true;
+      }
+
+      if (alert.farmerId) {
+        return farmerCooperativeById.get(alert.farmerId) === cooperative.id;
+      }
+
+      return false;
+    });
     const cooperativeNodes = iotNodes.filter((node) => node.cooperativeId === cooperative.id);
 
     return {

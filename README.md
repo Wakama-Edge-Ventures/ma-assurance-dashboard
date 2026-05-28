@@ -62,6 +62,12 @@ NEXT_PUBLIC_USE_LIVE_API=false
 - Si l'API est indisponible, le fallback `SEED_DEMO` est applique automatiquement pour maintenir la demo stable.
 - Aucune operation d'ecriture backend n'est effectuee par le dashboard assurance dans cette phase.
 
+## Paginated live API reads
+- Les endpoints live `farmers`, `cooperatives`, `parcelles` et `alerts` peuvent etre pagines par le backend.
+- La couche service tente `page=1&pageSize=100`, puis charge les pages restantes si `total` indique plus de donnees.
+- Un garde-fou limite la collecte a 20 pages maximum pour rester robuste en MVP.
+- En cas d'echec ou de shape incompatible, le fallback `SEED_DEMO` reste actif.
+
 ## LIVE API shape debugging
 - Activer `NEXT_PUBLIC_DEBUG_API_SHAPES=true` pour diagnostiquer les changements de shape backend.
 - Les logs affichent uniquement des metadonnees non sensibles: endpoint, root keys, taille du tableau extrait et cles du premier item.

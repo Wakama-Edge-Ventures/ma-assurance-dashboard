@@ -21,12 +21,25 @@ export default async function FarmersPage() {
   ]);
 
   const cooperativeById = new Map(cooperatives.map((item) => [item.id, item]));
+  const parcelleById = new Map(parcelles.map((item) => [item.id, item]));
 
   const rows: FarmerRow[] = farmers.map((farmer) => {
     const farmerParcelles = parcelles.filter((parcelle) => parcelle.farmerId === farmer.id);
-    const farmerAlerts = alerts.filter((alert) => alert.farmerId === farmer.id);
+    const farmerAlertIds = new Set(
+      alerts
+        .filter((alert) => {
+          if (alert.farmerId === farmer.id) return true;
+          if (!alert.farmerId && alert.parcelleId) {
+            return parcelleById.get(alert.parcelleId)?.farmerId === farmer.id;
+          }
+          return false;
+        })
+        .map((alert) => alert.id),
+    );
     const cooperative =
-      farmerParcelles.find((item) => item.cooperativeId)?.cooperativeId ?? null;
+      farmer.cooperativeId ??
+      farmerParcelles.find((item) => item.cooperativeId)?.cooperativeId ??
+      null;
     return {
       id: farmer.id,
       fullName: farmer.fullName,
@@ -36,7 +49,7 @@ export default async function FarmersPage() {
         ? cooperativeById.get(cooperative)?.name ?? "N/A"
         : "N/A",
       parcellesCount: farmerParcelles.length,
-      alertsCount: farmerAlerts.length,
+      alertsCount: farmerAlertIds.size,
       source: farmer.source,
     };
   });

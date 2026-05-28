@@ -76,8 +76,11 @@ export interface WakamaAlert {
   farmerId?: string;
   cooperativeId?: string;
   parcelleId?: string;
+  farmerName?: string;
+  cooperativeName?: string;
+  parcelleName?: string;
   type?: string;
-  severity: "INFO" | "WARNING" | "CRITICAL";
+  severity: "INFO" | "WARNING" | "CRITICAL" | "UNKNOWN";
   title?: string;
   message: string;
   read?: boolean;

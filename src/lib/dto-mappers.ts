@@ -49,6 +49,20 @@ function asBoolean(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
 
+function asBooleanLike(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") return true;
+    if (normalized === "false" || normalized === "0") return false;
+  }
+  return null;
+}
+
 function asSource(value: unknown, fallback: DataSource = "LIVE"): DataSource {
   return normalizeSource(value, fallback);
 }
@@ -128,6 +142,15 @@ function normalizeTaxRate(value: number): number {
   if (value > 1) return value / 100;
   if (value < 0) return 0;
   return value;
+}
+
+function normalizeWakamaAlertSeverity(value: unknown): WakamaAlert["severity"] {
+  const normalized = asStringLike(value)?.trim().toUpperCase();
+  if (!normalized) return "UNKNOWN";
+  if (normalized === "CRITICAL") return "CRITICAL";
+  if (normalized === "WARNING") return "WARNING";
+  if (normalized === "INFO") return "INFO";
+  return "UNKNOWN";
 }
 
 export function toInsuranceApplication(raw: unknown): InsuranceApplication | null {
@@ -514,23 +537,41 @@ export function toParcelle(raw: unknown): Parcelle | null {
 export function toWakamaAlert(raw: unknown): WakamaAlert | null {
   const o = asObject(raw);
   if (!o) return null;
-  const id = asString(o.id) ?? asString(o.alertId);
-  const createdAt = asString(o.createdAt) ?? asString(o.created_at);
-  const severity =
-    (asString(o.severity) as WakamaAlert["severity"] | null) ??
-    (asString(o.level) as WakamaAlert["severity"] | null);
-  const message = asString(o.message) ?? asString(o.description);
-  if (!id || !createdAt || !severity || !message) return null;
+  const id =
+    asStringLike(pickFirstValue(o, ["id", "alertId", "alert_id"])) ?? null;
+  const type =
+    asStringLike(pickFirstValue(o, ["type", "alertType", "alert_type", "category"])) ??
+    undefined;
+  const title = asStringLike(pickFirstValue(o, ["title", "titre"])) ?? undefined;
+  const message =
+    asStringLike(pickFirstValue(o, ["message", "description"])) ?? title ?? type ?? null;
+  if (!id || !message) return null;
+
+  const createdAt =
+    asStringLike(pickFirstValue(o, ["createdAt", "created_at"])) ??
+    new Date(0).toISOString();
+
   return {
     id,
-    farmerId: asString(o.farmerId) ?? asString(o.farmer_id) ?? undefined,
-    cooperativeId: asString(o.cooperativeId) ?? asString(o.cooperative_id) ?? undefined,
-    parcelleId: asString(o.parcelleId) ?? asString(o.parcelle_id) ?? undefined,
-    type: asString(o.type) ?? undefined,
-    severity,
-    title: asString(o.title) ?? undefined,
+    farmerId:
+      asStringLike(pickFirstValue(o, ["farmerId", "farmer_id"])) ?? undefined,
+    cooperativeId:
+      asStringLike(pickFirstValue(o, ["cooperativeId", "cooperative_id", "coopId"])) ??
+      undefined,
+    parcelleId:
+      asStringLike(pickFirstValue(o, ["parcelleId", "parcelle_id"])) ?? undefined,
+    farmerName:
+      asStringLike(pickFirstValue(o, ["farmerName", "farmer_name"])) ?? undefined,
+    cooperativeName:
+      asStringLike(pickFirstValue(o, ["cooperativeName", "cooperative_name"])) ??
+      undefined,
+    parcelleName:
+      asStringLike(pickFirstValue(o, ["parcelleName", "parcelle_name"])) ?? undefined,
+    type,
+    severity: normalizeWakamaAlertSeverity(pickFirstValue(o, ["severity", "level"])),
+    title,
     message,
-    read: asBoolean(o.read) ?? undefined,
+    read: asBooleanLike(pickFirstValue(o, ["read", "isRead", "is_read"])) ?? undefined,
     createdAt,
     source: asSource(o.source, "LIVE"),
   };
