@@ -64,12 +64,25 @@ export interface InsuranceMission {
 
 export interface InsuranceFieldAudit {
   id: string;
-  missionId: string;
+  applicationId: string;
+  missionId?: string;
+  farmerId: string;
+  declaredAreaHa: number;
+  measuredAreaHa: number;
+  areaDeltaPercent: number;
+  declaredPolygon?: string;
+  measuredPolygon?: string;
+  assetsApprovedCount: number;
+  assetsRejectedCount: number;
+  integrityHash: string;
+  auditMode: "WEB_DEMO" | "NATIVE_AGENT" | "API_IMPORT";
+  status: "DRAFT" | "IN_REVIEW" | "COMPLETED";
+  createdAt: string;
+  completedAt?: string;
   vegetationScore: number;
   irrigationType: "PLUVIAL" | "GOUTTE_A_GOUTTE" | "GRAVITAIRE";
   anomalyDetected: boolean;
   notes: string;
-  completedAt: string;
   source: DataSource;
 }
 

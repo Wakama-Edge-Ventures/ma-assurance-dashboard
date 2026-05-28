@@ -1,9 +1,14 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { fieldAudits } from "@/lib/demo-data";
-import { getInsuranceApplications } from "@/lib/insurance-service";
+import {
+  getInsuranceApplications,
+  getInsuranceFieldAudits,
+} from "@/lib/insurance-service";
 
 export default async function ArbitragePage() {
-  const applications = await getInsuranceApplications();
+  const [applications, fieldAudits] = await Promise.all([
+    getInsuranceApplications(),
+    getInsuranceFieldAudits(),
+  ]);
   const highRisk = applications.filter((item) => item.riskTier === "HIGH_RISK").length;
   const anomalies = fieldAudits.filter((item) => item.anomalyDetected).length;
 

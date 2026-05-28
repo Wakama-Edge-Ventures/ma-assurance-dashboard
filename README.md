@@ -52,6 +52,9 @@ NEXT_PUBLIC_USE_LIVE_API=false
 - Si `NEXT_PUBLIC_USE_LIVE_API=true`, le frontend peut tenter les appels vers l'API cible.
 - Si un appel live echoue, le service repasse automatiquement sur `SEED_DEMO`.
 - Ce fallback est volontaire pour garantir une demo MVP stable de bout en bout.
+- La couche service inclut des DTO mappers defensifs (sans dependance lourde) pour normaliser les reponses live.
+- Le mode live accepte les formats `[...]` et `{ data: [...] }`.
+- Si la donnee live est mal formee, le fallback `SEED_DEMO` est applique pour la stabilite MVP.
 
 ## Deployment (Coolify)
 - Builder via `npm install && npm run build`.

@@ -1,6 +1,6 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
 import { getInsurancePolicies } from "@/lib/insurance-service";
-import { formatCurrencyMad } from "@/lib/utils";
+import { formatMAD } from "@/lib/workflow";
 
 export default async function PoliciesPage() {
   const policies = await getInsurancePolicies();
@@ -14,7 +14,7 @@ export default async function PoliciesPage() {
       kpis={[
         { title: "Polices", value: String(policies.length), source: "SEED_DEMO" },
         { title: "Actives", value: String(active), source: "SEED_DEMO" },
-        { title: "Couverture totale", value: formatCurrencyMad(coverage), source: "SEED_DEMO" },
+        { title: "Couverture totale", value: formatMAD(coverage), source: "SEED_DEMO" },
       ]}
       nextItems={[
         "Synchronisation d'etat policier depuis assureur.",

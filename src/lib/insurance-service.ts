@@ -1,10 +1,23 @@
 import { apiFetch } from "@/lib/api";
-import { normalizeSource, withSource } from "@/lib/data-source";
+import { withSource } from "@/lib/data-source";
+import {
+  toCommercialOffer,
+  toCooperative,
+  toFarmer,
+  toInsuranceApplication,
+  toInsuranceClaim,
+  toInsuranceFieldAudit,
+  toInsuranceMission,
+  toInsurancePolicy,
+  toMonitoringAlert,
+  toRaxEvaluation,
+} from "@/lib/dto-mappers";
 import {
   applications as seedApplications,
   claims as seedClaims,
   cooperatives as seedCooperatives,
   farmers as seedFarmers,
+  fieldAudits as seedFieldAudits,
   missions as seedMissions,
   monitoringAlerts as seedMonitoringAlerts,
   policies as seedPolicies,
@@ -17,6 +30,7 @@ import {
   Farmer,
   InsuranceApplication,
   InsuranceClaim,
+  InsuranceFieldAudit,
   InsuranceMission,
   InsurancePolicy,
   MonitoringAlert,
@@ -28,6 +42,7 @@ const USE_LIVE_API = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
 interface DashboardOverview {
   applications: InsuranceApplication[];
   missions: InsuranceMission[];
+  fieldAudits: InsuranceFieldAudit[];
   raxEvaluations: RaxEvaluation[];
   commercialOffers: CommercialOffer[];
   policies: InsurancePolicy[];
@@ -41,39 +56,47 @@ function warnFallback(endpoint: string, error: unknown) {
   console.warn("[Wakama API fallback]", endpoint, error);
 }
 
-function normalizeArraySource<T extends { source?: unknown }>(
-  items: T[],
-  fallback: "LIVE" | "SEED_DEMO",
-) {
-  return items.map((item) =>
-    withSource(item, normalizeSource(item.source, fallback)),
-  );
-}
-
-function asArray<T>(value: unknown): T[] {
-  if (Array.isArray(value)) return value as T[];
+function asArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
   if (
     value &&
     typeof value === "object" &&
     "data" in value &&
     Array.isArray((value as { data?: unknown }).data)
   ) {
-    return (value as { data: T[] }).data;
+    return (value as { data: unknown[] }).data;
   }
   return [];
 }
 
-async function fetchListWithFallback<T extends { source?: unknown }>(
+function normalizeSeed<T extends object>(seed: T[]): Array<T & { source: "SEED_DEMO" }> {
+  return seed.map((item) => withSource(item, "SEED_DEMO")) as Array<
+    T & { source: "SEED_DEMO" }
+  >;
+}
+
+async function fetchListWithFallback<T extends object>(
   endpoint: string,
   seed: T[],
-) {
-  const seedWithSource = normalizeArraySource(seed, "SEED_DEMO");
+  mapper: (raw: unknown) => (T & { source?: unknown }) | null,
+): Promise<Array<T & { source: "LIVE" | "SEED_DEMO" }>> {
+  const seedWithSource = normalizeSeed(seed);
   if (!USE_LIVE_API) return seedWithSource;
 
   try {
     const payload = await apiFetch<unknown>(endpoint);
-    const list = asArray<T>(payload);
-    return normalizeArraySource(list, "LIVE");
+    const rawList = asArray(payload);
+    const mapped = rawList
+      .map((item) => mapper(item))
+      .filter((item): item is T & { source?: unknown } => item !== null)
+      .map((item) => withSource(item, "LIVE"));
+
+    if (rawList.length > 0 && mapped.length === 0) {
+      warnFallback(endpoint, new Error("Mapped array is empty after normalization"));
+      return seedWithSource;
+    }
+
+    return mapped;
   } catch (error) {
     warnFallback(endpoint, error);
     return seedWithSource;
@@ -84,48 +107,83 @@ export async function getInsuranceApplications(): Promise<InsuranceApplication[]
   return fetchListWithFallback<InsuranceApplication>(
     "/v1/insurance/applications",
     seedApplications,
+    toInsuranceApplication,
   );
 }
 
 export async function getInsuranceMissions(): Promise<InsuranceMission[]> {
-  return fetchListWithFallback<InsuranceMission>("/v1/insurance/missions", seedMissions);
+  return fetchListWithFallback<InsuranceMission>(
+    "/v1/insurance/missions",
+    seedMissions,
+    toInsuranceMission,
+  );
+}
+
+export async function getInsuranceFieldAudits(): Promise<InsuranceFieldAudit[]> {
+  return fetchListWithFallback<InsuranceFieldAudit>(
+    "/v1/insurance/field-audits",
+    seedFieldAudits,
+    toInsuranceFieldAudit,
+  );
 }
 
 export async function getRaxEvaluations(): Promise<RaxEvaluation[]> {
-  return fetchListWithFallback<RaxEvaluation>("/v1/insurance/rax", seedRaxEvaluations);
+  return fetchListWithFallback<RaxEvaluation>(
+    "/v1/insurance/rax",
+    seedRaxEvaluations,
+    toRaxEvaluation,
+  );
 }
 
 export async function getCommercialOffers(): Promise<CommercialOffer[]> {
-  return fetchListWithFallback<CommercialOffer>("/v1/insurance/pricing", seedPricingOffers);
+  return fetchListWithFallback<CommercialOffer>(
+    "/v1/insurance/pricing",
+    seedPricingOffers,
+    toCommercialOffer,
+  );
 }
 
 export async function getInsurancePolicies(): Promise<InsurancePolicy[]> {
-  return fetchListWithFallback<InsurancePolicy>("/v1/insurance/policies", seedPolicies);
+  return fetchListWithFallback<InsurancePolicy>(
+    "/v1/insurance/policies",
+    seedPolicies,
+    toInsurancePolicy,
+  );
 }
 
 export async function getMonitoringAlerts(): Promise<MonitoringAlert[]> {
   return fetchListWithFallback<MonitoringAlert>(
     "/v1/insurance/monitoring/alerts",
     seedMonitoringAlerts,
+    toMonitoringAlert,
   );
 }
 
 export async function getInsuranceClaims(): Promise<InsuranceClaim[]> {
-  return fetchListWithFallback<InsuranceClaim>("/v1/insurance/claims", seedClaims);
+  return fetchListWithFallback<InsuranceClaim>(
+    "/v1/insurance/claims",
+    seedClaims,
+    toInsuranceClaim,
+  );
 }
 
 export async function getFarmers(): Promise<Farmer[]> {
-  return fetchListWithFallback<Farmer>("/v1/farmers", seedFarmers);
+  return fetchListWithFallback<Farmer>("/v1/farmers", seedFarmers, toFarmer);
 }
 
 export async function getCooperatives(): Promise<Cooperative[]> {
-  return fetchListWithFallback<Cooperative>("/v1/cooperatives", seedCooperatives);
+  return fetchListWithFallback<Cooperative>(
+    "/v1/cooperatives",
+    seedCooperatives,
+    toCooperative,
+  );
 }
 
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const [
     applications,
     missions,
+    fieldAudits,
     raxEvaluations,
     commercialOffers,
     policies,
@@ -136,6 +194,7 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
   ] = await Promise.all([
     getInsuranceApplications(),
     getInsuranceMissions(),
+    getInsuranceFieldAudits(),
     getRaxEvaluations(),
     getCommercialOffers(),
     getInsurancePolicies(),
@@ -148,6 +207,7 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
   return {
     applications,
     missions,
+    fieldAudits,
     raxEvaluations,
     commercialOffers,
     policies,
@@ -157,4 +217,3 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
     cooperatives,
   };
 }
-

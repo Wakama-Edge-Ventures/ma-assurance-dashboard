@@ -1,6 +1,6 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
 import { getCommercialOffers } from "@/lib/insurance-service";
-import { formatCurrencyMad } from "@/lib/utils";
+import { formatMAD } from "@/lib/workflow";
 
 export default async function PricingPage() {
   const pricingOffers = await getCommercialOffers();
@@ -21,12 +21,12 @@ export default async function PricingPage() {
         { title: "Offres preparees", value: String(pricingOffers.length), source: "SEED_DEMO" },
         {
           title: "Prime technique totale",
-          value: formatCurrencyMad(technicalTotal),
+          value: formatMAD(technicalTotal),
           source: "SEED_DEMO",
         },
         {
           title: "Prime suggeree totale",
-          value: formatCurrencyMad(commercialTotal),
+          value: formatMAD(commercialTotal),
           source: "SEED_DEMO",
         },
       ]}

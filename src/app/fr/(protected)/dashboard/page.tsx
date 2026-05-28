@@ -6,7 +6,7 @@ import { PageTitle } from "@/components/ui/page-title";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { getDashboardOverview } from "@/lib/insurance-service";
-import { formatCurrencyMad } from "@/lib/utils";
+import { formatMAD } from "@/lib/workflow";
 
 export default async function DashboardPage() {
   const { applications, claims, monitoringAlerts, policies } =
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
         />
         <StatCard
           title="Encours analyse"
-          value={formatCurrencyMad(requested)}
+          value={formatMAD(requested)}
           hint="Montant declare par les souscripteurs"
           source="SEED_DEMO"
           icon={Wallet}
