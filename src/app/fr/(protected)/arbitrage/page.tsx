@@ -1,7 +1,9 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { applications, fieldAudits } from "@/lib/demo-data";
+import { fieldAudits } from "@/lib/demo-data";
+import { getInsuranceApplications } from "@/lib/insurance-service";
 
-export default function ArbitragePage() {
+export default async function ArbitragePage() {
+  const applications = await getInsuranceApplications();
   const highRisk = applications.filter((item) => item.riskTier === "HIGH_RISK").length;
   const anomalies = fieldAudits.filter((item) => item.anomalyDetected).length;
 

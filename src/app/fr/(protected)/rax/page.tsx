@@ -1,7 +1,8 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { raxEvaluations } from "@/lib/demo-data";
+import { getRaxEvaluations } from "@/lib/insurance-service";
 
-export default function RaxPage() {
+export default async function RaxPage() {
+  const raxEvaluations = await getRaxEvaluations();
   const avgWrs =
     raxEvaluations.reduce((sum, item) => sum + item.wrsScore, 0) /
     Math.max(raxEvaluations.length, 1);

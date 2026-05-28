@@ -1,7 +1,16 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { applications, claims, policies } from "@/lib/demo-data";
+import {
+  getInsuranceApplications,
+  getInsuranceClaims,
+  getInsurancePolicies,
+} from "@/lib/insurance-service";
 
-export default function AnalyticsPage() {
+export default async function AnalyticsPage() {
+  const [applications, claims, policies] = await Promise.all([
+    getInsuranceApplications(),
+    getInsuranceClaims(),
+    getInsurancePolicies(),
+  ]);
   const conversion = policies.length
     ? ((policies.length / applications.length) * 100).toFixed(1)
     : "0";

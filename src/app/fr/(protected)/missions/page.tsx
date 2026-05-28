@@ -1,7 +1,8 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { missions } from "@/lib/demo-data";
+import { getInsuranceMissions } from "@/lib/insurance-service";
 
-export default function MissionsPage() {
+export default async function MissionsPage() {
+  const missions = await getInsuranceMissions();
   const planned = missions.filter((item) => item.status === "PLANNED").length;
   const inProgress = missions.filter((item) => item.status === "IN_PROGRESS").length;
 

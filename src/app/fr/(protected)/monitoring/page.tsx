@@ -1,7 +1,8 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { monitoringAlerts } from "@/lib/demo-data";
+import { getMonitoringAlerts } from "@/lib/insurance-service";
 
-export default function MonitoringPage() {
+export default async function MonitoringPage() {
+  const monitoringAlerts = await getMonitoringAlerts();
   const criticalOrWarning = monitoringAlerts.filter(
     (item) => item.level === "CRITICAL" || item.level === "WARNING",
   ).length;

@@ -5,10 +5,12 @@ import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
 import { StatCard } from "@/components/ui/stat-card";
-import { applications, claims, monitoringAlerts, policies } from "@/lib/demo-data";
+import { getDashboardOverview } from "@/lib/insurance-service";
 import { formatCurrencyMad } from "@/lib/utils";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { applications, claims, monitoringAlerts, policies } =
+    await getDashboardOverview();
   const requested = applications.reduce(
     (sum, application) => sum + application.requestedCoverageMad,
     0,

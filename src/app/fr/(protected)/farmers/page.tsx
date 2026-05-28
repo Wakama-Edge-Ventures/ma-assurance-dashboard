@@ -1,7 +1,8 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { farmers } from "@/lib/demo-data";
+import { getFarmers } from "@/lib/insurance-service";
 
-export default function FarmersPage() {
+export default async function FarmersPage() {
+  const farmers = await getFarmers();
   const totalArea = farmers.reduce((sum, item) => sum + item.totalAreaHa, 0);
 
   return (

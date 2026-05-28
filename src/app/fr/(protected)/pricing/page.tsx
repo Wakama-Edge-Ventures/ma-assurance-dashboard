@@ -1,8 +1,9 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { pricingOffers } from "@/lib/demo-data";
+import { getCommercialOffers } from "@/lib/insurance-service";
 import { formatCurrencyMad } from "@/lib/utils";
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const pricingOffers = await getCommercialOffers();
   const technicalTotal = pricingOffers.reduce(
     (sum, item) => sum + item.technicalPremiumMad,
     0,

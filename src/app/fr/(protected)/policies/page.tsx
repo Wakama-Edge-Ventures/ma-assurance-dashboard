@@ -1,8 +1,9 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { policies } from "@/lib/demo-data";
+import { getInsurancePolicies } from "@/lib/insurance-service";
 import { formatCurrencyMad } from "@/lib/utils";
 
-export default function PoliciesPage() {
+export default async function PoliciesPage() {
+  const policies = await getInsurancePolicies();
   const active = policies.filter((item) => item.status === "ACTIVE").length;
   const coverage = policies.reduce((sum, item) => sum + item.coverageMad, 0);
 

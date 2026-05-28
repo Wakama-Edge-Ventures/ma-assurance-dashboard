@@ -1,7 +1,16 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { applications, claims, monitoringAlerts } from "@/lib/demo-data";
+import {
+  getInsuranceApplications,
+  getInsuranceClaims,
+  getMonitoringAlerts,
+} from "@/lib/insurance-service";
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  const [applications, claims, monitoringAlerts] = await Promise.all([
+    getInsuranceApplications(),
+    getInsuranceClaims(),
+    getMonitoringAlerts(),
+  ]);
   return (
     <DashboardSection
       title="Reports"

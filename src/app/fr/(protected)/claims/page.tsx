@@ -1,8 +1,9 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { claims } from "@/lib/demo-data";
+import { getInsuranceClaims } from "@/lib/insurance-service";
 import { formatCurrencyMad } from "@/lib/utils";
 
-export default function ClaimsPage() {
+export default async function ClaimsPage() {
+  const claims = await getInsuranceClaims();
   const open = claims.filter((item) => item.status === "UNDER_REVIEW").length;
   const estimated = claims.reduce((sum, item) => sum + item.estimatedLossMad, 0);
 

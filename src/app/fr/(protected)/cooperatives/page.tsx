@@ -1,7 +1,8 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { cooperatives } from "@/lib/demo-data";
+import { getCooperatives } from "@/lib/insurance-service";
 
-export default function CooperativesPage() {
+export default async function CooperativesPage() {
+  const cooperatives = await getCooperatives();
   const totalMembers = cooperatives.reduce((sum, item) => sum + item.memberCount, 0);
   const totalArea = cooperatives.reduce((sum, item) => sum + item.aggregatedAreaHa, 0);
 

@@ -1,7 +1,8 @@
 import { DashboardSection } from "@/components/shared/dashboard-section";
-import { applications } from "@/lib/demo-data";
+import { getInsuranceApplications } from "@/lib/insurance-service";
 
-export default function ApplicationsPage() {
+export default async function ApplicationsPage() {
+  const applications = await getInsuranceApplications();
   const submitted = applications.filter((item) => item.status !== "DRAFT").length;
   const auditNeeded = applications.filter(
     (item) => item.status === "REQUIRES_FIELD_AUDIT",

@@ -33,6 +33,10 @@ export function getDemoToken() {
   return localStorage.getItem(DEMO_TOKEN_KEY);
 }
 
+export function getAuthToken() {
+  return getDemoToken();
+}
+
 export function getDemoUser() {
   if (!inBrowser()) return null;
   const raw = localStorage.getItem(DEMO_USER_KEY);
@@ -63,4 +67,8 @@ export function signOut() {
   if (!inBrowser()) return;
   localStorage.removeItem(DEMO_TOKEN_KEY);
   localStorage.removeItem(DEMO_USER_KEY);
+}
+
+export function clearAuth() {
+  signOut();
 }
