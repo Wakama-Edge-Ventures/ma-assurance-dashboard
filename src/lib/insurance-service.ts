@@ -111,6 +111,13 @@ export async function getInsuranceApplications(): Promise<InsuranceApplication[]
   );
 }
 
+export async function getInsuranceApplicationById(
+  id: string,
+): Promise<InsuranceApplication | null> {
+  const applications = await getInsuranceApplications();
+  return applications.find((item) => item.id === id) ?? null;
+}
+
 export async function getInsuranceMissions(): Promise<InsuranceMission[]> {
   return fetchListWithFallback<InsuranceMission>(
     "/v1/insurance/missions",

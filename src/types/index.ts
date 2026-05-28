@@ -8,6 +8,17 @@ export type RiskTier =
 
 export type ApplicationStatus =
   | "DRAFT"
+  | "MFA_VERIFIED"
+  | "MISSION_CONFIGURED"
+  | "MISSION_SENT"
+  | "FIELD_AUDIT_COMPLETE"
+  | "BACK_OFFICE_REVIEW"
+  | "READY_FOR_SCORING"
+  | "SCORED"
+  | "OFFER_SENT"
+  | "FARMER_ACCEPTED"
+  | "CONTRACT_SIGNED"
+  | "ACTIVE"
   | "SUBMITTED"
   | "UNDER_REVIEW"
   | "REQUIRES_FIELD_AUDIT"
@@ -44,6 +55,9 @@ export interface InsuranceApplication {
   insurerName: string;
   cropType: string;
   areaHa: number;
+  province?: string;
+  commune?: string;
+  updatedAt?: string;
   requestedCoverageMad: number;
   status: ApplicationStatus;
   riskTier: RiskTier;

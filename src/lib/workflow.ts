@@ -3,6 +3,17 @@ import { ApplicationStatus, RiskTier } from "@/types";
 export function getApplicationStatusLabel(status: ApplicationStatus): string {
   const labels: Record<ApplicationStatus, string> = {
     DRAFT: "Brouillon",
+    MFA_VERIFIED: "MFA verifiee",
+    MISSION_CONFIGURED: "Mission configuree",
+    MISSION_SENT: "Mission envoyee",
+    FIELD_AUDIT_COMPLETE: "Audit terrain termine",
+    BACK_OFFICE_REVIEW: "Revue back-office",
+    READY_FOR_SCORING: "Pret pour scoring",
+    SCORED: "Scoring termine",
+    OFFER_SENT: "Offre envoyee",
+    FARMER_ACCEPTED: "Offre acceptee",
+    CONTRACT_SIGNED: "Contrat signe",
+    ACTIVE: "Actif",
     SUBMITTED: "Soumise",
     UNDER_REVIEW: "En revue",
     REQUIRES_FIELD_AUDIT: "Audit terrain requis",
@@ -11,6 +22,54 @@ export function getApplicationStatusLabel(status: ApplicationStatus): string {
     REJECTED_BY_INSURER: "Rejetee par l'assureur",
   };
   return labels[status];
+}
+
+export function getApplicationStatusDescription(status: ApplicationStatus): string {
+  const descriptions: Record<ApplicationStatus, string> = {
+    DRAFT: "Dossier en cours de saisie initiale.",
+    MFA_VERIFIED: "Identite et acces verifies.",
+    MISSION_CONFIGURED: "Mission terrain preparee.",
+    MISSION_SENT: "Mission transmise aux operateurs.",
+    FIELD_AUDIT_COMPLETE: "Collecte terrain finalisee.",
+    BACK_OFFICE_REVIEW: "Verification documentaire en back-office.",
+    READY_FOR_SCORING: "Dossier prete a l'evaluation technique.",
+    SCORED: "Scoring technique calcule.",
+    OFFER_SENT: "Proposition transmise a l'assureur.",
+    FARMER_ACCEPTED: "Acceptation producteur en attente assureur.",
+    CONTRACT_SIGNED: "Contrat signe par l'assureur.",
+    ACTIVE: "Contrat actif et monitorable.",
+    SUBMITTED: "Demande soumise au pipeline.",
+    UNDER_REVIEW: "Analyse technique en cours.",
+    REQUIRES_FIELD_AUDIT: "Audit terrain necessaire.",
+    PRICED: "Tarification technique preparee.",
+    APPROVED_BY_INSURER: "Validation finale assureur effectuee.",
+    REJECTED_BY_INSURER: "Decision de rejet assureur.",
+  };
+  return descriptions[status];
+}
+
+export function getApplicationStatusOrder(status: ApplicationStatus): number {
+  const order: Record<ApplicationStatus, number> = {
+    DRAFT: 1,
+    MFA_VERIFIED: 2,
+    MISSION_CONFIGURED: 3,
+    MISSION_SENT: 4,
+    FIELD_AUDIT_COMPLETE: 5,
+    BACK_OFFICE_REVIEW: 6,
+    READY_FOR_SCORING: 7,
+    SCORED: 8,
+    OFFER_SENT: 9,
+    FARMER_ACCEPTED: 10,
+    PRICED: 11,
+    CONTRACT_SIGNED: 12,
+    ACTIVE: 13,
+    SUBMITTED: 2,
+    UNDER_REVIEW: 6,
+    REQUIRES_FIELD_AUDIT: 4,
+    APPROVED_BY_INSURER: 13,
+    REJECTED_BY_INSURER: 13,
+  };
+  return order[status];
 }
 
 export function getRiskTierLabel(tier: RiskTier): string {
