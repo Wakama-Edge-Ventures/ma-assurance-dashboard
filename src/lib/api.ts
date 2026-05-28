@@ -1,4 +1,4 @@
-import { clearAuth, getAuthToken } from "@/lib/auth";
+import { clearAuth, getBackendAuthToken } from "@/lib/auth";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.wakama.farm";
@@ -44,8 +44,11 @@ function extractErrorMessage(payload: unknown, status: number): string {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getAuthToken();
+  const token = getBackendAuthToken();
   const headers = new Headers(options.headers);
+  const method = options.method?.toUpperCase();
+  const isReadOnlyGet = !method || method === "GET";
+  const hasAuthorization = headers.has("Authorization");
 
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
@@ -54,13 +57,40 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(toUrl(path), {
+  const requestInit: RequestInit = {
     ...options,
     headers,
     cache: "no-store",
-  });
+  };
+
+  const response = await fetch(toUrl(path), requestInit);
 
   const json = await parseJsonSafe(response);
+
+  const shouldRetryWithoutAuth =
+    !response.ok && response.status === 401 && isReadOnlyGet && (token || hasAuthorization);
+
+  if (shouldRetryWithoutAuth) {
+    const retryHeaders = new Headers(requestInit.headers);
+    retryHeaders.delete("Authorization");
+
+    const retryResponse = await fetch(toUrl(path), {
+      ...requestInit,
+      headers: retryHeaders,
+    });
+
+    const retryJson = await parseJsonSafe(retryResponse);
+
+    if (retryResponse.ok) {
+      return retryJson as T;
+    }
+
+    const retryMessage = extractErrorMessage(retryJson, retryResponse.status);
+    if (retryResponse.status === 401) {
+      clearAuth();
+    }
+    throw new ApiError(retryResponse.status, retryMessage, retryJson);
+  }
 
   if (!response.ok) {
     if (response.status === 401) {

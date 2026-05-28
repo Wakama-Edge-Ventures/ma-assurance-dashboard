@@ -37,6 +37,30 @@ export function getAuthToken() {
   return getDemoToken();
 }
 
+const DEMO_TOKEN_EXACT_VALUES = new Set([
+  "demo-token",
+  "mock-token",
+  "wakama-demo-token",
+  "demo-token-mvp",
+]);
+
+export function isDemoAuthToken(token?: string | null): boolean {
+  if (!token) return true;
+  const normalized = token.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    DEMO_TOKEN_EXACT_VALUES.has(normalized) ||
+    normalized.startsWith("demo-") ||
+    normalized.startsWith("mock-")
+  );
+}
+
+export function getBackendAuthToken(): string | null {
+  const token = getAuthToken();
+  if (!token || isDemoAuthToken(token)) return null;
+  return token;
+}
+
 export function getDemoUser() {
   if (!inBrowser()) return null;
   const raw = localStorage.getItem(DEMO_USER_KEY);

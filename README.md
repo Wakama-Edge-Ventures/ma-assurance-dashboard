@@ -62,6 +62,13 @@ NEXT_PUBLIC_USE_LIVE_API=false
 - Si l'API est indisponible, le fallback `SEED_DEMO` est applique automatiquement pour maintenir la demo stable.
 - Aucune operation d'ecriture backend n'est effectuee par le dashboard assurance dans cette phase.
 
+## Mock auth vs backend auth
+- Le login actuel est un mock local (protection UI demo) et ne represente pas une authentification backend.
+- Les tokens demo/mock ne sont pas envoyes a `https://api.wakama.farm`.
+- Les tokens backend reels pourront etre pris en charge dans une phase ulterieure.
+- Sur les appels read-only `GET`, si un token est refuse (401), un retry unique sans Authorization est tente.
+- Le fallback `SEED_DEMO` reste actif pour garantir la stabilite des demonstrations MVP.
+
 ## Deployment (Coolify)
 - Builder via `npm install && npm run build`.
 - Runner via `npm run start`.
