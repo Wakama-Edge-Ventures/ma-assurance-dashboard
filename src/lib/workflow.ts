@@ -1,4 +1,4 @@
-import { ApplicationStatus, RiskTier } from "@/types";
+import { ApplicationStatus, InsuranceMission, RiskTier } from "@/types";
 
 export function getApplicationStatusLabel(status: ApplicationStatus): string {
   const labels: Record<ApplicationStatus, string> = {
@@ -68,6 +68,45 @@ export function getApplicationStatusOrder(status: ApplicationStatus): number {
     REQUIRES_FIELD_AUDIT: 4,
     APPROVED_BY_INSURER: 13,
     REJECTED_BY_INSURER: 13,
+  };
+  return order[status];
+}
+
+export function getMissionStatusLabel(status: InsuranceMission["status"]): string {
+  const labels: Record<InsuranceMission["status"], string> = {
+    CONFIG_PENDING: "A configurer",
+    PLANNED: "Planifiee",
+    SENT: "Envoyee",
+    IN_PROGRESS: "En cours",
+    AUDIT_COMPLETE: "Audit termine",
+    REVIEW_COMPLETE: "Revue terminee",
+    DONE: "Terminee",
+  };
+  return labels[status];
+}
+
+export function getMissionStatusDescription(status: InsuranceMission["status"]): string {
+  const descriptions: Record<InsuranceMission["status"], string> = {
+    CONFIG_PENDING: "Mission en attente de parametrage.",
+    PLANNED: "Mission planifiee et prete a l'envoi.",
+    SENT: "Mission transmise a l'agent terrain.",
+    IN_PROGRESS: "Collecte terrain en execution.",
+    AUDIT_COMPLETE: "Audit synchronise, pret pour arbitrage.",
+    REVIEW_COMPLETE: "Revue back-office terminee.",
+    DONE: "Mission cloturee.",
+  };
+  return descriptions[status];
+}
+
+export function getMissionStatusOrder(status: InsuranceMission["status"]): number {
+  const order: Record<InsuranceMission["status"], number> = {
+    CONFIG_PENDING: 1,
+    PLANNED: 2,
+    SENT: 3,
+    IN_PROGRESS: 4,
+    AUDIT_COMPLETE: 5,
+    REVIEW_COMPLETE: 6,
+    DONE: 7,
   };
   return order[status];
 }

@@ -126,6 +126,13 @@ export async function getInsuranceMissions(): Promise<InsuranceMission[]> {
   );
 }
 
+export async function getInsuranceMissionById(
+  id: string,
+): Promise<InsuranceMission | null> {
+  const missions = await getInsuranceMissions();
+  return missions.find((item) => item.id === id) ?? null;
+}
+
 export async function getInsuranceFieldAudits(): Promise<InsuranceFieldAudit[]> {
   return fetchListWithFallback<InsuranceFieldAudit>(
     "/v1/insurance/field-audits",

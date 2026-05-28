@@ -71,7 +71,14 @@ export interface InsuranceMission {
   missionType: "FIELD_VISIT" | "PHONE_VERIFICATION" | "SATELLITE_REVIEW";
   assignedTo: string;
   scheduledFor: string;
-  status: "PLANNED" | "IN_PROGRESS" | "DONE";
+  status:
+    | "CONFIG_PENDING"
+    | "PLANNED"
+    | "SENT"
+    | "IN_PROGRESS"
+    | "AUDIT_COMPLETE"
+    | "REVIEW_COMPLETE"
+    | "DONE";
   region: string;
   source: DataSource;
 }

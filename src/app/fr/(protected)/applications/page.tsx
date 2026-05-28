@@ -10,6 +10,7 @@ import {
   getInsurancePolicies,
   getRaxEvaluations,
 } from "@/lib/insurance-service";
+import { getApplicationStatusLabel } from "@/lib/workflow";
 
 export default async function ApplicationsPage() {
   const [applications, farmers, raxEvaluations, policies] = await Promise.all([
@@ -50,8 +51,8 @@ export default async function ApplicationsPage() {
   return (
     <div className="space-y-6">
       <PageTitle
-        title="Demandes d’assurance"
-        description="Pipeline des demandes agricoles, de la saisie initiale jusqu’a l’offre et au contrat."
+        title="Demandes d'assurance"
+        description="Pipeline des demandes agricoles, de la saisie initiale jusqu'a l'offre et au contrat."
       />
       <p className="text-xs text-brand-textMuted">
         Wakama prepare le dossier et les preuves ; l&apos;assureur conserve la decision
@@ -101,7 +102,8 @@ export default async function ApplicationsPage() {
               key={status}
               className="rounded-full border border-brand-border bg-slate-900 px-3 py-1 text-xs text-brand-textMuted"
             >
-              {status}: {count}
+              {getApplicationStatusLabel(status as (typeof applications)[number]["status"])}:{" "}
+              {count}
             </span>
           ))}
         </div>
