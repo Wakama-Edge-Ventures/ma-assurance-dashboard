@@ -5,10 +5,12 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   calculateTechnicalRax,
   createLiveApplication,
+  createLiveMission,
   getLiveApplications,
   getMoroccoCommunes,
   getMoroccoCrops,
   getMoroccoProvinces,
+  syncFieldAudit,
   shouldUseInsuranceDemoFallback,
   type CalculateRaxPayload,
   type CreateApplicationPayload,
@@ -99,6 +101,54 @@ interface TechnicalPreDossierState {
   sourceDisclosure: string | null;
 }
 
+type ControlledMissionStatus =
+  | "DRAFT"
+  | "READY_FOR_AUDIT"
+  | "AUDIT_SIMULATED"
+  | "REVIEW_READY";
+
+interface ControlledMissionState {
+  technicalApplicationId: string;
+  cropCode: string;
+  lat: string;
+  lng: string;
+  surfaceHa: string;
+  source: PreDossierSource;
+  missionMode: "CONTROLLED_SIMULATION";
+  missionStatus: ControlledMissionStatus;
+  agentUserId: string;
+  scheduledAt: string;
+  notes: string;
+  missionId: string | null;
+  persisted: boolean;
+  backendMessage: string | null;
+  backendSource: DataSource;
+}
+
+interface SimulatedAuditForm {
+  measuredSurfaceHa: string;
+  measuredLat: string;
+  measuredLng: string;
+  polygonDeviationPercent: string;
+  kycChecked: boolean;
+  photosCount: string;
+  assetsCheckedCount: string;
+  auditNotes: string;
+  source: PreDossierSource;
+}
+
+interface SimulatedAuditResult {
+  declaredSurfaceHa: number;
+  measuredSurfaceHa: number;
+  deviationPercent: number;
+  auditStatus: ControlledMissionStatus;
+  warnings: string[];
+  source: DataSource;
+  confidence: string;
+  persisted: boolean;
+  backendMessage: string | null;
+}
+
 function resolveTechnicalPreDossierState(
   payload: unknown,
   fallbackSource: DataSource,
@@ -151,6 +201,44 @@ function resolveTechnicalPreDossierState(
   }
 
   return { id, persisted, status, mode, notes, source, sourceDisclosure };
+}
+
+function resolveMissionId(payload: unknown): string | null {
+  const root = asRecord(payload);
+  if (!root) return null;
+  const data = asRecord(root.data);
+  const mission = asRecord(root.mission) ?? asRecord(data?.mission);
+  return asString(
+    mission?.id ??
+      mission?.missionId ??
+      root.id ??
+      root.missionId ??
+      data?.id ??
+      data?.missionId,
+  );
+}
+
+function resolveConfidenceFromDeviation(deviationPercent: number): string {
+  if (deviationPercent <= 5) return "HIGH";
+  if (deviationPercent <= 15) return "MEDIUM";
+  return "LOW";
+}
+
+function shouldLinkPersistedApplicationId(
+  applicationId: string,
+  technicalState: TechnicalPreDossierState | null,
+): boolean {
+  const trimmed = applicationId.trim();
+  if (!trimmed) return false;
+  if (trimmed.toUpperCase().startsWith("TECH_")) return false;
+  if (
+    technicalState?.id &&
+    technicalState.id === trimmed &&
+    technicalState.persisted === false
+  ) {
+    return false;
+  }
+  return true;
 }
 
 interface NormalizedRaxResult {
@@ -470,6 +558,37 @@ const DEFAULT_FORM = {
   applicationId: "",
 };
 
+const DEFAULT_MISSION_FORM: ControlledMissionState = {
+  technicalApplicationId: "",
+  cropCode: "BLE_DUR",
+  lat: "34.9417",
+  lng: "-5.8394",
+  surfaceHa: "2",
+  source: "MANUAL_ENTRY",
+  missionMode: "CONTROLLED_SIMULATION",
+  missionStatus: "DRAFT",
+  agentUserId: "",
+  scheduledAt: "",
+  notes:
+    "Mission controlee dashboard. Pas d'audit terrain natif, pas de creation farmer/cooperative/parcelle.",
+  missionId: null,
+  persisted: false,
+  backendMessage: null,
+  backendSource: "MANUAL_ESTIMATE",
+};
+
+const DEFAULT_SIMULATED_AUDIT_FORM: SimulatedAuditForm = {
+  measuredSurfaceHa: "2",
+  measuredLat: "34.9417",
+  measuredLng: "-5.8394",
+  polygonDeviationPercent: "",
+  kycChecked: false,
+  photosCount: "0",
+  assetsCheckedCount: "0",
+  auditNotes: "Simulation controlee dashboard uniquement.",
+  source: "MANUAL_ESTIMATE",
+};
+
 export function RaxLivePanel() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -490,6 +609,17 @@ export function RaxLivePanel() {
   const [result, setResult] = useState<NormalizedRaxResult | null>(null);
   const [rawResultPayload, setRawResultPayload] = useState<Record<string, unknown> | null>(null);
   const [form, setForm] = useState(DEFAULT_FORM);
+  const [preparingMission, setPreparingMission] = useState(false);
+  const [submittingAudit, setSubmittingAudit] = useState(false);
+  const [missionError, setMissionError] = useState<string | null>(null);
+  const [missionInfo, setMissionInfo] = useState<string | null>(null);
+  const [controlledMission, setControlledMission] =
+    useState<ControlledMissionState>(DEFAULT_MISSION_FORM);
+  const [simulatedAuditForm, setSimulatedAuditForm] = useState<SimulatedAuditForm>(
+    DEFAULT_SIMULATED_AUDIT_FORM,
+  );
+  const [simulatedAuditResult, setSimulatedAuditResult] =
+    useState<SimulatedAuditResult | null>(null);
 
   async function load() {
     setLoading(true);
@@ -570,6 +700,33 @@ export function RaxLivePanel() {
       .filter((row) => Boolean(row.code));
   }, [communes]);
 
+  useEffect(() => {
+    const technicalId = technicalPreDossier?.id ?? form.applicationId;
+    setControlledMission((prev) => ({
+      ...prev,
+      technicalApplicationId: technicalId ?? "",
+      cropCode: form.cropCode,
+      lat: form.lat,
+      lng: form.lng,
+      surfaceHa: form.surfaceHa,
+      source: form.preDossierSource,
+    }));
+    setSimulatedAuditForm((prev) => ({
+      ...prev,
+      measuredSurfaceHa: prev.measuredSurfaceHa || form.surfaceHa,
+      measuredLat: prev.measuredLat || form.lat,
+      measuredLng: prev.measuredLng || form.lng,
+    }));
+  }, [
+    form.applicationId,
+    form.cropCode,
+    form.lat,
+    form.lng,
+    form.surfaceHa,
+    form.preDossierSource,
+    technicalPreDossier?.id,
+  ]);
+
   async function onPersistPreDossier() {
     setPersisting(true);
     setPersistInfo(null);
@@ -629,6 +786,196 @@ export function RaxLivePanel() {
     await load();
   }
 
+  async function onPrepareControlledMission() {
+    setPreparingMission(true);
+    setMissionError(null);
+    setMissionInfo(null);
+    setSimulatedAuditResult(null);
+
+    const technicalApplicationId = controlledMission.technicalApplicationId.trim();
+    if (!technicalApplicationId) {
+      setPreparingMission(false);
+      setMissionError(
+        "technicalApplicationId requis. Utilisez un TECH_* accepte ou un applicationId existant.",
+      );
+      return;
+    }
+
+    const notes = [
+      controlledMission.notes,
+      "mode=CONTROLLED_SIMULATION",
+      `cropCode=${controlledMission.cropCode}`,
+      `lat=${controlledMission.lat}`,
+      `lng=${controlledMission.lng}`,
+      `surfaceHa=${controlledMission.surfaceHa}`,
+      `source=${controlledMission.source}`,
+      "No farmer/cooperative/parcelle creation.",
+    ]
+      .filter((item) => Boolean(item && item.trim()))
+      .join(" | ");
+
+    const missionRes = await createLiveMission({
+      applicationId: technicalApplicationId,
+      missionType: "FIELD_AUDIT",
+      agentUserId: controlledMission.agentUserId || undefined,
+      scheduledAt: controlledMission.scheduledAt || undefined,
+      notes,
+    });
+    setPreparingMission(false);
+
+    if (!missionRes.ok) {
+      if (missionRes.state === "AUTH_REQUIRED") {
+        setAuthRequired(true);
+      } else if (missionRes.state === "FORBIDDEN") {
+        setForbidden(true);
+      }
+
+      setControlledMission((prev) => ({
+        ...prev,
+        missionStatus: "READY_FOR_AUDIT",
+        persisted: false,
+        missionId: null,
+        backendSource: "MANUAL_ESTIMATE",
+        backendMessage: missionRes.errorMessage ?? "Mission controlee non persistee.",
+      }));
+      setMissionInfo("Mission contrôlée non persistée — simulation dashboard");
+      setMissionError(missionRes.errorMessage ?? "Creation mission backend indisponible.");
+      return;
+    }
+
+    const missionId = resolveMissionId(missionRes.data);
+    setControlledMission((prev) => ({
+      ...prev,
+      missionStatus: "READY_FOR_AUDIT",
+      persisted: true,
+      missionId,
+      backendSource: normalizeSource(missionRes.source, "LIVE"),
+      backendMessage: missionRes.disclosure,
+    }));
+    setMissionInfo("Mission contrôlée préparée via backend.");
+  }
+
+  async function onSimulateFieldAudit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmittingAudit(true);
+    setMissionError(null);
+    setMissionInfo(null);
+
+    const declaredSurface = num(controlledMission.surfaceHa);
+    const measuredSurface = num(simulatedAuditForm.measuredSurfaceHa);
+    const measuredLat = num(simulatedAuditForm.measuredLat);
+    const measuredLng = num(simulatedAuditForm.measuredLng);
+    const polygonDeviationInput = num(simulatedAuditForm.polygonDeviationPercent);
+    const photosCount = num(simulatedAuditForm.photosCount);
+    const assetsCheckedCount = num(simulatedAuditForm.assetsCheckedCount);
+
+    if (
+      declaredSurface === null ||
+      measuredSurface === null ||
+      measuredLat === null ||
+      measuredLng === null
+    ) {
+      setSubmittingAudit(false);
+      setMissionError(
+        "declared/measured surface et coordonnees mesurees sont requises pour la simulation.",
+      );
+      return;
+    }
+
+    const computedDeviation =
+      declaredSurface > 0
+        ? Math.abs(((measuredSurface - declaredSurface) / declaredSurface) * 100)
+        : 0;
+    const deviationPercent =
+      polygonDeviationInput !== null ? polygonDeviationInput : computedDeviation;
+
+    const warnings: string[] = [];
+    if (deviationPercent > 20) {
+      warnings.push("Deviation surface elevee (>20%). Verification terrain recommandee.");
+    }
+    if (!simulatedAuditForm.kycChecked) {
+      warnings.push("KYC non verifie dans cette simulation controlee.");
+    }
+    if (photosCount === null || photosCount <= 0) {
+      warnings.push("Aucune photo rattachee a la simulation.");
+    }
+    if (assetsCheckedCount === null || assetsCheckedCount < 1) {
+      warnings.push("Aucun actif verifie dans la simulation.");
+    }
+
+    const confidence = resolveConfidenceFromDeviation(deviationPercent);
+    const auditPayload: Record<string, unknown> = {
+      mode: controlledMission.missionMode,
+      missionStatus: controlledMission.missionStatus,
+      technicalApplicationId: controlledMission.technicalApplicationId,
+      missionId: controlledMission.missionId ?? undefined,
+      technicalPreDossier: {
+        applicationId: controlledMission.technicalApplicationId,
+        cropCode: controlledMission.cropCode,
+        lat: num(controlledMission.lat),
+        lng: num(controlledMission.lng),
+        surfaceHa: declaredSurface,
+        source: controlledMission.source,
+      },
+      audit: {
+        measuredSurfaceHa: measuredSurface,
+        measuredLat,
+        measuredLng,
+        polygonDeviationPercent: deviationPercent,
+        kycChecked: simulatedAuditForm.kycChecked,
+        photosCount,
+        assetsCheckedCount,
+        auditNotes: simulatedAuditForm.auditNotes,
+        source: simulatedAuditForm.source,
+      },
+      warnings,
+      confidence,
+      generatedAt: new Date().toISOString(),
+    };
+
+    const auditRes = await syncFieldAudit(auditPayload);
+
+    const persisted = Boolean(auditRes.ok);
+    const source = persisted
+      ? normalizeSource(auditRes.source, "LIVE")
+      : auditRes.state === "AUTH_REQUIRED" || auditRes.state === "FORBIDDEN"
+        ? "UNAVAILABLE"
+        : auditRes.state === "DEGRADED" || auditRes.state === "UNAVAILABLE"
+          ? normalizeSource(auditRes.source, "DEGRADED")
+          : normalizeSource(simulatedAuditForm.source, "MANUAL_ESTIMATE");
+
+    setControlledMission((prev) => ({
+      ...prev,
+      missionStatus: "AUDIT_SIMULATED",
+    }));
+
+    setSimulatedAuditResult({
+      declaredSurfaceHa: declaredSurface,
+      measuredSurfaceHa: measuredSurface,
+      deviationPercent,
+      auditStatus: "AUDIT_SIMULATED",
+      warnings,
+      source,
+      confidence,
+      persisted,
+      backendMessage: auditRes.ok ? auditRes.disclosure : auditRes.errorMessage ?? auditRes.disclosure,
+    });
+
+    if (!auditRes.ok) {
+      if (auditRes.state === "AUTH_REQUIRED") {
+        setAuthRequired(true);
+      } else if (auditRes.state === "FORBIDDEN") {
+        setForbidden(true);
+      }
+      setMissionInfo("Mission contrôlée non persistée — simulation dashboard");
+      setMissionError(auditRes.errorMessage ?? "Sync audit backend indisponible.");
+    } else {
+      setMissionInfo("Audit simulé structuré via backend sync.");
+    }
+
+    setSubmittingAudit(false);
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
@@ -643,6 +990,11 @@ export function RaxLivePanel() {
     const detection = num(form.detectionScore);
     const lat = num(form.lat);
     const lng = num(form.lng);
+    const selectedApplicationId = form.applicationId.trim();
+    const canLinkApplicationInDb = shouldLinkPersistedApplicationId(
+      selectedApplicationId,
+      technicalPreDossier,
+    );
 
     if (lat === null || lng === null) {
       setSubmitting(false);
@@ -678,7 +1030,9 @@ export function RaxLivePanel() {
     if (gravity !== null) payload.gravityScore = gravity;
     if (frequency !== null) payload.frequencyScore = frequency;
     if (detection !== null) payload.detectionScore = detection;
-    if (form.applicationId) payload.applicationId = form.applicationId;
+    if (canLinkApplicationInDb) {
+      payload.applicationId = selectedApplicationId;
+    }
 
     const res = await calculateTechnicalRax(payload);
     setSubmitting(false);
@@ -742,6 +1096,13 @@ export function RaxLivePanel() {
   const factors = result?.explanationFactors
     ? result.explanationFactors.map((item) => toFactorViewModel(item))
     : [];
+  const selectedApplicationId = form.applicationId.trim();
+  const hasDbApplicationLinkForRax = shouldLinkPersistedApplicationId(
+    selectedApplicationId,
+    technicalPreDossier,
+  );
+  const shouldShowNonPersistedRaxNote =
+    Boolean(selectedApplicationId) && !hasDbApplicationLinkForRax;
 
   return (
     <div className="space-y-4 rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4">
@@ -775,6 +1136,12 @@ export function RaxLivePanel() {
       {persistInfo ? (
         <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-200">
           {persistInfo}
+        </div>
+      ) : null}
+      {shouldShowNonPersistedRaxNote ? (
+        <div className="rounded-xl border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-200">
+          Pré-dossier technique non persisté : le calcul RAX est exécuté sans liaison DB
+          application.
         </div>
       ) : null}
 
@@ -1063,6 +1430,378 @@ export function RaxLivePanel() {
           </button>
         </div>
       </form>
+
+      <div className="space-y-3 rounded-xl border border-amber-400/18 bg-amber-400/6 p-3 text-xs text-slate-200">
+        <div className="flex flex-wrap items-center gap-2">
+          <h4 className="font-mono text-[10px] uppercase tracking-[0.08em] text-amber-200">
+            Mission assurance contrôlée
+          </h4>
+          <SourceBadge
+            source={
+              controlledMission.persisted
+                ? controlledMission.backendSource
+                : normalizeSource(controlledMission.source, "MANUAL_ESTIMATE")
+            }
+          />
+          <SourceBadge source={controlledMission.persisted ? "LIVE" : "MANUAL_ESTIMATE"} />
+        </div>
+        <p className="text-slate-300">
+          Simulation dashboard contrôlée (phase 30). Ce module ne constitue pas un audit terrain
+          natif, ne crée aucun farmer/cooperative/parcelle, et ne représente ni une émission de
+          police ni un sinistre.
+        </p>
+        <p className="text-slate-400">
+          L&apos;audit terrain natif/offline Agent App est traité dans une phase ultérieure dédiée.
+        </p>
+        <p className="text-slate-300">
+          Wakama structure l&apos;évidence technique. L&apos;assureur reste seul décisionnaire.
+        </p>
+
+        {missionInfo ? (
+          <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-2 py-1.5 text-emerald-200">
+            {missionInfo}
+          </div>
+        ) : null}
+        {missionError ? (
+          <div className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-2 py-1.5 text-rose-200">
+            {missionError}
+          </div>
+        ) : null}
+
+        <div className="grid gap-2 rounded-lg border border-amber-400/14 bg-slate-900/20 p-3 md:grid-cols-3">
+          <label className="text-xs text-slate-300">
+            technicalApplicationId
+            <input
+              value={controlledMission.technicalApplicationId}
+              onChange={(event) =>
+                setControlledMission((prev) => ({
+                  ...prev,
+                  technicalApplicationId: event.target.value,
+                }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+              placeholder="TECH_..."
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            cropCode
+            <input
+              value={controlledMission.cropCode}
+              onChange={(event) =>
+                setControlledMission((prev) => ({ ...prev, cropCode: event.target.value }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            source
+            <select
+              value={controlledMission.source}
+              onChange={(event) =>
+                setControlledMission((prev) => ({
+                  ...prev,
+                  source: event.target.value as PreDossierSource,
+                }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            >
+              <option value="MANUAL_ENTRY">MANUAL_ENTRY</option>
+              <option value="MANUAL_ESTIMATE">MANUAL_ESTIMATE</option>
+            </select>
+          </label>
+
+          <label className="text-xs text-slate-300">
+            lat
+            <input
+              value={controlledMission.lat}
+              onChange={(event) =>
+                setControlledMission((prev) => ({ ...prev, lat: event.target.value }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            lng
+            <input
+              value={controlledMission.lng}
+              onChange={(event) =>
+                setControlledMission((prev) => ({ ...prev, lng: event.target.value }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            surfaceHa
+            <input
+              value={controlledMission.surfaceHa}
+              onChange={(event) =>
+                setControlledMission((prev) => ({ ...prev, surfaceHa: event.target.value }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+
+          <label className="text-xs text-slate-300">
+            mission mode
+            <input
+              value={controlledMission.missionMode}
+              disabled
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            mission status
+            <select
+              value={controlledMission.missionStatus}
+              onChange={(event) =>
+                setControlledMission((prev) => ({
+                  ...prev,
+                  missionStatus: event.target.value as ControlledMissionStatus,
+                }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            >
+              <option value="DRAFT">DRAFT</option>
+              <option value="READY_FOR_AUDIT">READY_FOR_AUDIT</option>
+              <option value="AUDIT_SIMULATED">AUDIT_SIMULATED</option>
+              <option value="REVIEW_READY">REVIEW_READY</option>
+            </select>
+          </label>
+          <label className="text-xs text-slate-300">
+            agentUserId (optional)
+            <input
+              value={controlledMission.agentUserId}
+              onChange={(event) =>
+                setControlledMission((prev) => ({ ...prev, agentUserId: event.target.value }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+
+          <label className="text-xs text-slate-300">
+            scheduledAt (optional)
+            <input
+              type="datetime-local"
+              value={controlledMission.scheduledAt}
+              onChange={(event) =>
+                setControlledMission((prev) => ({ ...prev, scheduledAt: event.target.value }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+          <label className="text-xs text-slate-300 md:col-span-2">
+            mission notes
+            <textarea
+              value={controlledMission.notes}
+              onChange={(event) =>
+                setControlledMission((prev) => ({ ...prev, notes: event.target.value }))
+              }
+              rows={2}
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+
+          <div className="md:col-span-3 space-y-1 text-slate-300">
+            {controlledMission.agentUserId ? (
+              <p>Agent terrain assigné: {controlledMission.agentUserId}</p>
+            ) : (
+              <p>Agent terrain non assigné — simulation contrôlée dashboard</p>
+            )}
+            {controlledMission.missionId ? <p>missionId backend: {controlledMission.missionId}</p> : null}
+            {controlledMission.backendMessage ? (
+              <p>backend: {controlledMission.backendMessage}</p>
+            ) : null}
+            {!controlledMission.persisted ? (
+              <p>Mission contrôlée non persistée — simulation dashboard</p>
+            ) : null}
+          </div>
+
+          <div className="md:col-span-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void onPrepareControlledMission();
+              }}
+              disabled={preparingMission || authRequired}
+              className="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {preparingMission ? "Préparation..." : "Préparer mission contrôlée"}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setControlledMission((prev) => ({ ...prev, missionStatus: "REVIEW_READY" }))
+              }
+              className="rounded-full border border-slate-400/30 bg-slate-400/10 px-3 py-2 text-xs text-slate-200"
+            >
+              Marquer REVIEW_READY
+            </button>
+          </div>
+        </div>
+
+        <form
+          onSubmit={onSimulateFieldAudit}
+          className="grid gap-2 rounded-lg border border-amber-400/14 bg-slate-900/20 p-3 md:grid-cols-3"
+        >
+          <p className="md:col-span-3 font-mono text-[10px] uppercase tracking-[0.08em] text-amber-200">
+            Audit simulé (controlled dashboard)
+          </p>
+
+          <label className="text-xs text-slate-300">
+            measuredSurfaceHa
+            <input
+              value={simulatedAuditForm.measuredSurfaceHa}
+              onChange={(event) =>
+                setSimulatedAuditForm((prev) => ({
+                  ...prev,
+                  measuredSurfaceHa: event.target.value,
+                }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+              required
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            measuredLat
+            <input
+              value={simulatedAuditForm.measuredLat}
+              onChange={(event) =>
+                setSimulatedAuditForm((prev) => ({ ...prev, measuredLat: event.target.value }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+              required
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            measuredLng
+            <input
+              value={simulatedAuditForm.measuredLng}
+              onChange={(event) =>
+                setSimulatedAuditForm((prev) => ({ ...prev, measuredLng: event.target.value }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+              required
+            />
+          </label>
+
+          <label className="text-xs text-slate-300">
+            polygonDeviationPercent
+            <input
+              value={simulatedAuditForm.polygonDeviationPercent}
+              onChange={(event) =>
+                setSimulatedAuditForm((prev) => ({
+                  ...prev,
+                  polygonDeviationPercent: event.target.value,
+                }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            photosCount
+            <input
+              value={simulatedAuditForm.photosCount}
+              onChange={(event) =>
+                setSimulatedAuditForm((prev) => ({ ...prev, photosCount: event.target.value }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            assetsCheckedCount
+            <input
+              value={simulatedAuditForm.assetsCheckedCount}
+              onChange={(event) =>
+                setSimulatedAuditForm((prev) => ({
+                  ...prev,
+                  assetsCheckedCount: event.target.value,
+                }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+
+          <label className="text-xs text-slate-300">
+            source
+            <select
+              value={simulatedAuditForm.source}
+              onChange={(event) =>
+                setSimulatedAuditForm((prev) => ({
+                  ...prev,
+                  source: event.target.value as PreDossierSource,
+                }))
+              }
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            >
+              <option value="MANUAL_ESTIMATE">MANUAL_ESTIMATE</option>
+              <option value="MANUAL_ENTRY">MANUAL_ENTRY</option>
+            </select>
+          </label>
+          <label className="inline-flex items-center gap-2 text-xs text-slate-300">
+            <input
+              type="checkbox"
+              checked={simulatedAuditForm.kycChecked}
+              onChange={(event) =>
+                setSimulatedAuditForm((prev) => ({ ...prev, kycChecked: event.target.checked }))
+              }
+            />
+            kycChecked
+          </label>
+          <label className="text-xs text-slate-300 md:col-span-3">
+            auditNotes
+            <textarea
+              value={simulatedAuditForm.auditNotes}
+              onChange={(event) =>
+                setSimulatedAuditForm((prev) => ({ ...prev, auditNotes: event.target.value }))
+              }
+              rows={2}
+              className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={submittingAudit || authRequired}
+            className="md:col-span-3 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submittingAudit ? "Simulation..." : "Simuler audit contrôlé"}
+          </button>
+        </form>
+
+        {simulatedAuditResult ? (
+          <div className="space-y-2 rounded-lg border border-amber-400/14 bg-slate-900/20 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium text-white">Résultat audit contrôlé</p>
+              <SourceBadge source={simulatedAuditResult.source} />
+              <ConfidenceBadge confidence={simulatedAuditResult.confidence} />
+            </div>
+            <div className="grid gap-1 md:grid-cols-2">
+              <p>surface déclarée (ha): {simulatedAuditResult.declaredSurfaceHa.toFixed(2)}</p>
+              <p>surface mesurée (ha): {simulatedAuditResult.measuredSurfaceHa.toFixed(2)}</p>
+              <p>deviation %: {simulatedAuditResult.deviationPercent.toFixed(2)}</p>
+              <p>statut audit: {simulatedAuditResult.auditStatus}</p>
+              <p>persisté backend: {simulatedAuditResult.persisted ? "Oui" : "Non"}</p>
+            </div>
+            {simulatedAuditResult.backendMessage ? (
+              <p className="text-slate-300">backend: {simulatedAuditResult.backendMessage}</p>
+            ) : null}
+            {simulatedAuditResult.warnings.length > 0 ? (
+              <ul className="space-y-1">
+                {simulatedAuditResult.warnings.map((warning, index) => (
+                  <li
+                    key={`controlled-warn-${index}`}
+                    className="rounded-md border border-orange-400/20 bg-orange-400/10 px-2 py-1 text-orange-200"
+                  >
+                    {warning}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-emerald-200">Alerte majeure non détectée sur cette simulation.</p>
+            )}
+          </div>
+        ) : null}
+      </div>
 
       {result ? (
         <div className="space-y-3 rounded-xl border border-slate-400/10 bg-[#0b1422]/70 p-3 text-xs text-slate-200">

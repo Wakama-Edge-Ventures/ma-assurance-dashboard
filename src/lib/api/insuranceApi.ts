@@ -444,6 +444,14 @@ export async function createLiveMission(payload: CreateMissionPayload) {
   });
 }
 
+export async function syncFieldAudit(payload: UnknownRecord) {
+  return request<UnknownRecord>("/v1/insurance/field-audit/sync", {
+    method: "POST",
+    requiresAuth: true,
+    body: payload,
+  });
+}
+
 export interface CalculateRaxPayload {
   country: "MA";
   cropCode: string;
