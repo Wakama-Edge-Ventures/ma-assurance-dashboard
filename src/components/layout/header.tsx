@@ -8,16 +8,12 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { getDemoUser, signOut } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const [userName, setUserName] = useState("Utilisateur");
-
-  const sharedLive = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
-  const insuranceLive = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
 
   useEffect(() => {
     const user = getDemoUser();
@@ -67,14 +63,6 @@ export function Header() {
           Live
         </span>
 
-        <Badge variant={sharedLive ? "success" : "warning"} className="whitespace-nowrap">
-          Shared data {sharedLive ? "LIVE" : "SEED_DEMO"}
-        </Badge>
-
-        <Badge variant={insuranceLive ? "success" : "warning"} className="whitespace-nowrap">
-          Assurance {insuranceLive ? "LIVE" : "SEED_DEMO"}
-        </Badge>
-
         {/* User section */}
         <div className="flex items-center gap-2.5 border-l border-slate-400/10 pl-3.5">
           <div
@@ -89,7 +77,6 @@ export function Header() {
           </div>
           <div className="hidden leading-tight xl:block">
             <p className="text-[12.5px] font-medium text-white">{userName}</p>
-            <p className="font-mono text-[10.5px] text-[#5B6B86]">analyst · read</p>
           </div>
         </div>
 

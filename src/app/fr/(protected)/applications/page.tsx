@@ -1,5 +1,6 @@
 import { FileCheck2, FileText, Scale, ShieldCheck, Waves } from "lucide-react";
 
+import { ApplicationsLivePanel } from "@/components/insurance/applications-live-panel";
 import { ApplicationsTable } from "@/components/applications/applications-table";
 import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
@@ -60,6 +61,8 @@ export default async function ApplicationsPage() {
         Wakama prepare le dossier et les preuves ; l&apos;assureur conserve la decision
         finale.
       </p>
+
+      <ApplicationsLivePanel />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard

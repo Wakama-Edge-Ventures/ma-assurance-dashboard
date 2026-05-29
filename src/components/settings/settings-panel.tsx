@@ -1,8 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
+import { DEMO_SCENARIO } from "@/lib/demo-scenario";
+import {
+  getCurrentDemoStep,
+  getDemoScenarioState,
+  isDemoActive,
+  resetDemoScenario,
+} from "@/lib/demo-scenario-state";
 import { cn } from "@/lib/utils";
 import {
   calculateRaxBrut,
@@ -1181,6 +1189,77 @@ function TabGovernance({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Demo scenario controls */}
+      <DemoScenarioControls />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Demo scenario controls (governance tab sub-section)
+// ---------------------------------------------------------------------------
+
+function DemoScenarioControls() {
+  const [active, setActive] = useState(false);
+  const [previewedCount, setPreviewedCount] = useState(0);
+  const [currentStepLabel, setCurrentStepLabel] = useState("");
+
+  useEffect(() => {
+    setActive(isDemoActive());
+    const s = getDemoScenarioState();
+    setPreviewedCount(s.previewedStepIds.length);
+    const step = getCurrentDemoStep();
+    setCurrentStepLabel(step.label);
+  }, []);
+
+  function handleReset() {
+    resetDemoScenario();
+    setActive(false);
+    setPreviewedCount(0);
+    setCurrentStepLabel(DEMO_SCENARIO.steps[0].label);
+  }
+
+  return (
+    <div>
+      <SectionTitle>Contrôles démo scénario</SectionTitle>
+      <div className="rounded-[14px] border border-violet-400/12 bg-[#0d0f1e]/80 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
+            Parcours démo
+          </span>
+          <span className="rounded-full border border-amber-400/20 bg-amber-500/10 px-2 py-0.5 font-mono text-[9px] text-amber-300/80">
+            SEED_DEMO
+          </span>
+        </div>
+        <p className="text-[12.5px] text-slate-300">
+          {DEMO_SCENARIO.subtitle}
+        </p>
+        <div className="grid grid-cols-2 gap-2 text-[12px] text-slate-400">
+          <span>Statut : {active ? "En cours" : "Non démarré"}</span>
+          <span>Étapes visitées : {previewedCount}/{DEMO_SCENARIO.steps.length}</span>
+          {active && <span className="col-span-2">Étape active : {currentStepLabel}</span>}
+        </div>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Link
+            href="/fr/dashboard"
+            className="inline-flex items-center rounded-full border border-violet-400/28 bg-violet-500/14 px-3 py-1.5 font-mono text-[12px] text-violet-200 transition-colors hover:bg-violet-500/24"
+          >
+            Aller au tableau de bord →
+          </Link>
+          {active && (
+            <button
+              onClick={handleReset}
+              className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3 py-1.5 font-mono text-[12px] text-slate-400 transition-colors hover:border-slate-400/35 hover:text-white"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+        <p className="font-mono text-[9.5px] text-slate-600">
+          {DEMO_SCENARIO.disclosureText}
+        </p>
       </div>
     </div>
   );

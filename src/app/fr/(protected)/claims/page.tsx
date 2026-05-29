@@ -1,6 +1,7 @@
 import { AlertOctagon, ClipboardList, FolderClock, FolderKanban, HandCoins } from "lucide-react";
 
 import { ClaimsTable, ClaimRow } from "@/components/claims/claims-table";
+import { InsuranceReferencesPanel } from "@/components/insurance/insurance-references-panel";
 import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
 import { StatCard } from "@/components/ui/stat-card";
@@ -101,6 +102,8 @@ export default async function ClaimsPage() {
         Wakama documente les signaux et les preuves ; l&apos;assureur conserve la decision
         d&apos;indemnisation.
       </p>
+
+      <InsuranceReferencesPanel context="claims" />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard

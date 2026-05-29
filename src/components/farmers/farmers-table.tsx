@@ -35,6 +35,13 @@ const defaultFilters: FarmersFiltersState = {
   source: "ALL",
 };
 
+function maskDemoPhone(phone: string) {
+  const normalized = phone.trim();
+  if (!normalized) return "contact demo";
+  if (normalized.length <= 6) return "*** demo";
+  return `${normalized.slice(0, 4)} *** *** ${normalized.slice(-2)} demo`;
+}
+
 export function FarmersTable({ rows }: FarmersTableProps) {
   const [filters, setFilters] = useState(defaultFilters);
 
@@ -125,7 +132,14 @@ export function FarmersTable({ rows }: FarmersTableProps) {
                 <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
                   <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                     <p className="font-medium text-white">{row.fullName}</p>
-                    <p className="font-mono text-[11px] text-[#5B6B86]">{row.phone}</p>
+                    <p
+                      className={cn(
+                        "font-mono text-[11px]",
+                        row.source === "SEED_DEMO" ? "text-amber-300/80" : "text-[#5B6B86]",
+                      )}
+                    >
+                      {row.source === "SEED_DEMO" ? maskDemoPhone(row.phone) : row.phone}
+                    </p>
                   </td>
                   <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.region}</td>
                   <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.cooperativeName}</td>

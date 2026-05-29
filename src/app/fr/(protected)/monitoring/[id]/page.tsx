@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { MonitoringNextActionCard } from "@/components/monitoring/monitoring-next-action-card";
 import { MonitoringSeverityBadge } from "@/components/monitoring/monitoring-severity-badge";
 import { Card } from "@/components/ui/card";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
 import { PolicyStatusBadge } from "@/components/policies/policy-status-badge";
@@ -50,6 +53,7 @@ export default async function MonitoringDetailPage({ params }: MonitoringDetailP
   const type = alert.type ?? "SYSTEM";
   const status = alert.status ?? (alert.resolved ? "RESOLVED" : "OPEN");
   const message = alert.message ?? alert.title;
+  const demoStepId = isScenarioEntityId(alert.id) ? "step-monitoring" : undefined;
 
   return (
     <div className="space-y-6">
@@ -57,6 +61,7 @@ export default async function MonitoringDetailPage({ params }: MonitoringDetailP
         title={`Signal ${alert.id}`}
         description="Detail signal de monitoring post-police."
       />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -175,6 +180,7 @@ export default async function MonitoringDetailPage({ params }: MonitoringDetailP
       </div>
 
       <MonitoringNextActionCard severity={severity} policyId={policy?.id} />
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }

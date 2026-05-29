@@ -4,9 +4,12 @@ import { ArbitrageChecklist } from "@/components/arbitrage/arbitrage-checklist";
 import { ArbitrageNextActionCard } from "@/components/arbitrage/arbitrage-next-action-card";
 import { AreaComparisonCard } from "@/components/arbitrage/area-comparison-card";
 import { AreaDeltaBadge } from "@/components/arbitrage/area-delta-badge";
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { Card } from "@/components/ui/card";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import {
   getFarmers,
   getInsuranceApplicationById,
@@ -36,10 +39,12 @@ export default async function ArbitrageDetailPage({ params }: ArbitrageDetailPag
   const farmer = farmers.find((item) => item.id === audit.farmerId) ?? null;
   const severity = getAreaDeltaSeverity(audit.areaDeltaPercent);
   const totalAssets = audit.assetsApprovedCount + audit.assetsRejectedCount;
+  const demoStepId = isScenarioEntityId(audit.id) ? "step-arbitrage" : undefined;
 
   return (
     <div className="space-y-6">
       <PageTitle title={`Arbitrage ${audit.id}`} description="Detail de revue back-office." />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -107,6 +112,7 @@ export default async function ArbitrageDetailPage({ params }: ArbitrageDetailPag
 
         <ArbitrageChecklist audit={audit} />
       </div>
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }

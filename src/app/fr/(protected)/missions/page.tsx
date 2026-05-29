@@ -1,5 +1,6 @@
 import { ClipboardCheck, HardDriveUpload, Radar, Settings2, ShieldCheck } from "lucide-react";
 
+import { MissionsLivePanel } from "@/components/insurance/missions-live-panel";
 import { MissionsTable } from "@/components/missions/missions-table";
 import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
@@ -61,6 +62,8 @@ export default async function MissionsPage() {
         La mission produit des preuves verifiables ; l&apos;assureur conserve l&apos;arbitrage et
         la decision finale.
       </p>
+
+      <MissionsLivePanel />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard title="Total missions" value={String(total)} source="SEED_DEMO" icon={Radar} />

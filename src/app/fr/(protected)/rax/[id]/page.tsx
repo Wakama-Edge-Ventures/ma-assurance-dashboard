@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation";
 
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { EvidenceBundlePanel } from "@/components/insurance/evidence-bundle-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { RaxBreakdownCard } from "@/components/rax/rax-breakdown-card";
 import { RaxNextActionCard } from "@/components/rax/rax-next-action-card";
 import { Card } from "@/components/ui/card";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import {
   getFarmers,
   getInsuranceApplicationById,
@@ -68,10 +72,12 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
   const linkedAudit =
     audits.find((audit) => audit.applicationId === evaluation.applicationId) ?? null;
   const metrics = resolveMetrics(evaluation);
+  const demoStepId = isScenarioEntityId(evaluation.id) ? "step-rax" : undefined;
 
   return (
     <div className="space-y-6">
       <PageTitle title={`Evaluation ${evaluation.id}`} description="Detail RAX/WRS technique." />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -179,6 +185,19 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
       </div>
 
       <RaxNextActionCard tier={evaluation.riskTier} applicationId={evaluation.applicationId} />
+      <EvidenceBundlePanel
+        title="Evidence bundle - résultat RAX"
+        applicationId={evaluation.applicationId}
+        entityType="RAX_EVALUATION"
+        entityId={evaluation.id}
+        payload={{
+          evaluationId: evaluation.id,
+          applicationId: evaluation.applicationId,
+          wrs: metrics.wrs,
+          riskTier: evaluation.riskTier,
+        }}
+      />
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }

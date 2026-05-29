@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { PolicyNextActionCard } from "@/components/policies/policy-next-action-card";
 import { PolicyStatusBadge } from "@/components/policies/policy-status-badge";
 import { Card } from "@/components/ui/card";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
@@ -78,6 +81,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
   const decision = linkedOffer?.farmerDecision ?? "PENDING";
 
   const currentPolicy = policyMap.get(policy.id) ?? policy;
+  const demoStepId = isScenarioEntityId(policy.id) ? "step-policy" : undefined;
 
   return (
     <div className="space-y-6">
@@ -85,6 +89,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
         title={`Police ${currentPolicy.policyNumber}`}
         description="Suivi operationnel Wakama sur police communiquee par l'assureur."
       />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -233,6 +238,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
           applicationId={currentPolicy.applicationId}
         />
       </div>
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }

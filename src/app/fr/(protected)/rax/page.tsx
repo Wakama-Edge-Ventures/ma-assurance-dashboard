@@ -1,5 +1,7 @@
 import { Calculator, CheckCircle2, FileBarChart2, ShieldAlert, ShieldCheck } from "lucide-react";
 
+import { InsuranceReferencesPanel } from "@/components/insurance/insurance-references-panel";
+import { RaxLivePanel } from "@/components/insurance/rax-live-panel";
 import { RaxFormulaCard } from "@/components/rax/rax-formula-card";
 import { RaxRow, RaxTable } from "@/components/rax/rax-table";
 import { AppSection } from "@/components/ui/app-section";
@@ -110,6 +112,9 @@ export default async function RaxPage() {
         RAX/WRS est une aide non decisionnelle ; l&apos;assureur conserve la decision
         d&apos;eligibilite et de tarification.
       </p>
+
+      <RaxLivePanel />
+      <InsuranceReferencesPanel context="rax" />
 
       <RaxFormulaCard />
 

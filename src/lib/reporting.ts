@@ -131,6 +131,23 @@ export const REPORT_TEMPLATES: ReportTemplate[] = [
     formats: ["PDF", "CSV"],
     sourceLabel: "MIXED",
   },
+  {
+    id: "parcours-demo-assureur",
+    title: "Rapport Parcours Démo Assureur",
+    description:
+      "Rapport de démonstration bout-en-bout : timeline du dossier céréales Meknès, preuves d'intégrité horodatées, scoring RAX/WRS, décision assureur. Source SEED_DEMO.",
+    recipient: "Assureur / Investisseur",
+    sections: [
+      "Timeline du dossier complet",
+      "Scoring RAX/WRS — WRS 46.4 · MEDIUM_RISK",
+      "Tarification indicative — 22 330 MAD TTC",
+      "Preuve d'intégrité horodatée",
+      "Signaux de monitoring NDVI",
+      "Disclosure SEED_DEMO / Simulation interface",
+    ],
+    formats: ["PDF", "JSON"],
+    sourceLabel: "SEED_DEMO",
+  },
 ];
 
 /**

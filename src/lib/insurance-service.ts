@@ -54,7 +54,9 @@ import {
 } from "@/types";
 
 const USE_LIVE_SHARED_API = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
-const USE_LIVE_INSURANCE_API = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
+const USE_LIVE_INSURANCE_API =
+  process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true" &&
+  typeof window !== "undefined";
 const DEBUG_API_SHAPES = process.env.NEXT_PUBLIC_DEBUG_API_SHAPES === "true";
 const PAGINATION_PAGE_SIZE = 100;
 const MAX_PAGINATION_PAGES = 20;
@@ -205,7 +207,7 @@ function mapLiveItems<T extends object>(
   const mapped = rawList
     .map((item) => mapper(item))
     .filter((item): item is T & { source?: unknown } => item !== null)
-    .map((item) => withSource(item, "LIVE"));
+    .map((item) => ({ ...item, source: "LIVE" as const }));
 
   if (rawList.length > 0 && mapped.length === 0) {
     warnMappedEmpty(endpoint, rawList.length, mapperName, getFirstItemKeys(rawList));

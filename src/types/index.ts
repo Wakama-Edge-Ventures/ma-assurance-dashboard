@@ -1,4 +1,11 @@
-export type DataSource = "LIVE" | "SEED_DEMO";
+export type DataSource =
+  | "LIVE"
+  | "SEED_DEMO"
+  | "MANUAL_ESTIMATE"
+  | "EXCEL_IMPORT"
+  | "UNAVAILABLE"
+  | "DEGRADED"
+  | "MANUAL_ENTRY";
 
 export type RiskTier =
   | "LOW_RISK"

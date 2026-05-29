@@ -15,6 +15,11 @@ applications, missions, arbitrage, RAX/WRS, pricing, policies, monitoring, claim
 - Tailwind CSS
 - ESLint
 
+## Phase 27C - Live Insurance Integration
+- Le frontend connecte des routes assurance live de `https://api.wakama.farm` (sante, references Maroc, references assurance, applications, missions, RAX, monitoring, evidence bundle).
+- Les etats `LIVE`, `SEED_DEMO`, `UNAVAILABLE`, `DEGRADED`, `EXCEL_IMPORT`, `MANUAL_ESTIMATE` sont visibles en UI via badges.
+- La documentation detaillee de phase est dans `docs/PHASE_27C_FRONTEND_LIVE_INSURANCE_INTEGRATION.md`.
+
 ## Design System Layer
 - UI wrappers are the primary extension point: `src/components/ui/app-*`.
 - Existing components (`card`, `button`, `badge`, `page-title`, `stat-card`) are mapped to wrappers to keep pages consistent.
@@ -54,12 +59,14 @@ Creer un fichier `.env.local`:
 ```bash
 NEXT_PUBLIC_API_BASE_URL=https://api.wakama.farm
 NEXT_PUBLIC_USE_LIVE_API=true
-NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false
+NEXT_PUBLIC_USE_LIVE_INSURANCE_API=true
+NEXT_PUBLIC_INSURANCE_DEMO_FALLBACK=true
 NEXT_PUBLIC_DEBUG_API_SHAPES=false
 ```
 
 - `NEXT_PUBLIC_USE_LIVE_API=true`: active les lectures LIVE pour les donnees Wakama partagees.
-- `NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false`: garde les workflows assurance en `SEED_DEMO` tant que `/v1/insurance/*` n'est pas disponible.
+- `NEXT_PUBLIC_USE_LIVE_INSURANCE_API=true`: active les appels live assurance (`/v1/insurance/*` et `/v1/morocco/*`) avec gestion des etats `AUTH_REQUIRED`/`DEGRADED`.
+- `NEXT_PUBLIC_INSURANCE_DEMO_FALLBACK=true`: active le repli `SEED_DEMO` explicite si endpoint indisponible ou non authentifie.
 
 ## Compte de demo MVP
 - Email: `demo@wakama.farm`
@@ -73,12 +80,25 @@ NEXT_PUBLIC_DEBUG_API_SHAPES=false
 ## Demo data and future API mode
 - Le mode par defaut utilise les donnees `SEED_DEMO`.
 - Si `NEXT_PUBLIC_USE_LIVE_API=true`, le frontend tente les appels live pour les donnees Wakama partagees (read-only).
-- Les workflows assurance (`/v1/insurance/*`) restent en `SEED_DEMO` tant que `NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false`.
+- Les workflows assurance utilisent les routes live quand disponibles, sinon repli `SEED_DEMO` avec badge source visible.
 - Si un appel live echoue, le service repasse automatiquement sur `SEED_DEMO`.
 - Ce fallback est volontaire pour garantir une demo MVP stable de bout en bout.
 - La couche service inclut des DTO mappers defensifs (sans dependance lourde) pour normaliser les reponses live.
 - Le mode live accepte les formats `[...]` et `{ data: [...] }`.
 - Si la donnee live est mal formee, le fallback `SEED_DEMO` est applique pour la stabilite MVP.
+
+## Phase 25 — Guided Demo Flow
+
+- End-to-end guided demo for the full insurance pipeline (Application → Mission → Audit/Arbitrage → RAX/WRS → Pricing → Policy → Monitoring → Claim).
+- Demo scenario anchored on SEED_DEMO dossier: Youssef El Amrani, blé tendre, Meknès, `app_001`.
+- State managed client-side via localStorage (`wakama_assurance_demo_scenario_v1`).
+- `PipelineStepper` and `GuidedDemoPanel` components visible on all 8 insurance detail pages when viewing demo entity IDs.
+- Dashboard includes `DashboardDemoSection` for launching and tracking demo progress.
+- Settings Gouvernance tab includes `DemoScenarioControls` (reset + status).
+- Report template `parcours-demo-assureur` added to `/fr/reports`.
+- No API, service layer, auth, fallback, or compliance changes.
+- Demo panels always display SEED_DEMO badge and Wakama non-decisional compliance wording.
+- See `docs/GUIDED_DEMO_FLOW_QA.md` for full checklist and file inventory.
 
 ## Phase 24 — UI Consistency Pass
 - Oracle design tokens applied across all 22+ protected pages for full visual coherence.
@@ -107,9 +127,9 @@ NEXT_PUBLIC_DEBUG_API_SHAPES=false
 - Les alertes Wakama sont des signaux operationnels contextuels, pas des decisions sinistre.
 
 ## Insurance workflow demo data
-- `NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false` (par defaut) evite les appels `/v1/insurance/*` non disponibles.
-- Les modules assurance (applications, missions, arbitrage, RAX/WRS, pricing, policies, monitoring assurance, claims) restent demonstrables en `SEED_DEMO`.
-- Le fallback `SEED_DEMO` reste actif meme si le mode live assurance est active plus tard.
+- `NEXT_PUBLIC_USE_LIVE_INSURANCE_API=true` active la connexion live aux routes assurance.
+- Les modules assurance conservent un mode demonstrable avec fallback `SEED_DEMO` si le live est indisponible.
+- Le fallback `SEED_DEMO` est volontairement visible et n'est jamais presente comme `LIVE`.
 
 ## Paginated live API reads
 - Les endpoints live `farmers`, `cooperatives`, `parcelles` et `alerts` peuvent etre pagines par le backend.
@@ -141,10 +161,10 @@ NEXT_PUBLIC_DEBUG_API_SHAPES=false
 ```bash
 NEXT_PUBLIC_API_BASE_URL=https://api.wakama.farm
 NEXT_PUBLIC_USE_LIVE_API=true
-NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false
+NEXT_PUBLIC_USE_LIVE_INSURANCE_API=true
+NEXT_PUBLIC_INSURANCE_DEMO_FALLBACK=true
 NEXT_PUBLIC_DEBUG_API_SHAPES=false
 ```
-- Pourquoi `NEXT_PUBLIC_USE_LIVE_INSURANCE_API=false` pour l'instant:
-  les routes backend `/v1/insurance/*` ne sont pas encore disponibles en production cible; garder ce flag a `false` supprime les appels inutiles et conserve un parcours demo stable en `SEED_DEMO`.
+- Les routes assurance live sont actives, avec repli `SEED_DEMO` explicite si auth/backend indisponible.
 - Verifier l'etat des endpoints partages avec `npm run smoke:live-shared` avant release.
 - Pointer le domaine production vers `https://assurance.wakama.farm`.

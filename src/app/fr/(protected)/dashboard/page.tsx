@@ -1,6 +1,8 @@
 import { type ReactNode } from "react";
 import { type LucideIcon, AlertTriangle, Bell, Cpu, FileText, MapPin, Shield, Users } from "lucide-react";
 
+import { DashboardDemoSection } from "@/components/demo/dashboard-demo-section";
+import { LiveHealthPanel } from "@/components/insurance/live-health-panel";
 import { WakamaAlertSeverityBadge } from "@/components/shared/wakama-alert-severity-badge";
 import { Badge } from "@/components/ui/badge";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
@@ -108,6 +110,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <LiveHealthPanel />
 
       {/* ── Hero ── */}
       {/* gradient border wrapper */}
@@ -484,6 +487,10 @@ export default async function DashboardPage() {
         </div>
 
       </div>
+
+      {/* Demo section */}
+      <DashboardDemoSection />
+
     </div>
   );
 }

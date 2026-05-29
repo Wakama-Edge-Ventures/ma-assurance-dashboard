@@ -1,3 +1,4 @@
+import { SettingsLiveInsurancePanel } from "@/components/insurance/settings-live-insurance-panel";
 import { SettingsPanel } from "@/components/settings/settings-panel";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export default function SettingsPage() {
           rapports Wakama Assurance.
         </p>
       </div>
+      <SettingsLiveInsurancePanel />
       <SettingsPanel />
     </div>
   );

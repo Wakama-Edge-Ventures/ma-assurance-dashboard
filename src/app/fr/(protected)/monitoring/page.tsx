@@ -1,5 +1,6 @@
 import { Activity, AlertTriangle, Leaf, ShieldAlert, ShieldCheck } from "lucide-react";
 
+import { MonitoringLivePanel } from "@/components/insurance/monitoring-live-panel";
 import { MonitoringRow, MonitoringTable } from "@/components/monitoring/monitoring-table";
 import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
@@ -92,6 +93,8 @@ export default async function MonitoringPage() {
         Wakama detecte et documente les signaux ; l&apos;assureur conserve l&apos;analyse
         sinistre et la decision d&apos;indemnisation.
       </p>
+
+      <MonitoringLivePanel />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard

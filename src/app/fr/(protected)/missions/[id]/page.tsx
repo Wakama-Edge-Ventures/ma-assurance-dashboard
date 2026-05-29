@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
 
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { EvidenceBundlePanel } from "@/components/insurance/evidence-bundle-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { MissionChecklist } from "@/components/missions/mission-checklist";
 import { MissionConfigSummary } from "@/components/missions/mission-config-summary";
 import { MissionNextActionCard } from "@/components/missions/mission-next-action-card";
@@ -7,6 +10,7 @@ import { MissionStatusBadge } from "@/components/missions/mission-status-badge";
 import { Card } from "@/components/ui/card";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import {
   getFarmers,
   getInsuranceApplicationById,
@@ -37,10 +41,12 @@ export default async function MissionDetailPage({ params }: MissionDetailPagePro
     audits.find((audit) => audit.missionId === mission.id) ??
     audits.find((audit) => audit.applicationId === mission.applicationId) ??
     null;
+  const demoStepId = isScenarioEntityId(mission.id) ? "step-mission" : undefined;
 
   return (
     <div className="space-y-6">
       <PageTitle title={`Mission ${mission.id}`} description="Detail de mission terrain." />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -106,6 +112,28 @@ export default async function MissionDetailPage({ params }: MissionDetailPagePro
           </div>
         )}
       </Card>
+
+      <EvidenceBundlePanel
+        title="Evidence bundle - mission/audit"
+        applicationId={mission.applicationId}
+        entityType="MISSION"
+        entityId={mission.id}
+        payload={
+          linkedAudit
+            ? {
+                missionId: mission.id,
+                applicationId: mission.applicationId,
+                auditId: linkedAudit.id,
+                integrityHash: linkedAudit.integrityHash,
+              }
+            : {
+                missionId: mission.id,
+                applicationId: mission.applicationId,
+                note: "Aucun audit lié pour le moment",
+              }
+        }
+      />
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }

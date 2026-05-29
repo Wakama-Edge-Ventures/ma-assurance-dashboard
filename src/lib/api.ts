@@ -1,4 +1,4 @@
-import { clearAuth, getBackendAuthToken } from "@/lib/auth";
+import { getBackendAuthToken, handleSessionExpired } from "@/lib/auth";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.wakama.farm";
@@ -13,6 +13,11 @@ export class ApiError extends Error {
     this.status = status;
     this.details = details;
   }
+}
+
+export interface InstitutionLoginResult {
+  token: string;
+  payload: unknown;
 }
 
 function toUrl(path: string) {
@@ -41,6 +46,72 @@ function extractErrorMessage(payload: unknown, status: number): string {
     return payload.message;
   }
   return `API request failed with status ${status}`;
+}
+
+function readString(record: unknown, key: string): string | null {
+  if (!record || typeof record !== "object") return null;
+  const value = (record as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function extractJwtFromLoginPayload(payload: unknown): string | null {
+  const root = payload as Record<string, unknown> | null;
+  const data =
+    root && typeof root.data === "object" && root.data
+      ? (root.data as Record<string, unknown>)
+      : null;
+  const user =
+    data && typeof data.user === "object" && data.user
+      ? (data.user as Record<string, unknown>)
+      : null;
+
+  const candidates = [
+    readString(root, "token"),
+    readString(root, "accessToken"),
+    readString(root, "jwt"),
+    readString(root, "idToken"),
+    readString(data, "token"),
+    readString(data, "accessToken"),
+    readString(data, "jwt"),
+    readString(data, "idToken"),
+    readString(user, "token"),
+    readString(user, "accessToken"),
+  ];
+
+  return candidates.find(Boolean) ?? null;
+}
+
+export async function institutionLogin(
+  email: string,
+  password: string,
+): Promise<InstitutionLoginResult> {
+  const response = await fetch(toUrl("/v1/auth/institution-login"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+    body: JSON.stringify({ email, password }),
+  });
+
+  const payload = await parseJsonSafe(response);
+
+  if (!response.ok) {
+    const message = extractErrorMessage(payload, response.status);
+    throw new ApiError(response.status, message, payload);
+  }
+
+  const token = extractJwtFromLoginPayload(payload);
+  if (!token) {
+    throw new ApiError(
+      502,
+      "Réponse de connexion backend invalide: JWT manquant.",
+      payload,
+    );
+  }
+
+  return { token, payload };
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -87,14 +158,15 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
     const retryMessage = extractErrorMessage(retryJson, retryResponse.status);
     if (retryResponse.status === 401) {
-      clearAuth();
+      handleSessionExpired(retryMessage);
     }
     throw new ApiError(retryResponse.status, retryMessage, retryJson);
   }
 
   if (!response.ok) {
     if (response.status === 401) {
-      clearAuth();
+      const expiredMessage = extractErrorMessage(json, response.status);
+      handleSessionExpired(expiredMessage);
     }
     const message = extractErrorMessage(json, response.status);
     throw new ApiError(response.status, message, json);

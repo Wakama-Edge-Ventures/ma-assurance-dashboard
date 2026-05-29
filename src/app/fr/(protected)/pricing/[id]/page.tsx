@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { PricingBreakdownCard } from "@/components/pricing/pricing-breakdown-card";
 import { PricingDecisionBadge } from "@/components/pricing/pricing-decision-badge";
 import { PricingNextActionCard } from "@/components/pricing/pricing-next-action-card";
@@ -8,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import {
   getCommercialOffers,
   getFarmers,
@@ -84,6 +87,7 @@ export default async function PricingDetailPage({ params }: PricingDetailPagePro
   const decision = resolveDecision(offer);
   const metrics = resolveOfferMetrics(offer);
   const expired = offer.expiresAt ? isExpiredDate(offer.expiresAt) : false;
+  const demoStepId = isScenarioEntityId(offer.id) ? "step-pricing" : undefined;
 
   return (
     <div className="space-y-6">
@@ -91,6 +95,7 @@ export default async function PricingDetailPage({ params }: PricingDetailPagePro
         title={`Offre ${offer.id}`}
         description="Detail de suggestion de prime technique."
       />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -199,6 +204,7 @@ export default async function PricingDetailPage({ params }: PricingDetailPagePro
           </p>
         </Card>
       </div>
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }

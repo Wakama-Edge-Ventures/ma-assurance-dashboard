@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { ApplicationNextActionCard } from "@/components/applications/application-next-action-card";
 import { ApplicationStatusBadge } from "@/components/applications/application-status-badge";
 import { ApplicationTimeline } from "@/components/applications/application-timeline";
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { EvidenceBundlePanel } from "@/components/insurance/evidence-bundle-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { Card } from "@/components/ui/card";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
@@ -13,6 +16,7 @@ import {
   getInsuranceApplicationById,
   getRaxEvaluations,
 } from "@/lib/insurance-service";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import { formatDate } from "@/lib/workflow";
 
 interface ApplicationDetailPageProps {
@@ -34,6 +38,7 @@ export default async function ApplicationDetailPage({
   ]);
   const farmer = farmers.find((item) => item.id === application.farmerId);
   const rax = raxEvaluations.find((item) => item.applicationId === application.id);
+  const demoStepId = isScenarioEntityId(application.id) ? "step-application" : undefined;
 
   return (
     <div className="space-y-6">
@@ -41,6 +46,7 @@ export default async function ApplicationDetailPage({
         title={`Demande ${application.reference}`}
         description="Vue detaillee du dossier de souscription."
       />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -125,6 +131,20 @@ export default async function ApplicationDetailPage({
           </Link>
         </Card>
       </div>
+
+      <EvidenceBundlePanel
+        title="Evidence bundle - dossier application"
+        applicationId={application.id}
+        entityType="APPLICATION"
+        entityId={application.id}
+        payload={{
+          reference: application.reference,
+          cropType: application.cropType,
+          areaHa: application.areaHa,
+          riskTier: application.riskTier,
+        }}
+      />
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }

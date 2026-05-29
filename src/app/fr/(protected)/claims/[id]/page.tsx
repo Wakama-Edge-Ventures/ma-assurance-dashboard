@@ -5,7 +5,10 @@ import { ClaimNextActionCard } from "@/components/claims/claim-next-action-card"
 import { ClaimReviewChecklist } from "@/components/claims/claim-review-checklist";
 import { ClaimSeverityBadge } from "@/components/claims/claim-severity-badge";
 import { ClaimStatusBadge } from "@/components/claims/claim-status-badge";
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { Card } from "@/components/ui/card";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
 import { PolicyStatusBadge } from "@/components/policies/policy-status-badge";
@@ -68,6 +71,7 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
     severity: currentClaim.severity,
     monitoringSeverity: linkedAlert?.severity ?? linkedAlert?.level,
   });
+  const demoStepId = isScenarioEntityId(currentClaim.id) ? "step-claim" : undefined;
 
   const checklistItems: Array<{ label: string; state: "done" | "warning" | "pending" }> = [
     {
@@ -105,6 +109,7 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
         title={`Sinistre ${currentClaim.claimNumber}`}
         description="Detail dossier de suivi sinistre."
       />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -248,6 +253,7 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
 
         <ClaimNextActionCard status={currentClaim.status} policyId={currentClaim.policyId} />
       </div>
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }
