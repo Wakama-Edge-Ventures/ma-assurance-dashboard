@@ -18,10 +18,12 @@ import { DisclosureNote } from "@/components/ui/disclosure-note";
 import { DegradedStateCard } from "@/components/ui/degraded-state-card";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { EvidenceBundlePanel } from "@/components/insurance/evidence-bundle-panel";
+import { DataSource } from "@/types";
 
 type Row = Record<string, unknown>;
 
 const FALLBACK_ENABLED = shouldUseInsuranceDemoFallback();
+const DEBUG_API_SHAPES = process.env.NEXT_PUBLIC_DEBUG_API_SHAPES === "true";
 
 function str(value: unknown, fallback = "N/A") {
   if (typeof value === "string" && value.trim()) return value;
@@ -44,6 +46,15 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function asString(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  return value.trim();
+}
+
 function parseConfidence(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   return value.trim().toUpperCase();
@@ -53,6 +64,237 @@ function shortText(value: unknown, fallback = "N/A") {
   const raw = str(value, fallback);
   if (raw.length <= 120) return raw;
   return `${raw.slice(0, 117)}...`;
+}
+
+interface NormalizedRaxResult {
+  gravityScore: number | null;
+  frequencyScore: number | null;
+  detectionScore: number | null;
+  raxBrut: number | null;
+  wrs: number | null;
+  technicalRiskTier: string | null;
+  algorithmVersion: string | null;
+  sourceDisclosure: string | null;
+  note: string | null;
+  source: DataSource;
+  savedEvaluation: {
+    id: string | null;
+    status: string | null;
+    source: DataSource;
+  } | null;
+  integrationStatus: Array<{
+    key: "hydroRisk" | "weatherArchive" | "ndviHistory";
+    status: string | null;
+    source: DataSource;
+    note: string | null;
+    confidence: string | null;
+  }>;
+  explanationFactors: unknown[];
+  warnings: unknown[];
+  hasCoreMetrics: boolean;
+}
+
+function collectRecordCandidates(root: Record<string, unknown> | null): Record<string, unknown>[] {
+  if (!root) return [];
+
+  const technicalRisk = asRecord(root.technicalRisk);
+  const savedEvaluation = asRecord(root.savedEvaluation);
+  const data = asRecord(root.data);
+  const result = asRecord(root.result);
+  const evaluation = asRecord(root.evaluation);
+  const dataTechnicalRisk = asRecord(data?.technicalRisk);
+  const resultTechnicalRisk = asRecord(result?.technicalRisk);
+  const evaluationTechnicalRisk = asRecord(evaluation?.technicalRisk);
+  const savedEvaluationTechnicalRisk = asRecord(savedEvaluation?.technicalRisk);
+  const dataResult = asRecord(data?.result);
+  const dataEvaluation = asRecord(data?.evaluation);
+  const resultData = asRecord(result?.data);
+  const evaluationData = asRecord(evaluation?.data);
+
+  return [
+    technicalRisk,
+    savedEvaluation,
+    root,
+    dataTechnicalRisk,
+    resultTechnicalRisk,
+    evaluationTechnicalRisk,
+    savedEvaluationTechnicalRisk,
+    data,
+    result,
+    evaluation,
+    dataResult,
+    dataEvaluation,
+    resultData,
+    evaluationData,
+  ].filter((item): item is Record<string, unknown> => Boolean(item));
+}
+
+function pickFirst(candidates: Record<string, unknown>[], keys: string[]): unknown {
+  for (const key of keys) {
+    for (const candidate of candidates) {
+      if (candidate[key] !== undefined && candidate[key] !== null) {
+        return candidate[key];
+      }
+    }
+  }
+  return undefined;
+}
+
+function normalizeProviderStatus(
+  key: "hydroRisk" | "weatherArchive" | "ndviHistory",
+  root: Record<string, unknown> | null,
+): NormalizedRaxResult["integrationStatus"][number] | null {
+  const record = asRecord(root?.[key]);
+  if (!record) return null;
+
+  const status = asString(
+    record.status ??
+      record.mode ??
+      record.providerStatus ??
+      record.state ??
+      record.availability,
+  );
+  const source = normalizeSource(record.source ?? record.dataSource, "LIVE");
+  const note = asString(record.note ?? record.message ?? record.disclosure);
+  const confidence = asString(record.confidence ?? record.hydroConfidence)?.toUpperCase() ?? null;
+
+  return { key, status, source, note, confidence };
+}
+
+function normalizeSavedEvaluation(
+  root: Record<string, unknown> | null,
+): NormalizedRaxResult["savedEvaluation"] {
+  const record = asRecord(root?.savedEvaluation);
+  if (!record) return null;
+
+  return {
+    id: asString(record.id ?? record.evaluationId),
+    status: asString(record.status ?? record.state ?? record.mode),
+    source: normalizeSource(record.source ?? record.dataSource, "LIVE"),
+  };
+}
+
+function normalizeRaxResult(root: Record<string, unknown> | null): NormalizedRaxResult | null {
+  if (!root) return null;
+  const candidates = collectRecordCandidates(root);
+
+  const gravityScore = num(
+    pickFirst(candidates, [
+      "gravityScore",
+      "gravity",
+      "gScore",
+      "gravity_score",
+      "gravityIndex",
+      "gravityLevel",
+    ]),
+  );
+  const frequencyScore = num(
+    pickFirst(candidates, [
+      "frequencyScore",
+      "frequency",
+      "fScore",
+      "frequency_score",
+      "frequencyIndex",
+      "frequencyLevel",
+    ]),
+  );
+  const detectionScore = num(
+    pickFirst(candidates, [
+      "detectionScore",
+      "detection",
+      "dScore",
+      "detection_score",
+      "detectabilityScore",
+      "detectionIndex",
+    ]),
+  );
+  const raxBrut = num(
+    pickFirst(candidates, [
+      "raxBrut",
+      "rawRax",
+      "raxRaw",
+      "raxScore",
+      "rax_brut",
+      "technicalRax",
+      "raxValue",
+    ]),
+  );
+  const wrs = num(
+    pickFirst(candidates, [
+      "wrs",
+      "wakamaRiskScore",
+      "wrsScore",
+      "riskScore",
+      "wrs_score",
+      "technicalWrs",
+      "riskIndex",
+    ]),
+  );
+  const technicalRiskTier = asString(
+    pickFirst(candidates, [
+      "technicalRiskTier",
+      "riskTier",
+      "tier",
+      "technical_tier",
+      "risk_level",
+    ]),
+  );
+  const algorithmVersion = asString(
+    pickFirst(candidates, [
+      "algorithmVersion",
+      "algorithm",
+      "version",
+      "engineVersion",
+      "algorithm_version",
+    ]),
+  );
+  const sourceDisclosure = asString(
+    pickFirst(candidates, ["sourceDisclosure", "disclosure", "note", "message"]),
+  );
+  const note = asString(pickFirst(candidates, ["note", "message", "info"]));
+  const source = normalizeSource(
+    pickFirst(candidates, ["source", "dataSource", "providerStatusSource"]),
+    "LIVE",
+  );
+  const explanationFactors = asArray(
+    pickFirst(candidates, ["explanationFactors", "factors", "factorBreakdown"]),
+  );
+  const warnings = asArray(pickFirst(candidates, ["warnings", "alerts", "issues"]));
+  const savedEvaluation = normalizeSavedEvaluation(root);
+  const integrationStatus = [
+    normalizeProviderStatus("hydroRisk", root),
+    normalizeProviderStatus("weatherArchive", root),
+    normalizeProviderStatus("ndviHistory", root),
+  ].filter(
+    (
+      item,
+    ): item is {
+      key: "hydroRisk" | "weatherArchive" | "ndviHistory";
+      status: string | null;
+      source: DataSource;
+      note: string | null;
+      confidence: string | null;
+    } => Boolean(item),
+  );
+
+  return {
+    gravityScore,
+    frequencyScore,
+    detectionScore,
+    raxBrut,
+    wrs,
+    technicalRiskTier,
+    algorithmVersion,
+    sourceDisclosure,
+    note,
+    source,
+    savedEvaluation,
+    integrationStatus,
+    explanationFactors,
+    warnings,
+    hasCoreMetrics:
+      raxBrut !== null && wrs !== null && Boolean(technicalRiskTier),
+  };
 }
 
 interface FactorViewModel {
@@ -142,9 +384,12 @@ export function RaxLivePanel() {
   const [authRequired, setAuthRequired] = useState(false);
   const [forbidden, setForbidden] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [incompleteWarning, setIncompleteWarning] = useState<string | null>(null);
+  const [manualScoresRequired, setManualScoresRequired] = useState(false);
   const [crops, setCrops] = useState<Row[]>([]);
   const [applications, setApplications] = useState<Row[]>([]);
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [result, setResult] = useState<NormalizedRaxResult | null>(null);
+  const [rawResultPayload, setRawResultPayload] = useState<Record<string, unknown> | null>(null);
   const [form, setForm] = useState(DEFAULT_FORM);
 
   async function load() {
@@ -193,7 +438,24 @@ export function RaxLivePanel() {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+    setIncompleteWarning(null);
     setResult(null);
+    setRawResultPayload(null);
+
+    const gravity = num(form.gravityScore);
+    const frequency = num(form.frequencyScore);
+    const detection = num(form.detectionScore);
+
+    if (
+      manualScoresRequired &&
+      (gravity === null || frequency === null || detection === null)
+    ) {
+      setSubmitting(false);
+      setError(
+        "Les scores gravityScore, frequencyScore et detectionScore sont requis pour ce mode technique pré-dossier.",
+      );
+      return;
+    }
 
     const payload: CalculateRaxPayload = {
       country: "MA",
@@ -209,11 +471,8 @@ export function RaxLivePanel() {
 
     const surface = num(form.surfaceHa);
     if (surface !== null) payload.surfaceHa = surface;
-    const gravity = num(form.gravityScore);
     if (gravity !== null) payload.gravityScore = gravity;
-    const frequency = num(form.frequencyScore);
     if (frequency !== null) payload.frequencyScore = frequency;
-    const detection = num(form.detectionScore);
     if (detection !== null) payload.detectionScore = detection;
     if (form.applicationId) payload.applicationId = form.applicationId;
 
@@ -226,12 +485,43 @@ export function RaxLivePanel() {
       } else if (res.state === "FORBIDDEN") {
         setForbidden(true);
       } else {
-        setError(res.errorMessage ?? "Calcul RAX indisponible.");
+        const backendMessage = res.errorMessage ?? "Calcul RAX indisponible.";
+        if (
+          /required|obligatoire/i.test(backendMessage) &&
+          /(gravity|frequency|detection)/i.test(backendMessage)
+        ) {
+          setManualScoresRequired(true);
+        }
+        setError(backendMessage);
       }
       return;
     }
 
-    setResult(asRecord(res.data) ?? null);
+    const rawPayload = asRecord(res.data);
+    if (DEBUG_API_SHAPES) {
+      const rootKeys = rawPayload ? Object.keys(rawPayload) : [];
+      const dataKeys = Object.keys(asRecord(rawPayload?.data) ?? {});
+      const resultKeys = Object.keys(asRecord(rawPayload?.result) ?? {});
+      const evaluationKeys = Object.keys(asRecord(rawPayload?.evaluation) ?? {});
+      const technicalRiskKeys = Object.keys(asRecord(rawPayload?.technicalRisk) ?? {});
+      const savedEvaluationKeys = Object.keys(asRecord(rawPayload?.savedEvaluation) ?? {});
+      console.info("[RAX live payload shape]", {
+        rootKeys,
+        dataKeys,
+        resultKeys,
+        evaluationKeys,
+        technicalRiskKeys,
+        savedEvaluationKeys,
+      });
+    }
+
+    const normalized = normalizeRaxResult(rawPayload);
+    setRawResultPayload(rawPayload);
+    setResult(normalized);
+
+    if (!normalized || !normalized.hasCoreMetrics) {
+      setIncompleteWarning("Calcul technique indisponible ou incomplet");
+    }
   }
 
   if (loading) {
@@ -242,10 +532,11 @@ export function RaxLivePanel() {
     );
   }
 
-  const row = result ?? {};
-  const warnings = Array.isArray(row.warnings) ? row.warnings.map((item) => toWarningViewModel(item)) : [];
-  const factors = Array.isArray(row.explanationFactors)
-    ? row.explanationFactors.map((item) => toFactorViewModel(item))
+  const warnings = result?.warnings
+    ? result.warnings.map((item) => toWarningViewModel(item))
+    : [];
+  const factors = result?.explanationFactors
+    ? result.explanationFactors.map((item) => toFactorViewModel(item))
     : [];
 
   return (
@@ -265,6 +556,14 @@ export function RaxLivePanel() {
       )}
 
       {error ? <DegradedStateCard description={error} /> : null}
+      {incompleteWarning ? <DegradedStateCard description={incompleteWarning} /> : null}
+      {manualScoresRequired ? (
+        <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+          Le backend exige les scores manuels `gravityScore`, `frequencyScore` et
+          `detectionScore` pour ce mode technique pré-dossier. Complétez-les avant de relancer le
+          calcul.
+        </div>
+      ) : null}
 
       <form onSubmit={onSubmit} className="grid gap-2 rounded-xl border border-slate-400/10 bg-[#0b1422]/70 p-3 md:grid-cols-3">
         <label className="text-xs text-slate-300">
@@ -424,18 +723,65 @@ export function RaxLivePanel() {
         <div className="space-y-3 rounded-xl border border-slate-400/10 bg-[#0b1422]/70 p-3 text-xs text-slate-200">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-medium text-white">Niveau de risque technique</p>
-            <SourceBadge source="LIVE" />
+            <SourceBadge source={result.source} />
           </div>
-          <div className="grid gap-1 md:grid-cols-2">
-            <p>gravityScore: {str(row.gravityScore ?? row.gravity)}</p>
-            <p>frequencyScore: {str(row.frequencyScore ?? row.frequency)}</p>
-            <p>detectionScore: {str(row.detectionScore ?? row.detection)}</p>
-            <p>raxBrut: {str(row.raxBrut ?? row.raxScore)}</p>
-            <p>wrs: {str(row.wrs ?? row.wrsScore)}</p>
-            <p>technicalRiskTier: {str(row.technicalRiskTier ?? row.riskTier)}</p>
-            <p>algorithmVersion: {str(row.algorithmVersion)}</p>
-            <p>sourceDisclosure: {str(row.sourceDisclosure ?? row.disclosure)}</p>
-          </div>
+          {result.hasCoreMetrics ? (
+            <div className="grid gap-1 md:grid-cols-2">
+              <p>gravityScore: {str(result.gravityScore)}</p>
+              <p>frequencyScore: {str(result.frequencyScore)}</p>
+              <p>detectionScore: {str(result.detectionScore)}</p>
+              <p>raxBrut: {str(result.raxBrut)}</p>
+              <p>wrs: {str(result.wrs)}</p>
+              <p>technicalRiskTier: {str(result.technicalRiskTier)}</p>
+              <p>algorithmVersion: {str(result.algorithmVersion)}</p>
+              <p>sourceDisclosure: {str(result.sourceDisclosure)}</p>
+            </div>
+          ) : null}
+
+          {result.note ? (
+            <p className="rounded-lg border border-cyan-400/20 bg-cyan-400/8 px-2 py-1.5 text-slate-200">
+              Note: {result.note}
+            </p>
+          ) : null}
+
+          {result.savedEvaluation ? (
+            <div className="rounded-lg border border-slate-400/12 bg-slate-900/30 px-2 py-2">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-slate-300">
+                  savedEvaluation
+                </p>
+                <SourceBadge source={result.savedEvaluation.source} />
+              </div>
+              <div className="grid gap-1 md:grid-cols-2">
+                <p>id: {str(result.savedEvaluation.id)}</p>
+                <p>status: {str(result.savedEvaluation.status)}</p>
+              </div>
+            </div>
+          ) : null}
+
+          {result.integrationStatus.length > 0 ? (
+            <div>
+              <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-slate-400">
+                Provider status
+              </p>
+              <ul className="space-y-1">
+                {result.integrationStatus.map((item) => (
+                  <li
+                    key={item.key}
+                    className="rounded-lg border border-slate-400/10 bg-slate-900/20 px-2 py-2"
+                  >
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-white">{item.key}</p>
+                      <SourceBadge source={item.source} />
+                      <ConfidenceBadge confidence={item.confidence} />
+                    </div>
+                    <p>status: {str(item.status)}</p>
+                    {item.note ? <p className="mt-1 text-slate-400">note: {item.note}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {factors.length > 0 && (
             <div>
@@ -496,7 +842,7 @@ export function RaxLivePanel() {
         applicationId={form.applicationId || undefined}
         entityType="RAX_RESULT"
         entityId={form.applicationId || `geo:${form.lat},${form.lng}`}
-        payload={result ?? undefined}
+        payload={rawResultPayload ?? undefined}
       />
 
       <DisclosureNote />
