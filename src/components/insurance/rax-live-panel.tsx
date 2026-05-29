@@ -4,10 +4,14 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import {
   calculateTechnicalRax,
+  createLiveApplication,
   getLiveApplications,
+  getMoroccoCommunes,
   getMoroccoCrops,
+  getMoroccoProvinces,
   shouldUseInsuranceDemoFallback,
   type CalculateRaxPayload,
+  type CreateApplicationPayload,
 } from "@/lib/api/insuranceApi";
 import { normalizeSource } from "@/lib/data-source";
 import { MOROCCO_REFERENCE_FALLBACK } from "@/lib/insurance-live-fallback";
@@ -21,6 +25,7 @@ import { EvidenceBundlePanel } from "@/components/insurance/evidence-bundle-pane
 import { DataSource } from "@/types";
 
 type Row = Record<string, unknown>;
+type PreDossierSource = "MANUAL_ENTRY" | "MANUAL_ESTIMATE";
 
 const FALLBACK_ENABLED = shouldUseInsuranceDemoFallback();
 const DEBUG_API_SHAPES = process.env.NEXT_PUBLIC_DEBUG_API_SHAPES === "true";
@@ -55,6 +60,16 @@ function asString(value: unknown): string | null {
   return value.trim();
 }
 
+function asBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return null;
+}
+
 function parseConfidence(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   return value.trim().toUpperCase();
@@ -64,6 +79,78 @@ function shortText(value: unknown, fallback = "N/A") {
   const raw = str(value, fallback);
   if (raw.length <= 120) return raw;
   return `${raw.slice(0, 117)}...`;
+}
+
+function getOptionCode(row: Row) {
+  return str(row.code ?? row.cropCode ?? row.id, "");
+}
+
+function getOptionLabel(row: Row) {
+  return str(row.label ?? row.name ?? row.code, "N/A");
+}
+
+interface TechnicalPreDossierState {
+  id: string | null;
+  persisted: boolean | null;
+  status: string | null;
+  mode: string | null;
+  notes: string | null;
+  source: DataSource;
+  sourceDisclosure: string | null;
+}
+
+function resolveTechnicalPreDossierState(
+  payload: unknown,
+  fallbackSource: DataSource,
+): TechnicalPreDossierState | null {
+  const root = asRecord(payload);
+  if (!root) return null;
+  const data = asRecord(root.data);
+  const application = asRecord(root.application) ?? asRecord(data?.application);
+
+  const id = asString(
+    application?.id ??
+      application?.applicationId ??
+      root.id ??
+      root.applicationId ??
+      root.reference ??
+      data?.id ??
+      data?.applicationId ??
+      data?.reference,
+  );
+
+  const persisted = asBoolean(application?.persisted ?? root.persisted ?? data?.persisted);
+  const status = asString(application?.status ?? root.status ?? data?.status);
+  const mode = asString(application?.mode ?? root.mode ?? data?.mode);
+  const notes = asString(
+    application?.notes ??
+      application?.note ??
+      root.notes ??
+      root.note ??
+      root.message ??
+      data?.notes ??
+      data?.note,
+  );
+  const sourceDisclosure = asString(
+    application?.sourceDisclosure ??
+      root.sourceDisclosure ??
+      data?.sourceDisclosure ??
+      application?.disclosure ??
+      root.disclosure,
+  );
+  const source = normalizeSource(
+    application?.source ??
+      application?.dataSource ??
+      root.source ??
+      data?.source,
+    fallbackSource,
+  );
+
+  if (!id && persisted === null && !status && !mode && !notes && !sourceDisclosure) {
+    return null;
+  }
+
+  return { id, persisted, status, mode, notes, source, sourceDisclosure };
 }
 
 interface NormalizedRaxResult {
@@ -367,6 +454,11 @@ const DEFAULT_FORM = {
   lat: "34.9417",
   lng: "-5.8394",
   surfaceHa: "2",
+  provinceCode: "",
+  communeCode: "",
+  preDossierSource: "MANUAL_ENTRY" as PreDossierSource,
+  preDossierNote:
+    "Pre-dossier technique non decisionnel. Aucun farmer, cooperative ou parcelle n'est cree automatiquement.",
   gravityScore: "",
   frequencyScore: "",
   detectionScore: "",
@@ -381,12 +473,19 @@ const DEFAULT_FORM = {
 export function RaxLivePanel() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [persisting, setPersisting] = useState(false);
   const [authRequired, setAuthRequired] = useState(false);
   const [forbidden, setForbidden] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [persistInfo, setPersistInfo] = useState<string | null>(null);
+  const [technicalPreDossier, setTechnicalPreDossier] = useState<TechnicalPreDossierState | null>(
+    null,
+  );
   const [incompleteWarning, setIncompleteWarning] = useState<string | null>(null);
   const [manualScoresRequired, setManualScoresRequired] = useState(false);
   const [crops, setCrops] = useState<Row[]>([]);
+  const [provinces, setProvinces] = useState<Row[]>([]);
+  const [communes, setCommunes] = useState<Row[]>([]);
   const [applications, setApplications] = useState<Row[]>([]);
   const [result, setResult] = useState<NormalizedRaxResult | null>(null);
   const [rawResultPayload, setRawResultPayload] = useState<Record<string, unknown> | null>(null);
@@ -396,15 +495,25 @@ export function RaxLivePanel() {
     setLoading(true);
     setError(null);
 
-    const [cropsRes, applicationsRes] = await Promise.all([
+    const [cropsRes, applicationsRes, provincesRes, communesRes] = await Promise.all([
       getMoroccoCrops(),
       getLiveApplications(),
+      getMoroccoProvinces(),
+      getMoroccoCommunes(),
     ]);
 
     setAuthRequired(
-      cropsRes.state === "AUTH_REQUIRED" || applicationsRes.state === "AUTH_REQUIRED",
+      cropsRes.state === "AUTH_REQUIRED" ||
+        applicationsRes.state === "AUTH_REQUIRED" ||
+        provincesRes.state === "AUTH_REQUIRED" ||
+        communesRes.state === "AUTH_REQUIRED",
     );
-    setForbidden(cropsRes.state === "FORBIDDEN" || applicationsRes.state === "FORBIDDEN");
+    setForbidden(
+      cropsRes.state === "FORBIDDEN" ||
+        applicationsRes.state === "FORBIDDEN" ||
+        provincesRes.state === "FORBIDDEN" ||
+        communesRes.state === "FORBIDDEN",
+    );
 
     if (cropsRes.ok && cropsRes.data && cropsRes.data.length > 0) {
       setCrops(cropsRes.data);
@@ -420,6 +529,22 @@ export function RaxLivePanel() {
       setApplications([]);
     }
 
+    if (provincesRes.ok && provincesRes.data && provincesRes.data.length > 0) {
+      setProvinces(provincesRes.data);
+    } else if (FALLBACK_ENABLED) {
+      setProvinces(MOROCCO_REFERENCE_FALLBACK.provinces);
+    } else {
+      setProvinces([]);
+    }
+
+    if (communesRes.ok && communesRes.data && communesRes.data.length > 0) {
+      setCommunes(communesRes.data);
+    } else if (FALLBACK_ENABLED) {
+      setCommunes(MOROCCO_REFERENCE_FALLBACK.communes);
+    } else {
+      setCommunes([]);
+    }
+
     setLoading(false);
   }
 
@@ -428,16 +553,87 @@ export function RaxLivePanel() {
   }, []);
 
   const cropOptions = useMemo(() => {
-    return crops.map((row) => {
-      const code = str(row.code ?? row.cropCode ?? row.id, "");
-      return { code, label: str(row.label ?? row.name ?? code, code) };
-    });
+    return crops
+      .map((row) => ({ code: getOptionCode(row), label: getOptionLabel(row) }))
+      .filter((row) => Boolean(row.code));
   }, [crops]);
+
+  const provinceOptions = useMemo(() => {
+    return provinces
+      .map((row) => ({ code: getOptionCode(row), label: getOptionLabel(row) }))
+      .filter((row) => Boolean(row.code));
+  }, [provinces]);
+
+  const communeOptions = useMemo(() => {
+    return communes
+      .map((row) => ({ code: getOptionCode(row), label: getOptionLabel(row) }))
+      .filter((row) => Boolean(row.code));
+  }, [communes]);
+
+  async function onPersistPreDossier() {
+    setPersisting(true);
+    setPersistInfo(null);
+    setError(null);
+    setTechnicalPreDossier(null);
+
+    const lat = num(form.lat);
+    const lng = num(form.lng);
+    const surface = num(form.surfaceHa);
+
+    if (lat === null || lng === null || surface === null) {
+      setPersisting(false);
+      setError("lat, lng et surfaceHa sont requis pour creer un pre-dossier technique.");
+      return;
+    }
+
+    const payload: CreateApplicationPayload = {
+      country: "MA",
+      cropCode: form.cropCode,
+      lat,
+      lng,
+      surfaceHa: surface,
+      source: form.preDossierSource,
+    };
+
+    if (form.provinceCode) payload.provinceCode = form.provinceCode;
+    if (form.communeCode) payload.communeCode = form.communeCode;
+
+    const res = await createLiveApplication(payload);
+    setPersisting(false);
+
+    if (!res.ok) {
+      if (res.state === "AUTH_REQUIRED") {
+        setAuthRequired(true);
+        return;
+      }
+      if (res.state === "FORBIDDEN") {
+        setForbidden(true);
+        return;
+      }
+      setError(res.errorMessage ?? "Creation du pre-dossier technique impossible.");
+      return;
+    }
+
+    const nextTechnicalState = resolveTechnicalPreDossierState(res.data, res.source);
+    setTechnicalPreDossier(nextTechnicalState);
+
+    if (nextTechnicalState?.id) {
+      setForm((prev) => ({ ...prev, applicationId: nextTechnicalState.id ?? "" }));
+    }
+
+    if (nextTechnicalState?.id && nextTechnicalState.persisted === false) {
+      setPersistInfo("Pré-dossier technique accepté.");
+    } else {
+      setPersistInfo("Pré-dossier technique préparé.");
+    }
+    await load();
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+    setPersistInfo(null);
     setIncompleteWarning(null);
     setResult(null);
     setRawResultPayload(null);
@@ -445,6 +641,14 @@ export function RaxLivePanel() {
     const gravity = num(form.gravityScore);
     const frequency = num(form.frequencyScore);
     const detection = num(form.detectionScore);
+    const lat = num(form.lat);
+    const lng = num(form.lng);
+
+    if (lat === null || lng === null) {
+      setSubmitting(false);
+      setError("lat et lng doivent etre renseignes pour le calcul technique.");
+      return;
+    }
 
     if (
       manualScoresRequired &&
@@ -460,8 +664,8 @@ export function RaxLivePanel() {
     const payload: CalculateRaxPayload = {
       country: "MA",
       cropCode: form.cropCode,
-      lat: Number(form.lat),
-      lng: Number(form.lng),
+      lat,
+      lng,
       useHydroRisk: form.useHydroRisk,
       useWeatherArchive: form.useWeatherArchive,
       useNdviHistory: form.useNdviHistory,
@@ -547,9 +751,13 @@ export function RaxLivePanel() {
         </h3>
         <SourceBadge source={authRequired ? "UNAVAILABLE" : "LIVE"} />
       </div>
+      <p className="text-xs text-slate-300">
+        Pre-dossier technique Maroc (phase 28/29): ce parcours prepare un score technique RAX/WRS.
+        Ce n&apos;est pas un onboarding farmer/cooperative/parcelle ni une decision assureur.
+      </p>
 
       {authRequired && (
-        <AuthRequiredCard description="POST /v1/insurance/rax/calculate est protégé et nécessite un token backend." />
+        <AuthRequiredCard description="POST /v1/insurance/rax/calculate est protege et necessite un token backend." />
       )}
       {forbidden && (
         <AccessDeniedCard description="Acces refuse sur le calcul RAX (403). Verifiez le role du JWT." />
@@ -560,15 +768,63 @@ export function RaxLivePanel() {
       {manualScoresRequired ? (
         <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
           Le backend exige les scores manuels `gravityScore`, `frequencyScore` et
-          `detectionScore` pour ce mode technique pré-dossier. Complétez-les avant de relancer le
+          `detectionScore` pour ce mode technique pre-dossier. Completez-les avant de relancer le
           calcul.
         </div>
       ) : null}
+      {persistInfo ? (
+        <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-200">
+          {persistInfo}
+        </div>
+      ) : null}
 
-      <form onSubmit={onSubmit} className="grid gap-2 rounded-xl border border-slate-400/10 bg-[#0b1422]/70 p-3 md:grid-cols-3">
+      <form
+        onSubmit={onSubmit}
+        className="grid gap-2 rounded-xl border border-slate-400/10 bg-[#0b1422]/70 p-3 md:grid-cols-3"
+      >
+        <div className="md:col-span-3 rounded-lg border border-cyan-400/20 bg-cyan-400/6 px-3 py-2 text-xs text-slate-200">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-cyan-200">
+              Pre-dossier technique Maroc
+            </p>
+            <SourceBadge source={form.preDossierSource} />
+            {technicalPreDossier ? (
+              <SourceBadge source={technicalPreDossier.source} />
+            ) : form.applicationId ? (
+              <SourceBadge source="LIVE" />
+            ) : (
+              <SourceBadge source="MANUAL_ESTIMATE" />
+            )}
+          </div>
+          <p>{form.preDossierNote}</p>
+          {technicalPreDossier?.id && technicalPreDossier.persisted === false ? (
+            <div className="mt-1 space-y-1 text-slate-300">
+              <p>Etat actuel: Pré-dossier technique accepté</p>
+              <p>ID technique: {technicalPreDossier.id}</p>
+              <p>Persisté en base: Non</p>
+              <p>Mode: {str(technicalPreDossier.mode)}</p>
+              <p>Statut: {str(technicalPreDossier.status, "DRAFT")}</p>
+              {technicalPreDossier.notes ? <p>Notes backend: {technicalPreDossier.notes}</p> : null}
+              {technicalPreDossier.sourceDisclosure ? (
+                <p>Disclosure source: {technicalPreDossier.sourceDisclosure}</p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-1 text-slate-300">
+              {form.applicationId
+                ? `Etat actuel: pre-dossier lie a l'applicationId ${form.applicationId}.`
+                : "Etat actuel: pre-dossier technique non persiste."}
+            </p>
+          )}
+        </div>
+
         <label className="text-xs text-slate-300">
           country
-          <input value="MA" disabled className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs" />
+          <input
+            value="MA"
+            disabled
+            className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+          />
         </label>
 
         <label className="text-xs text-slate-300">
@@ -587,10 +843,41 @@ export function RaxLivePanel() {
         </label>
 
         <label className="text-xs text-slate-300">
+          source
+          <select
+            value={form.preDossierSource}
+            onChange={(event) =>
+              setForm((prev) => ({
+                ...prev,
+                preDossierSource: event.target.value as PreDossierSource,
+              }))
+            }
+            className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+          >
+            <option value="MANUAL_ENTRY">MANUAL_ENTRY</option>
+            <option value="MANUAL_ESTIMATE">MANUAL_ESTIMATE</option>
+          </select>
+        </label>
+
+        <label className="text-xs text-slate-300 md:col-span-2">
+          note technique
+          <textarea
+            value={form.preDossierNote}
+            onChange={(event) =>
+              setForm((prev) => ({ ...prev, preDossierNote: event.target.value }))
+            }
+            rows={2}
+            className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+          />
+        </label>
+
+        <label className="text-xs text-slate-300">
           applicationId (optional)
           <select
             value={form.applicationId}
-            onChange={(event) => setForm((prev) => ({ ...prev, applicationId: event.target.value }))}
+            onChange={(event) =>
+              setForm((prev) => ({ ...prev, applicationId: event.target.value }))
+            }
             className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
           >
             <option value="">--</option>
@@ -611,6 +898,7 @@ export function RaxLivePanel() {
             required
           />
         </label>
+
         <label className="text-xs text-slate-300">
           lng
           <input
@@ -620,8 +908,9 @@ export function RaxLivePanel() {
             required
           />
         </label>
+
         <label className="text-xs text-slate-300">
-          surfaceHa (optional)
+          surfaceHa
           <input
             value={form.surfaceHa}
             onChange={(event) => setForm((prev) => ({ ...prev, surfaceHa: event.target.value }))}
@@ -630,13 +919,52 @@ export function RaxLivePanel() {
         </label>
 
         <label className="text-xs text-slate-300">
+          provinceCode (optional)
+          <select
+            value={form.provinceCode}
+            onChange={(event) =>
+              setForm((prev) => ({ ...prev, provinceCode: event.target.value }))
+            }
+            className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+          >
+            <option value="">--</option>
+            {provinceOptions.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.code} - {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-xs text-slate-300">
+          communeCode (optional)
+          <select
+            value={form.communeCode}
+            onChange={(event) =>
+              setForm((prev) => ({ ...prev, communeCode: event.target.value }))
+            }
+            className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
+          >
+            <option value="">--</option>
+            {communeOptions.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.code} - {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-xs text-slate-300">
           gravityScore (optional)
           <input
             value={form.gravityScore}
-            onChange={(event) => setForm((prev) => ({ ...prev, gravityScore: event.target.value }))}
+            onChange={(event) =>
+              setForm((prev) => ({ ...prev, gravityScore: event.target.value }))
+            }
             className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
           />
         </label>
+
         <label className="text-xs text-slate-300">
           frequencyScore (optional)
           <input
@@ -647,6 +975,7 @@ export function RaxLivePanel() {
             className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
           />
         </label>
+
         <label className="text-xs text-slate-300">
           detectionScore (optional)
           <input
@@ -667,6 +996,7 @@ export function RaxLivePanel() {
             className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/50 px-2 py-1.5 text-xs"
           />
         </label>
+
         <label className="text-xs text-slate-300">
           endDate
           <input
@@ -710,13 +1040,28 @@ export function RaxLivePanel() {
           </label>
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? "Calcul..." : "Calculer RAX technique"}
-        </button>
+        <div className="md:col-span-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              void onPersistPreDossier();
+            }}
+            disabled={persisting || authRequired}
+            className="rounded-full border border-slate-400/20 bg-slate-500/10 px-3 py-2 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {persisting
+              ? "Enregistrement..."
+              : "Préparer pre-dossier technique (/v1/insurance/applications)"}
+          </button>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? "Calcul..." : "Calculer RAX/WRS technique"}
+          </button>
+        </div>
       </form>
 
       {result ? (

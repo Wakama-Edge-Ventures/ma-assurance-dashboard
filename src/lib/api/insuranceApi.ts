@@ -413,7 +413,7 @@ export interface CreateApplicationPayload {
   provinceCode?: string;
   communeCode?: string;
   requestedCoverageAmount?: number;
-  source: "MANUAL_ENTRY";
+  source: "MANUAL_ENTRY" | "MANUAL_ESTIMATE";
 }
 
 export async function createLiveApplication(payload: CreateApplicationPayload) {
