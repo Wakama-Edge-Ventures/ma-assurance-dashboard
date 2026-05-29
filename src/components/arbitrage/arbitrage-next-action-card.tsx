@@ -17,7 +17,7 @@ export function ArbitrageNextActionCard({ audit }: ArbitrageNextActionCardProps)
 
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
         Prochaine action
       </h2>
       <p className="mt-2 text-sm text-brand-textMuted">
@@ -32,7 +32,7 @@ export function ArbitrageNextActionCard({ audit }: ArbitrageNextActionCardProps)
         </Link>
         <Link
           href={`/fr/applications/${audit.applicationId}`}
-          className="rounded-md border border-brand-border px-3 py-2 text-sm text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+          className="rounded-xl border border-brand-border/15 px-3 py-2 text-sm text-brand-textMuted transition-colors hover:bg-brand-surfaceRaised/70 hover:text-slate-900 dark:text-slate-100 dark:hover:text-slate-100"
         >
           Ouvrir demande liee
         </Link>

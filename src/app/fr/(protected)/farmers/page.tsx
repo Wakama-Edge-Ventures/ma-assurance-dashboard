@@ -1,8 +1,8 @@
 import { Bell, Leaf, Map as MapIcon, Users, Waves } from "lucide-react";
 
 import { FarmerRow, FarmersTable } from "@/components/farmers/farmers-table";
-import { LiveApiStatusNote } from "@/components/ui/live-api-status-note";
 import { PageTitle } from "@/components/ui/page-title";
+import { AppSection } from "@/components/ui/app-section";
 import { StatCard } from "@/components/ui/stat-card";
 import {
   getCooperatives,
@@ -80,55 +80,72 @@ export default async function FarmersPage() {
     ndviValues.reduce((sum, value) => sum + value, 0) / Math.max(ndviValues.length, 1);
   const liveCount = farmers.filter((item) => item.source === "LIVE").length;
 
+  const sharedSource = liveCount > 0 ? "LIVE" : "SEED_DEMO";
+  const alertsSource = alerts.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO";
+  const parcellesSource = parcelles.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO";
+
   return (
     <div className="space-y-6">
       <PageTitle
         title="Agriculteurs"
         description="Portefeuille agriculteurs existant dans la base Wakama, enrichi pour l'analyse assurance."
       />
-      <LiveApiStatusNote />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        <StatCard
-          title="Total farmers"
-          value={String(farmers.length)}
-          source={liveCount > 0 ? "LIVE" : "SEED_DEMO"}
-          icon={Users}
-        />
-        <StatCard
-          title="Farmers LIVE"
-          value={String(liveCount)}
-          hint={`SEED_DEMO: ${farmers.length - liveCount}`}
-          source={liveCount > 0 ? "LIVE" : "SEED_DEMO"}
-          icon={Waves}
-        />
-        <StatCard
-          title="Farmers avec alertes"
-          value={String(farmersWithAlerts)}
-          source={alerts.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO"}
-          icon={Bell}
-        />
-        <StatCard
-          title="Alertes liees"
-          value={String(linkedAlertsTotal)}
-          source={alerts.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO"}
-          icon={Bell}
-        />
-        <StatCard
-          title="Avec parcelles"
-          value={String(withParcelles)}
-          source={parcelles.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO"}
-          icon={MapIcon}
-        />
-        <StatCard
-          title="NDVI moyen"
-          value={formatScore(avgNdvi)}
-          source={parcelles.some((item) => item.source === "LIVE") ? "LIVE" : "SEED_DEMO"}
-          icon={Leaf}
-        />
-      </div>
+      {/* KPI section */}
+      <AppSection
+        title="Synthèse portefeuille"
+        badge={
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/28 bg-emerald-400/10 px-2 py-0.5 font-mono text-[10px] uppercase text-emerald-400">
+            <span className="oracle-live-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            live
+          </span>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+          <StatCard
+            title="Total farmers"
+            value={String(farmers.length)}
+            source={sharedSource}
+            icon={Users}
+          />
+          <StatCard
+            title="Farmers LIVE"
+            value={String(liveCount)}
+            hint={`SEED_DEMO: ${farmers.length - liveCount}`}
+            source={sharedSource}
+            icon={Waves}
+          />
+          <StatCard
+            title="Farmers avec alertes"
+            value={String(farmersWithAlerts)}
+            source={alertsSource}
+            icon={Bell}
+          />
+          <StatCard
+            title="Alertes liees"
+            value={String(linkedAlertsTotal)}
+            source={alertsSource}
+            icon={Bell}
+          />
+          <StatCard
+            title="Avec parcelles"
+            value={String(withParcelles)}
+            source={parcellesSource}
+            icon={MapIcon}
+          />
+          <StatCard
+            title="NDVI moyen"
+            value={formatScore(avgNdvi)}
+            source={parcellesSource}
+            icon={Leaf}
+          />
+        </div>
+      </AppSection>
 
-      <FarmersTable rows={rows} />
+      {/* Table section */}
+      <AppSection title="Portefeuille agriculteurs">
+        <FarmersTable rows={rows} />
+      </AppSection>
     </div>
   );
 }

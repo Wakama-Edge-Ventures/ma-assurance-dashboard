@@ -87,7 +87,7 @@ export default async function ArbitragePage() {
       </div>
 
       <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
           Statuts missions liees
         </h2>
         <p className="mt-2 text-xs text-brand-textMuted">

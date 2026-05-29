@@ -48,14 +48,14 @@ export default async function MissionDetailPage({ params }: MissionDetailPagePro
             <p className="text-xs uppercase tracking-wide text-brand-textMuted">
               Mission ID / Reference
             </p>
-            <p className="text-lg font-semibold text-slate-100">{mission.id}</p>
+            <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{mission.id}</p>
           </div>
           <div className="flex items-center gap-2">
             <MissionStatusBadge status={mission.status} />
             <DataSourceBadge source={mission.source} />
           </div>
         </div>
-        <div className="grid gap-3 text-sm text-slate-200 md:grid-cols-3">
+        <div className="grid gap-3 text-sm text-slate-700 dark:text-slate-200 md:grid-cols-3">
           <p>Demande liee: {application?.reference ?? mission.applicationId}</p>
           <p>Agriculteur: {farmer?.fullName ?? "N/A"}</p>
           <p>Agent assigne: {mission.assignedTo}</p>
@@ -78,11 +78,11 @@ export default async function MissionDetailPage({ params }: MissionDetailPagePro
       </div>
 
       <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
           Apercu audit terrain lie
         </h2>
         {linkedAudit ? (
-          <div className="mt-3 grid gap-2 text-sm text-slate-200 md:grid-cols-2">
+          <div className="mt-3 grid gap-2 text-sm text-slate-700 dark:text-slate-200 md:grid-cols-2">
             <p>Surface declaree: {linkedAudit.declaredAreaHa} ha</p>
             <p>Surface mesuree: {linkedAudit.measuredAreaHa} ha</p>
             <p>Delta: {linkedAudit.areaDeltaPercent.toFixed(1)}%</p>
@@ -98,7 +98,7 @@ export default async function MissionDetailPage({ params }: MissionDetailPagePro
           </div>
         ) : (
           <div className="mt-3 space-y-2">
-            <p className="text-sm text-slate-100">Aucun audit synchronise pour cette mission.</p>
+            <p className="text-sm text-slate-900 dark:text-slate-100">Aucun audit synchronise pour cette mission.</p>
             <p className="text-xs text-brand-textMuted">
               En MVP, un audit WEB_DEMO pourra alimenter ce dossier avant l&apos;Agent App
               native.

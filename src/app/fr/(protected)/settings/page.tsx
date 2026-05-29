@@ -1,22 +1,20 @@
-import { DashboardSection } from "@/components/shared/dashboard-section";
+import { SettingsPanel } from "@/components/settings/settings-panel";
 
 export const dynamic = "force-dynamic";
 
 export default function SettingsPage() {
   return (
-    <DashboardSection
-      title="Settings"
-      description="Parametrage global du dashboard et gouvernance operationnelle."
-      kpis={[
-        { title: "Environnement", value: "MVP DEMO", source: "SEED_DEMO" },
-        { title: "Locale", value: "fr-MA", source: "SEED_DEMO" },
-        { title: "API cible", value: "api.wakama.farm", source: "SEED_DEMO" },
-      ]}
-      nextItems={[
-        "Gestion des roles et permissions par assureur.",
-        "Configuration notifications et SLA.",
-        "Options d'integration API et webhooks.",
-      ]}
-    />
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-[24px] font-semibold text-white">
+          Paramètres assureur
+        </h1>
+        <p className="mt-0.5 text-[13px] text-slate-400">
+          Centre de configuration des règles techniques, seuils, missions et
+          rapports Wakama Assurance.
+        </p>
+      </div>
+      <SettingsPanel />
+    </div>
   );
 }

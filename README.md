@@ -15,6 +15,23 @@ applications, missions, arbitrage, RAX/WRS, pricing, policies, monitoring, claim
 - Tailwind CSS
 - ESLint
 
+## Design System Layer
+- UI wrappers are the primary extension point: `src/components/ui/app-*`.
+- Existing components (`card`, `button`, `badge`, `page-title`, `stat-card`) are mapped to wrappers to keep pages consistent.
+- For future pages, do not bypass wrappers unless there is a clear technical reason.
+- Visual system direction (Phase 20): **Wakama RWA Oracle inspired** (dark-first command center with compact telemetry cards and dense tables).
+- Sidebar shell is collapsible in protected pages (icon-only collapsed mode on desktop).
+- Theme modes are available via `next-themes`: `Light`, `Dark`, `System` (default: `System`).
+- Brand logo asset used in UI shell: `src/img/wakama_logo.png`.
+- Protected pages include a compact shared dashboard footer with LIVE/SEED_DEMO visibility and legal line.
+
+## HeroUI Compatibility Note
+- HeroUI v3 documentation and package metadata were reviewed before integration.
+- Current repository stack is Tailwind CSS v3.4.17, while HeroUI v3 requires Tailwind CSS v4.
+- To avoid risky framework-level migration in this release-candidate phase, HeroUI was used as design inspiration only.
+- The project keeps an internal Tailwind wrapper layer to preserve stability.
+- A dedicated Tailwind v4 migration can be planned later if direct HeroUI runtime components are required.
+
 ## Demarrage local
 ```bash
 npm install
@@ -62,6 +79,13 @@ NEXT_PUBLIC_DEBUG_API_SHAPES=false
 - La couche service inclut des DTO mappers defensifs (sans dependance lourde) pour normaliser les reponses live.
 - Le mode live accepte les formats `[...]` et `{ data: [...] }`.
 - Si la donnee live est mal formee, le fallback `SEED_DEMO` est applique pour la stabilite MVP.
+
+## Phase 23 — Advanced pages (Analytics, Reports, Settings)
+- **/fr/analytics** upgraded to a full risk intelligence center: regional heatmap, culture exposure, alert intelligence, RAX/WRS distribution, mission and claims analytics.
+- **/fr/reports** upgraded to a full reporting center: 8 report templates, advanced generator with filters, CSV/JSON/PDF export, report preview panel, demo history.
+- **/fr/settings** upgraded to an insurer control center: 7 tabs covering company profile, RAX/WRS simulation, pricing configuration, mission parameters, alert thresholds, governance and version history.
+- Settings are demo-local (localStorage) until a backend config API (`POST /api/insurer/config`) is available.
+- See `docs/ADVANCED_PAGES_QA.md` for full feature checklist, localStorage keys, and future backend endpoints.
 
 ## Existing Wakama API read-only data
 - Les entites Wakama existantes (`farmers`, `cooperatives`, `parcelles`, `alerts`, `ndvi`, `iot`) sont consommees en lecture seule depuis `https://api.wakama.farm`.

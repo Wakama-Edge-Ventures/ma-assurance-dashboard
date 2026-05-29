@@ -136,7 +136,7 @@ export default async function ClaimsPage() {
       </div>
 
       <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
           Lien alertes critiques
         </h2>
         <p className="mt-3 text-sm text-brand-textMuted">
@@ -146,7 +146,7 @@ export default async function ClaimsPage() {
       </Card>
 
       <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
           Distribution severite
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">

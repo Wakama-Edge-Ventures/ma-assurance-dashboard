@@ -22,10 +22,10 @@ export function MissionConfigSummary({
 
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
         Configuration mission
       </h2>
-      <ul className="mt-3 space-y-2 text-sm text-slate-200">
+      <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
         {modules.map((item) => (
           <li key={item}>- {item}</li>
         ))}

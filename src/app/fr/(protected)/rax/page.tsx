@@ -147,7 +147,7 @@ export default async function RaxPage() {
       </div>
 
       <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
           Distribution des tiers risque
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">

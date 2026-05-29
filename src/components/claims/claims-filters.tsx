@@ -3,6 +3,8 @@
 import { DataSource } from "@/types";
 
 import { getClaimSeverityLabel, getClaimStatusLabel } from "@/lib/workflow";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
+import { AppTableFilters } from "@/components/ui/app-table";
 
 export interface ClaimsFiltersState {
   search: string;
@@ -25,17 +27,17 @@ export function ClaimsFilters({
   onReset,
 }: ClaimsFiltersProps) {
   return (
-    <div className="grid gap-3 rounded-xl border border-brand-border bg-brand-surface/90 p-4 md:grid-cols-5">
+    <AppTableFilters className="md:grid-cols-5">
       <input
         value={value.search}
         onChange={(event) => onChange({ ...value, search: event.target.value })}
         placeholder="Recherche: sinistre, police, agriculteur, culture, type..."
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet md:col-span-2"
+        className={`${DESIGN_TOKENS.controls.input} md:col-span-2`}
       />
       <select
         value={value.status}
         onChange={(event) => onChange({ ...value, status: event.target.value })}
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Tous statuts</option>
         {statuses.map((status) => (
@@ -49,7 +51,7 @@ export function ClaimsFilters({
         onChange={(event) =>
           onChange({ ...value, severity: event.target.value as ClaimsFiltersState["severity"] })
         }
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Toutes severites</option>
         <option value="INFO">{getClaimSeverityLabel("INFO")}</option>
@@ -61,7 +63,7 @@ export function ClaimsFilters({
         onChange={(event) =>
           onChange({ ...value, source: event.target.value as ClaimsFiltersState["source"] })
         }
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Toutes sources</option>
         <option value="LIVE">LIVE</option>
@@ -70,10 +72,10 @@ export function ClaimsFilters({
       <button
         type="button"
         onClick={onReset}
-        className="rounded-md border border-brand-border px-3 py-2 text-sm text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+        className={DESIGN_TOKENS.controls.resetButton}
       >
         Reinitialiser filtres
       </button>
-    </div>
+    </AppTableFilters>
   );
 }

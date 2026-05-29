@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/wakama/dev/ma-assurance-dashboard/**)",
+      "Read(///wsl.localhost/UbuntuWakama/home/wakama/dev/ma-assurance-dashboard/**)",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run lint 2>&1 | head -80\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run build 2>&1\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run smoke:live-shared 2>&1\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run lint 2>&1\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cat /home/wakama/dev/ma-assurance-dashboard/src/app/fr/\\\\\\(protected\\\\\\)/farmers/page.tsx\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"ls /home/wakama/dev/ma-assurance-dashboard/src/components/farmers/\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cat /home/wakama/dev/ma-assurance-dashboard/src/components/farmers/farmers-table.tsx\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/app-kpi-card.tsx && echo '---' && cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/app-section.tsx && echo '---' && cat /home/wakama/dev/ma-assurance-dashboard/src/lib/design-tokens.ts\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/app-table.tsx\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/page-title.tsx 2>/dev/null && echo '---' && cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/live-api-status-note.tsx 2>/dev/null && echo '---' && cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/data-source-badge.tsx 2>/dev/null\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/app-page-header.tsx && echo '---' && cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/badge.tsx\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/app-card.tsx && echo '---' && cat /home/wakama/dev/ma-assurance-dashboard/src/components/ui/app-badge.tsx\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && rtk tsc --noEmit 2>&1 | head -40\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npx tsc --noEmit 2>&1 | head -40\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npx tsc --noEmit 2>&1\")",
+      "Bash(ls -la //wsl.localhost/UbuntuWakama/home/wakama/dev/ma-assurance-dashboard/src/components/ui/)",
+      "Read(///wsl.localhost/UbuntuWakama/home/wakama/dev/ma-assurance-dashboard/src/components/**)",
+      "Bash(ls -la //wsl.localhost/UbuntuWakama/home/wakama/dev/ma-assurance-dashboard/src/lib/)",
+      "Read(///wsl.localhost/UbuntuWakama/home/wakama/dev/ma-assurance-dashboard/src/**)",
+      "Bash(ls -la //wsl.localhost/UbuntuWakama/home/wakama/dev/ma-assurance-dashboard/docs/)",
+      "Bash(wsl -d UbuntuWakama bash -c \"head -5 /home/wakama/dev/ma-assurance-dashboard/src/lib/analytics.ts && echo '---' && head -5 /home/wakama/dev/ma-assurance-dashboard/src/app/fr/\\\\\\(protected\\\\\\)/analytics/page.tsx\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"head -3 /home/wakama/dev/ma-assurance-dashboard/src/lib/reporting.ts && echo '---' && head -3 /home/wakama/dev/ma-assurance-dashboard/src/components/reports/reports-panel.tsx && echo '---' && head -3 /home/wakama/dev/ma-assurance-dashboard/src/app/fr/\\\\\\(protected\\\\\\)/reports/page.tsx\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"head -3 /home/wakama/dev/ma-assurance-dashboard/src/components/settings/settings-panel.tsx && echo '---' && head -3 /home/wakama/dev/ma-assurance-dashboard/src/app/fr/\\\\\\(protected\\\\\\)/settings/page.tsx\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run lint 2>&1 | tail -20\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run build 2>&1 | tail -40\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run build 2>&1 | tail -50\")",
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run smoke:live-shared 2>&1 | tail -20\")"
+    ],
+    "additionalDirectories": [
+      "\\home\\wakama\\dev\\ma-assurance-dashboard\\src\\app",
+      "\\\\wsl.localhost\\UbuntuWakama\\home\\wakama\\dev\\ma-assurance-dashboard\\src\\app",
+      "\\home\\wakama\\dev\\ma-assurance-dashboard",
+      "\\\\wsl.localhost\\UbuntuWakama\\home\\wakama\\dev\\ma-assurance-dashboard"
+    ]
+  }
+}

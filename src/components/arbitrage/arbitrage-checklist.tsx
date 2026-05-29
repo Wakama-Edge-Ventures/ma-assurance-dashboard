@@ -35,7 +35,7 @@ export function ArbitrageChecklist({ audit }: ArbitrageChecklistProps) {
 
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
         Checklist de revue
       </h2>
       <ul className="mt-3 space-y-2 text-sm">

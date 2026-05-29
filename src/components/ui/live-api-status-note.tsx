@@ -7,7 +7,7 @@ export function LiveApiStatusNote() {
 
   return (
     <p className="text-xs text-brand-textMuted">
-      {`Donnees Wakama partagees: ${sharedLabel}. Workflows assurance: ${insuranceLabel}. Fallback demo actif si API indisponible.`}
+      {`Donnees Wakama partagees: ${sharedLabel}. Workflows assurance: ${insuranceLabel}. Fallback demo actif si API indisponible. Le token demo local n'est pas envoye au backend.`}
     </p>
   );
 }

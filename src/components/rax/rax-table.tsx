@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
+import { APP_TABLE_CLASSNAMES, AppTable } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import { formatScore } from "@/lib/workflow";
 import { DataSource, RaxEvaluation } from "@/types";
 
@@ -72,47 +74,49 @@ export function RaxTable({ rows }: RaxTableProps) {
         onReset={() => setFilters(defaultFilters)}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-surface/90">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-brand-border bg-slate-900/50 text-left text-xs uppercase tracking-wide text-brand-textMuted">
+      <AppTable>
+        <table className={APP_TABLE_CLASSNAMES.table}>
+          <thead className={APP_TABLE_CLASSNAMES.head}>
             <tr>
-              <th className="px-3 py-3">Evaluation</th>
-              <th className="px-3 py-3">Demande liee</th>
-              <th className="px-3 py-3">Agriculteur</th>
-              <th className="px-3 py-3">G</th>
-              <th className="px-3 py-3">F</th>
-              <th className="px-3 py-3">D</th>
-              <th className="px-3 py-3">RAX brut</th>
-              <th className="px-3 py-3">WRS</th>
-              <th className="px-3 py-3">Tier</th>
-              <th className="px-3 py-3">Source</th>
-              <th className="px-3 py-3">Action</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Evaluation</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Demande liee</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Agriculteur</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>G</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>F</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>D</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>RAX brut</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>WRS</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Tier</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-brand-border/70 last:border-0">
-                <td className="px-3 py-3 font-medium text-slate-100">{row.id}</td>
-                <td className="px-3 py-3 text-slate-200">{row.applicationReference}</td>
-                <td className="px-3 py-3 text-slate-200">
+              <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} font-mono font-medium text-slate-900 dark:text-slate-100`}>
+                  {row.id}
+                </td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.applicationReference}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <p>{row.farmerName}</p>
                   <p className="text-xs text-brand-textMuted">{row.cropType}</p>
                 </td>
-                <td className="px-3 py-3 text-slate-200">{formatScore(row.gravityValue)}</td>
-                <td className="px-3 py-3 text-slate-200">{formatScore(row.frequencyValue)}</td>
-                <td className="px-3 py-3 text-slate-200">{formatScore(row.detectionValue)}</td>
-                <td className="px-3 py-3 text-slate-200">{formatScore(row.raxBrutValue)}</td>
-                <td className="px-3 py-3 text-slate-200">{formatScore(row.wrsValue)}</td>
-                <td className="px-3 py-3">
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatScore(row.gravityValue)}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatScore(row.frequencyValue)}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatScore(row.detectionValue)}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatScore(row.raxBrutValue)}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatScore(row.wrsValue)}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <RiskTierBadge tier={row.riskTier} />
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <DataSourceBadge source={row.source} />
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <Link
                     href={`/fr/rax/${row.id}`}
-                    className="rounded-md border border-brand-border px-2.5 py-1.5 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                    className={DESIGN_TOKENS.controls.tableAction}
                   >
                     Ouvrir
                   </Link>
@@ -123,8 +127,8 @@ export function RaxTable({ rows }: RaxTableProps) {
         </table>
 
         {filteredRows.length === 0 ? (
-          <div className="space-y-2 px-4 py-10 text-center">
-            <p className="text-sm text-slate-100">
+          <div className={APP_TABLE_CLASSNAMES.emptyState}>
+            <p className="text-sm text-slate-900 dark:text-slate-100">
               Aucune evaluation RAX ne correspond aux filtres.
             </p>
             <p className="text-xs text-brand-textMuted">
@@ -133,13 +137,13 @@ export function RaxTable({ rows }: RaxTableProps) {
             <button
               type="button"
               onClick={() => setFilters(defaultFilters)}
-              className="mt-2 rounded-md border border-brand-border px-3 py-1.5 text-xs text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+              className={DESIGN_TOKENS.controls.resetButton}
             >
               Reinitialiser les filtres
             </button>
           </div>
         ) : null}
-      </div>
+      </AppTable>
     </div>
   );
 }

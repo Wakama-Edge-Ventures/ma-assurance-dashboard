@@ -3,6 +3,8 @@
 import { DataSource } from "@/types";
 import { ApplicationStatus } from "@/types";
 import { getApplicationStatusLabel } from "@/lib/workflow";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
+import { AppTableFilters } from "@/components/ui/app-table";
 
 interface ApplicationsFiltersState {
   search: string;
@@ -25,17 +27,17 @@ export function ApplicationsFilters({
   onReset,
 }: ApplicationsFiltersProps) {
   return (
-    <div className="grid gap-3 rounded-xl border border-brand-border bg-brand-surface/90 p-4 md:grid-cols-4">
+    <AppTableFilters className="md:grid-cols-4">
       <input
         value={value.search}
         onChange={(event) => onChange({ ...value, search: event.target.value })}
         placeholder="Rechercher: reference, agriculteur, culture, region..."
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet md:col-span-2"
+        className={`${DESIGN_TOKENS.controls.input} md:col-span-2`}
       />
       <select
         value={value.status}
         onChange={(event) => onChange({ ...value, status: event.target.value })}
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Tous statuts</option>
         {statuses.map((status) => (
@@ -47,7 +49,7 @@ export function ApplicationsFilters({
       <select
         value={value.riskTier}
         onChange={(event) => onChange({ ...value, riskTier: event.target.value })}
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Tous niveaux risque</option>
         <option value="LOW_RISK">LOW_RISK</option>
@@ -60,7 +62,7 @@ export function ApplicationsFilters({
         onChange={(event) =>
           onChange({ ...value, source: event.target.value as "ALL" | DataSource })
         }
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Toutes sources</option>
         <option value="LIVE">LIVE</option>
@@ -69,11 +71,11 @@ export function ApplicationsFilters({
       <button
         type="button"
         onClick={onReset}
-        className="rounded-md border border-brand-border px-3 py-2 text-sm text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+        className={DESIGN_TOKENS.controls.resetButton}
       >
         Reinitialiser filtres
       </button>
-    </div>
+    </AppTableFilters>
   );
 }
 

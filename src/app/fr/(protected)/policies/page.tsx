@@ -118,7 +118,7 @@ export default async function PoliciesPage() {
       </div>
 
       <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
           Monitoring readiness
         </h2>
         <p className="mt-3 text-sm text-brand-textMuted">

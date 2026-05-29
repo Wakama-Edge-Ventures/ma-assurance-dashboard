@@ -12,7 +12,7 @@ export function PricingNextActionCard({
   if (decision === "ACCEPTED") {
     return (
       <div className="space-y-3 rounded-lg border border-brand-border bg-slate-900/40 p-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
           Prochaine etape
         </h2>
         <p className="text-sm text-brand-textMuted">
@@ -20,7 +20,7 @@ export function PricingNextActionCard({
         </p>
         <Link
           href="/fr/policies"
-          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-900 dark:text-slate-100 transition-colors hover:bg-slate-900"
         >
           Aller aux polices
         </Link>
@@ -31,7 +31,7 @@ export function PricingNextActionCard({
   if (decision === "REJECTED" || decision === "EXPIRED") {
     return (
       <div className="space-y-3 rounded-lg border border-brand-border bg-slate-900/40 p-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
           Prochaine etape
         </h2>
         <p className="text-sm text-brand-textMuted">
@@ -39,7 +39,7 @@ export function PricingNextActionCard({
         </p>
         <Link
           href={`/fr/applications/${applicationId}`}
-          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-900 dark:text-slate-100 transition-colors hover:bg-slate-900"
         >
           Revenir a la demande
         </Link>
@@ -49,7 +49,7 @@ export function PricingNextActionCard({
 
   return (
     <div className="space-y-3 rounded-lg border border-brand-border bg-slate-900/40 p-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
         Prochaine etape
       </h2>
       <p className="text-sm text-brand-textMuted">
@@ -57,7 +57,7 @@ export function PricingNextActionCard({
       </p>
       <Link
         href={`/fr/applications/${applicationId}`}
-        className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+        className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-900 dark:text-slate-100 transition-colors hover:bg-slate-900"
       >
         Suivre la demande
       </Link>

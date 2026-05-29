@@ -1,0 +1,73 @@
+import { ReactNode } from "react";
+
+import { cn } from "@/lib/utils";
+
+interface AppPageHeaderProps {
+  title: string;
+  description?: string;
+  note?: string;
+  action?: ReactNode;
+}
+
+export function AppPageHeader({ title, description, note, action }: AppPageHeaderProps) {
+  const sharedLive = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
+  const insuranceLive = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
+
+  return (
+    <div
+      className="relative mb-4 overflow-hidden rounded-[26px] border border-cyan-400/14 p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(248,250,252,0.04)] md:p-8"
+      style={{
+        background:
+          "radial-gradient(560px 320px at 8% 0%, rgba(34,211,238,0.14), transparent 62%), radial-gradient(620px 420px at 100% 120%, rgba(139,92,246,0.16), transparent 60%), linear-gradient(135deg, rgba(16,23,38,0.96), rgba(11,16,30,0.92))",
+      }}
+    >
+      {/* emerald top-right accent */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(420px_200px_at_92%_-10%,rgba(52,211,153,0.12),transparent_70%)]" />
+
+      <div className="relative flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-400">
+            Assurance Command Center
+          </p>
+          <h1 className="font-display text-2xl font-semibold tracking-[-0.01em] text-white md:text-3xl">
+            {title}
+          </h1>
+          {description ? (
+            <p className="max-w-2xl text-[14px] leading-relaxed text-slate-400">{description}</p>
+          ) : null}
+          {note ? (
+            <p className="max-w-2xl border-l-2 border-emerald-400/22 pl-3 text-[12px] text-[#5B6B86]">
+              {note}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase",
+                sharedLive
+                  ? "border-emerald-400/28 bg-emerald-400/10 text-emerald-400"
+                  : "border-amber-400/26 bg-amber-400/9 text-amber-400",
+              )}
+            >
+              {sharedLive && (
+                <span className="oracle-live-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              )}
+              Shared data {sharedLive ? "LIVE" : "SEED_DEMO"}
+            </span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase",
+                insuranceLive
+                  ? "border-emerald-400/28 bg-emerald-400/10 text-emerald-400"
+                  : "border-amber-400/26 bg-amber-400/9 text-amber-400",
+              )}
+            >
+              Assurance {insuranceLive ? "LIVE" : "SEED_DEMO"}
+            </span>
+          </div>
+        </div>
+        {action ? <div className="flex-none">{action}</div> : null}
+      </div>
+    </div>
+  );
+}

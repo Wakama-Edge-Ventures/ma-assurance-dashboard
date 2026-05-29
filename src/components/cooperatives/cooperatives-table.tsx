@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 
 import { WakamaAlertSeverityBadge } from "@/components/shared/wakama-alert-severity-badge";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
+import { APP_TABLE_CLASSNAMES, AppTable, AppTableFilters } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import { DataSource } from "@/types";
 
 export interface CooperativeRow {
@@ -48,12 +50,12 @@ export function CooperativesTable({ rows }: CooperativesTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 rounded-xl border border-brand-border bg-brand-surface/90 p-4 md:grid-cols-4">
+      <AppTableFilters className="md:grid-cols-4">
         <input
           value={filters.search}
           onChange={(event) => setFilters({ ...filters, search: event.target.value })}
           placeholder="Recherche: cooperative, region, filiere..."
-          className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet md:col-span-2"
+          className={`${DESIGN_TOKENS.controls.input} md:col-span-2`}
         />
         <select
           value={filters.source}
@@ -63,7 +65,7 @@ export function CooperativesTable({ rows }: CooperativesTableProps) {
               source: event.target.value as CooperativesFiltersState["source"],
             })
           }
-          className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+          className={DESIGN_TOKENS.controls.select}
         >
           <option value="ALL">Toutes sources</option>
           <option value="LIVE">LIVE</option>
@@ -72,48 +74,48 @@ export function CooperativesTable({ rows }: CooperativesTableProps) {
         <button
           type="button"
           onClick={() => setFilters(defaultFilters)}
-          className="rounded-md border border-brand-border px-3 py-2 text-sm text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+          className={DESIGN_TOKENS.controls.resetButton}
         >
           Reinitialiser filtres
         </button>
-      </div>
+      </AppTableFilters>
 
-      <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-surface/90">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-brand-border bg-slate-900/50 text-left text-xs uppercase tracking-wide text-brand-textMuted">
+      <AppTable>
+        <table className={APP_TABLE_CLASSNAMES.table}>
+          <thead className={APP_TABLE_CLASSNAMES.head}>
             <tr>
-              <th className="px-3 py-3">Cooperative</th>
-              <th className="px-3 py-3">Region</th>
-              <th className="px-3 py-3">Filiere</th>
-              <th className="px-3 py-3">Agriculteurs</th>
-              <th className="px-3 py-3">Parcelles</th>
-              <th className="px-3 py-3">IoT</th>
-              <th className="px-3 py-3">Alertes</th>
-              <th className="px-3 py-3">Niveau</th>
-              <th className="px-3 py-3">Source</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Cooperative</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Region</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Filiere</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Agriculteurs</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Parcelles</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>IoT</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Alertes</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Niveau</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-brand-border/70 last:border-0">
-                <td className="px-3 py-3 text-slate-200">
-                  <p className="font-medium text-slate-100">{row.name}</p>
-                  <p className="text-xs text-brand-textMuted">{row.id}</p>
+              <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
+                  <p className="font-medium text-slate-900 dark:text-slate-100">{row.name}</p>
+                  <p className="font-mono text-xs text-brand-textMuted">{row.id}</p>
                 </td>
-                <td className="px-3 py-3 text-slate-200">{row.region}</td>
-                <td className="px-3 py-3 text-slate-200">{row.filiere}</td>
-                <td className="px-3 py-3 text-slate-200">{row.farmersCount}</td>
-                <td className="px-3 py-3 text-slate-200">{row.parcellesCount}</td>
-                <td className="px-3 py-3 text-slate-200">{row.iotCount}</td>
-                <td className="px-3 py-3 text-slate-200">{row.alertsCount}</td>
-                <td className="px-3 py-3 text-slate-200">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.region}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.filiere}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{row.farmersCount}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{row.parcellesCount}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{row.iotCount}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{row.alertsCount}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   {row.highestAlertSeverity ? (
                     <WakamaAlertSeverityBadge severity={row.highestAlertSeverity} />
                   ) : (
                     "-"
                   )}
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <DataSourceBadge source={row.source} />
                 </td>
               </tr>
@@ -122,14 +124,14 @@ export function CooperativesTable({ rows }: CooperativesTableProps) {
         </table>
 
         {filteredRows.length === 0 ? (
-          <div className="space-y-2 px-4 py-10 text-center">
-            <p className="text-sm text-slate-100">Aucune cooperative ne correspond aux filtres.</p>
+          <div className={APP_TABLE_CLASSNAMES.emptyState}>
+            <p className="text-sm text-slate-900 dark:text-slate-100">Aucune cooperative ne correspond aux filtres.</p>
             <p className="text-xs text-brand-textMuted">
               Ajustez les criteres pour afficher les structures terrain.
             </p>
           </div>
         ) : null}
-      </div>
+      </AppTable>
     </div>
   );
 }

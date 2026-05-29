@@ -3,9 +3,137 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+  --app-bg: 244 247 252;
+  --app-bg-soft: 233 239 248;
+  --app-surface: 253 255 255;
+  --app-surface-muted: 245 250 255;
+  --app-foreground: 15 23 42;
+  --app-text-muted: 94 108 132;
+  --app-dim: 91 107 134;
+  --app-border: 100 116 139;
+  --brand-green: 52 211 153;
+  --brand-violet: 139 92 246;
+  --brand-ochre: 250 204 21;
+  --app-success: 16 185 129;
+  --app-warning: 245 158 11;
+  --app-danger: 251 113 133;
+  --app-info: 34 211 238;
+}
+
+.dark {
   color-scheme: dark;
+  --app-bg: 5 8 22;
+  --app-bg-soft: 7 11 23;
+  --app-surface: 14 20 34;
+  --app-surface-muted: 16 23 38;
+  --app-foreground: 248 250 252;
+  --app-text-muted: 148 163 184;
+  --app-dim: 91 107 134;
+  --app-border: 71 85 105;
+  --brand-green: 52 211 153;
+  --brand-violet: 168 85 247;
+  --brand-ochre: 250 204 21;
+  --app-success: 52 211 153;
+  --app-warning: 250 204 21;
+  --app-danger: 251 113 133;
+  --app-info: 34 211 238;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.45), rgba(139, 92, 246, 0.4));
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html,
+body {
+  min-height: 100%;
 }
 
 body {
-  @apply bg-brand-bg text-slate-100;
+  @apply antialiased;
+  background-color: rgb(var(--app-bg));
+  color: rgb(var(--app-foreground));
+  background-attachment: fixed;
+  background-image:
+    radial-gradient(ellipse 820px 400px at 9% -7%, rgba(34, 211, 238, 0.13), transparent 58%),
+    radial-gradient(ellipse 820px 400px at 92% -10%, rgba(168, 85, 247, 0.09), transparent 58%),
+    radial-gradient(ellipse 1060px 580px at 96% 108%, rgba(59, 130, 246, 0.14), transparent 60%),
+    linear-gradient(165deg, rgba(8, 15, 33, 0.2) 0%, rgba(18, 35, 62, 0.14) 100%);
+}
+
+.dark body {
+  background-attachment: fixed;
+  background-image:
+    radial-gradient(ellipse 1200px 520px at 6% -8%, rgba(34, 211, 238, 0.24), transparent 55%),
+    radial-gradient(ellipse 1050px 540px at 96% -12%, rgba(168, 85, 247, 0.24), transparent 55%),
+    radial-gradient(ellipse 1400px 740px at 98% 112%, rgba(29, 78, 216, 0.34), transparent 63%),
+    radial-gradient(ellipse 700px 500px at 48% 65%, rgba(7, 15, 38, 0.55), transparent 68%),
+    linear-gradient(164deg, #050816 0%, #070b17 48%, #08111f 100%);
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.2);
+  color: rgb(var(--app-foreground));
+}
+
+:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.5);
+  outline-offset: 2px;
+}
+
+@keyframes oracle-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+
+@layer components {
+  .oracle-search-input {
+    padding-left: 2.2rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: 0.85rem 0.85rem;
+    background-position: 0.8rem center;
+  }
+
+  .oracle-live-dot {
+    animation: oracle-live-pulse 1.4s ease-in-out infinite;
+  }
+}
+
+@layer base {
+  table thead th {
+    letter-spacing: 0.03em;
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+
+  table tbody tr {
+    transition: background-color 0.15s ease, box-shadow 0.2s ease;
+  }
+
+  table tbody td {
+    vertical-align: top;
+  }
 }

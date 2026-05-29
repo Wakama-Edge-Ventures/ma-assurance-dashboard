@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
+import { APP_TABLE_CLASSNAMES, AppTable } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import { formatDate, formatMAD, getClaimStatusOrder } from "@/lib/workflow";
 import { DataSource } from "@/types";
 
@@ -83,53 +85,53 @@ export function ClaimsTable({ rows }: ClaimsTableProps) {
         onReset={() => setFilters(defaultFilters)}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-surface/90">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-brand-border bg-slate-900/50 text-left text-xs uppercase tracking-wide text-brand-textMuted">
+      <AppTable>
+        <table className={APP_TABLE_CLASSNAMES.table}>
+          <thead className={APP_TABLE_CLASSNAMES.head}>
             <tr>
-              <th className="px-3 py-3">Sinistre / Signalement</th>
-              <th className="px-3 py-3">Police liee</th>
-              <th className="px-3 py-3">Agriculteur</th>
-              <th className="px-3 py-3">Type</th>
-              <th className="px-3 py-3">Statut</th>
-              <th className="px-3 py-3">Severite</th>
-              <th className="px-3 py-3">Estimation indicative</th>
-              <th className="px-3 py-3">Date</th>
-              <th className="px-3 py-3">Source</th>
-              <th className="px-3 py-3">Action</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Sinistre / Signalement</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Police liee</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Agriculteur</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Type</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Statut</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Severite</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Estimation indicative</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Date</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-brand-border/70 last:border-0">
-                <td className="px-3 py-3 font-medium text-slate-100">
+              <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} font-medium text-slate-900 dark:text-slate-100`}>
                   <p>{row.claimNumber}</p>
-                  <p className="text-xs text-brand-textMuted">{row.id}</p>
+                  <p className="font-mono text-xs text-brand-textMuted">{row.id}</p>
                 </td>
-                <td className="px-3 py-3 text-slate-200">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <p>{row.policyNumber}</p>
-                  <p className="text-xs text-brand-textMuted">{row.policyId}</p>
+                  <p className="font-mono text-xs text-brand-textMuted">{row.policyId}</p>
                 </td>
-                <td className="px-3 py-3 text-slate-200">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <p>{row.farmerName}</p>
                   <p className="text-xs text-brand-textMuted">{row.cropType}</p>
                 </td>
-                <td className="px-3 py-3 text-slate-200">{row.claimType}</td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.claimType}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <ClaimStatusBadge status={row.status} />
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <ClaimSeverityBadge severity={row.severity} />
                 </td>
-                <td className="px-3 py-3 text-slate-200">{formatMAD(row.estimatedAmount)}</td>
-                <td className="px-3 py-3 text-slate-200">{formatDate(row.createdAt)}</td>
-                <td className="px-3 py-3">
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatMAD(row.estimatedAmount)}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatDate(row.createdAt)}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <DataSourceBadge source={row.source} />
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <Link
                     href={`/fr/claims/${row.id}`}
-                    className="rounded-md border border-brand-border px-2.5 py-1.5 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                    className={DESIGN_TOKENS.controls.tableAction}
                   >
                     Ouvrir
                   </Link>
@@ -140,21 +142,21 @@ export function ClaimsTable({ rows }: ClaimsTableProps) {
         </table>
 
         {filteredRows.length === 0 ? (
-          <div className="space-y-2 px-4 py-10 text-center">
-            <p className="text-sm text-slate-100">Aucun dossier ne correspond aux filtres.</p>
+          <div className={APP_TABLE_CLASSNAMES.emptyState}>
+            <p className="text-sm text-slate-900 dark:text-slate-100">Aucun dossier ne correspond aux filtres.</p>
             <p className="text-xs text-brand-textMuted">
               Ajustez les criteres pour afficher les signalements de sinistre.
             </p>
             <button
               type="button"
               onClick={() => setFilters(defaultFilters)}
-              className="mt-2 rounded-md border border-brand-border px-3 py-1.5 text-xs text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+              className={DESIGN_TOKENS.controls.resetButton}
             >
               Reinitialiser les filtres
             </button>
           </div>
         ) : null}
-      </div>
+      </AppTable>
     </div>
   );
 }

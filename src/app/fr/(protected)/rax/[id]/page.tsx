@@ -77,14 +77,14 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-brand-textMuted">Evaluation ID</p>
-            <p className="text-lg font-semibold text-slate-100">{evaluation.id}</p>
+            <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{evaluation.id}</p>
           </div>
           <div className="flex items-center gap-2">
             <RiskTierBadge tier={evaluation.riskTier} />
             <DataSourceBadge source={evaluation.source} />
           </div>
         </div>
-        <div className="grid gap-3 text-sm text-slate-200 md:grid-cols-3">
+        <div className="grid gap-3 text-sm text-slate-700 dark:text-slate-200 md:grid-cols-3">
           <p>Demande liee: {application?.reference ?? evaluation.applicationId}</p>
           <p>Agriculteur: {farmer?.fullName ?? "N/A"}</p>
           <p>WRS: {formatScore(metrics.wrs)}</p>
@@ -125,10 +125,10 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
       </div>
 
       <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
           Lecture du coefficient D
         </h2>
-        <p className="mt-3 text-sm text-slate-200">
+        <p className="mt-3 text-sm text-slate-700 dark:text-slate-200">
           Plus la surveillance active est forte, plus le coefficient D diminue.
         </p>
         <p className="mt-2 text-xs text-brand-textMuted">
@@ -138,10 +138,10 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
             Evidence liee
           </h2>
-          <div className="mt-3 space-y-2 text-sm text-slate-200">
+          <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
             <p>Demande: {application?.reference ?? evaluation.applicationId}</p>
             <p>Statut demande: {application?.status ?? "N/A"}</p>
             <p>Mode audit: {linkedAudit ? getAuditModeLabel(linkedAudit.auditMode) : "N/A"}</p>
@@ -160,10 +160,10 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
         </Card>
 
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
             Calibration
           </h2>
-          <p className="mt-3 text-sm text-slate-200">
+          <p className="mt-3 text-sm text-slate-700 dark:text-slate-200">
             Ce score est un framework v1. Il doit etre calibre avec les historiques de
             sinistres, cultures, zones et regles de souscription de l&apos;assureur.
           </p>

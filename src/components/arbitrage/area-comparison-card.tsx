@@ -11,10 +11,10 @@ interface AreaComparisonCardProps {
 export function AreaComparisonCard({ audit }: AreaComparisonCardProps) {
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
         Surface declaree vs mesuree
       </h2>
-      <div className="mt-3 grid gap-3 text-sm text-slate-200 md:grid-cols-3">
+      <div className="mt-3 grid gap-3 text-sm text-slate-700 dark:text-slate-200 md:grid-cols-3">
         <p>Declaree: {audit.declaredAreaHa} ha</p>
         <p>Mesuree: {audit.measuredAreaHa} ha</p>
         <p>Ecart: {audit.areaDeltaPercent.toFixed(1)}%</p>

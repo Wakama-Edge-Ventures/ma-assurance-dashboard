@@ -41,7 +41,7 @@ export function ApplicationTimeline({
               }`}
             />
             <div>
-              <p className="text-sm font-medium text-slate-100">
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                 {getApplicationStatusLabel(status)}
               </p>
               <p className="text-xs text-brand-textMuted">

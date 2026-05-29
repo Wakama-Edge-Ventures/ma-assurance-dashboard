@@ -1,32 +1,61 @@
-import { DashboardSection } from "@/components/shared/dashboard-section";
+import { DataSourceBadge } from "@/components/ui/data-source-badge";
+import { ReportsPanel } from "@/components/reports/reports-panel";
 import {
   getInsuranceApplications,
   getInsuranceClaims,
-  getMonitoringAlerts,
+  getInsurancePolicies,
+  getWakamaAlerts,
+  getFarmers,
+  getCooperatives,
+  getSharedWakamaDataOverview,
 } from "@/lib/insurance-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
-  const [applications, claims, monitoringAlerts] = await Promise.all([
+  const [
+    farmers,
+    cooperatives,
+    applications,
+    policies,
+    claims,
+    alerts,
+    sharedOverview,
+  ] = await Promise.all([
+    getFarmers(),
+    getCooperatives(),
     getInsuranceApplications(),
+    getInsurancePolicies(),
     getInsuranceClaims(),
-    getMonitoringAlerts(),
+    getWakamaAlerts(),
+    getSharedWakamaDataOverview(),
   ]);
+
+  const sharedMode = sharedOverview.liveCount > 0 ? "LIVE" : "SEED_DEMO";
+
   return (
-    <DashboardSection
-      title="Reports"
-      description="Production de rapports de suivi technique et operationnel."
-      kpis={[
-        { title: "Rapport pipeline", value: String(applications.length), source: "SEED_DEMO" },
-        { title: "Rapport alertes", value: String(monitoringAlerts.length), source: "SEED_DEMO" },
-        { title: "Rapport sinistres", value: String(claims.length), source: "SEED_DEMO" },
-      ]}
-      nextItems={[
-        "Rapports PDF planifies par assureur et perimetre.",
-        "Exports CSV conformes schema API futur.",
-        "Versionning et signature technique des rapports.",
-      ]}
-    />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-[24px] font-semibold text-white">Rapports</h1>
+          <p className="mt-0.5 text-[13px] text-slate-400">
+            Génération, prévisualisation et export des rapports portefeuille, risques, missions
+            et conformité.
+          </p>
+        </div>
+        <DataSourceBadge source={sharedMode} />
+      </div>
+
+      <ReportsPanel
+        farmers={farmers}
+        cooperatives={cooperatives}
+        applications={applications}
+        policies={policies}
+        claims={claims}
+        alerts={alerts}
+        sharedMode={sharedMode}
+        generatedAt={new Date().toISOString()}
+      />
+    </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { DataSource, InsuranceFieldAudit } from "@/types";
+import { AppTableFilters } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
 interface ArbitrageFiltersState {
   search: string;
@@ -21,19 +23,19 @@ export function ArbitrageFilters({
   onReset,
 }: ArbitrageFiltersProps) {
   return (
-    <div className="grid gap-3 rounded-xl border border-brand-border bg-brand-surface/90 p-4 md:grid-cols-5">
+    <AppTableFilters className="md:grid-cols-5">
       <input
         value={value.search}
         onChange={(event) => onChange({ ...value, search: event.target.value })}
         placeholder="Recherche: audit, mission, demande, agriculteur..."
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet md:col-span-2"
+        className={`${DESIGN_TOKENS.controls.input} md:col-span-2`}
       />
       <select
         value={value.mode}
         onChange={(event) =>
           onChange({ ...value, mode: event.target.value as ArbitrageFiltersState["mode"] })
         }
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Tous modes</option>
         <option value="WEB_DEMO">WEB_DEMO</option>
@@ -48,7 +50,7 @@ export function ArbitrageFilters({
             severity: event.target.value as ArbitrageFiltersState["severity"],
           })
         }
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Toutes severites</option>
         <option value="OK">OK</option>
@@ -63,7 +65,7 @@ export function ArbitrageFilters({
             source: event.target.value as ArbitrageFiltersState["source"],
           })
         }
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Toutes sources</option>
         <option value="LIVE">LIVE</option>
@@ -72,11 +74,11 @@ export function ArbitrageFilters({
       <button
         type="button"
         onClick={onReset}
-        className="rounded-md border border-brand-border px-3 py-2 text-sm text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+        className={DESIGN_TOKENS.controls.resetButton}
       >
         Reinitialiser filtres
       </button>
-    </div>
+    </AppTableFilters>
   );
 }
 

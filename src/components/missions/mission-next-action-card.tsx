@@ -27,7 +27,7 @@ export function MissionNextActionCard({ mission }: MissionNextActionCardProps) {
   const action = nextAction(mission);
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
         Prochaine action
       </h2>
       <p className="mt-2 text-sm text-brand-textMuted">

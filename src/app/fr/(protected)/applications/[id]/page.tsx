@@ -46,7 +46,7 @@ export default async function ApplicationDetailPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-brand-textMuted">Reference / ID</p>
-            <p className="text-lg font-semibold text-slate-100">
+            <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               {application.reference} ({application.id})
             </p>
           </div>
@@ -56,7 +56,7 @@ export default async function ApplicationDetailPage({
             <DataSourceBadge source={application.source} />
           </div>
         </div>
-        <div className="grid gap-3 text-sm text-slate-200 md:grid-cols-3">
+        <div className="grid gap-3 text-sm text-slate-700 dark:text-slate-200 md:grid-cols-3">
           <p>Agriculteur: {farmer?.fullName ?? "N/A"}</p>
           <p>Culture: {application.cropType}</p>
           <p>Surface declaree: {application.areaHa} ha</p>
@@ -71,7 +71,7 @@ export default async function ApplicationDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
             Timeline du dossier
           </h2>
           <div className="mt-4">
@@ -88,10 +88,10 @@ export default async function ApplicationDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
             Agriculteur et parcelle
           </h2>
-          <div className="mt-3 space-y-2 text-sm text-slate-200">
+          <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
             <p>Identite: {farmer?.fullName ?? "N/A"}</p>
             <p>KYC: A confirmer par l&apos;assureur</p>
             <p>Telephone: {farmer?.phone ?? "N/A"}</p>
@@ -103,10 +103,10 @@ export default async function ApplicationDetailPage({
         </Card>
 
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
             Evidence et integrite
           </h2>
-          <div className="mt-3 space-y-2 text-sm text-slate-200">
+          <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
             <p className="flex items-center gap-2">
               Source:
               <DataSourceBadge source={application.source} />
@@ -119,7 +119,7 @@ export default async function ApplicationDetailPage({
           </div>
           <Link
             href="/fr/monitoring"
-            className="mt-4 inline-block rounded-md border border-brand-border px-3 py-2 text-xs text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+            className="mt-4 inline-block rounded-md border border-brand-border px-3 py-2 text-xs text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-900 dark:text-slate-100"
           >
             Ouvrir monitoring
           </Link>

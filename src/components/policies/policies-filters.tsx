@@ -2,6 +2,8 @@
 
 import { DataSource } from "@/types";
 import { getPolicyExpiryStateLabel, getPolicyStatusLabel } from "@/lib/workflow";
+import { AppTableFilters } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
 export interface PoliciesFiltersState {
   search: string;
@@ -24,17 +26,17 @@ export function PoliciesFilters({
   onReset,
 }: PoliciesFiltersProps) {
   return (
-    <div className="grid gap-3 rounded-xl border border-brand-border bg-brand-surface/90 p-4 md:grid-cols-5">
+    <AppTableFilters className="md:grid-cols-5">
       <input
         value={value.search}
         onChange={(event) => onChange({ ...value, search: event.target.value })}
         placeholder="Recherche: police, demande, agriculteur, culture..."
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet md:col-span-2"
+        className={`${DESIGN_TOKENS.controls.input} md:col-span-2`}
       />
       <select
         value={value.status}
         onChange={(event) => onChange({ ...value, status: event.target.value })}
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Tous statuts</option>
         {statuses.map((status) => (
@@ -48,7 +50,7 @@ export function PoliciesFilters({
         onChange={(event) =>
           onChange({ ...value, source: event.target.value as PoliciesFiltersState["source"] })
         }
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Toutes sources</option>
         <option value="LIVE">LIVE</option>
@@ -59,7 +61,7 @@ export function PoliciesFilters({
         onChange={(event) =>
           onChange({ ...value, expiry: event.target.value as PoliciesFiltersState["expiry"] })
         }
-        className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+        className={DESIGN_TOKENS.controls.select}
       >
         <option value="ALL">Toutes echeances</option>
         <option value="ACTIVE">{getPolicyExpiryStateLabel("ACTIVE")}</option>
@@ -69,10 +71,10 @@ export function PoliciesFilters({
       <button
         type="button"
         onClick={onReset}
-        className="rounded-md border border-brand-border px-3 py-2 text-sm text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+        className={DESIGN_TOKENS.controls.resetButton}
       >
         Reinitialiser filtres
       </button>
-    </div>
+    </AppTableFilters>
   );
 }
