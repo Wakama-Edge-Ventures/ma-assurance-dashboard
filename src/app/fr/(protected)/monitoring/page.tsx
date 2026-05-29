@@ -1,7 +1,7 @@
 import { Activity, AlertTriangle, Leaf, ShieldAlert, ShieldCheck } from "lucide-react";
 
 import { MonitoringRow, MonitoringTable } from "@/components/monitoring/monitoring-table";
-import { Card } from "@/components/ui/card";
+import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
 import { StatCard } from "@/components/ui/stat-card";
 import {
@@ -126,16 +126,13 @@ export default async function MonitoringPage() {
         />
       </div>
 
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
-          Resume monitoring
-        </h2>
-        <div className="mt-3 grid gap-4 lg:grid-cols-2">
+      <AppSection title="Resume monitoring">
+        <div className="grid gap-4 lg:grid-cols-2">
           <div className="flex flex-wrap gap-2">
             {Object.entries(severityDistribution).map(([severity, count]) => (
               <span
                 key={severity}
-                className="rounded-full border border-brand-border bg-slate-900 px-3 py-1 text-xs text-brand-textMuted"
+                className="rounded-full border border-slate-400/10 bg-slate-800/60 px-3 py-1 font-mono text-[11px] text-slate-400"
               >
                 {getMonitoringSeverityLabel(severity)}: {count}
               </span>
@@ -145,24 +142,21 @@ export default async function MonitoringPage() {
             {Object.entries(typeDistribution).map(([type, count]) => (
               <span
                 key={type}
-                className="rounded-full border border-brand-border bg-slate-900 px-3 py-1 text-xs text-brand-textMuted"
+                className="rounded-full border border-slate-400/10 bg-slate-800/60 px-3 py-1 font-mono text-[11px] text-slate-400"
               >
                 {getMonitoringSignalTypeLabel(type)}: {count}
               </span>
             ))}
           </div>
         </div>
-      </Card>
+      </AppSection>
 
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
-          Monitoring readiness
-        </h2>
-        <p className="mt-3 text-sm text-brand-textMuted">
+      <AppSection title="Monitoring readiness">
+        <p className="text-[13px] text-brand-textMuted">
           En MVP, les signaux peuvent etre SEED_DEMO. En production, ils seront alimentes
           par Copernicus/Sentinel-2, Open-Meteo, IoT et agents terrain.
         </p>
-      </Card>
+      </AppSection>
 
       <MonitoringTable rows={rows} />
     </div>

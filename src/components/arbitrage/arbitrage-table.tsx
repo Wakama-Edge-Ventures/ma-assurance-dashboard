@@ -93,7 +93,7 @@ export function ArbitrageTable({ rows }: ArbitrageTableProps) {
                 <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{row.measuredAreaHa} ha</td>
                 <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <div className="space-y-1">
-                    <p className="tabular-nums text-slate-700 dark:text-slate-200">{row.areaDeltaPercent.toFixed(1)}%</p>
+                    <p className="tabular-nums text-slate-300">{row.areaDeltaPercent.toFixed(1)}%</p>
                     <AreaDeltaBadge deltaPercent={row.areaDeltaPercent} />
                   </div>
                 </td>

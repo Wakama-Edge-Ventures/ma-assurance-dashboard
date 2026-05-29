@@ -104,7 +104,7 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
                 </td>
                 <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <div className="space-y-1">
-                    <p className="tabular-nums text-slate-700 dark:text-slate-200">
+                    <p className="tabular-nums text-slate-300">
                       {typeof row.wrsScore === "number" ? row.wrsScore.toFixed(0) : "N/A"}
                     </p>
                     <RiskTierBadge tier={row.riskTier} />

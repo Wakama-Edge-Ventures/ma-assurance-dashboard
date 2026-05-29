@@ -1,7 +1,7 @@
 import { CheckCheck, CircleAlert, Fingerprint, FolderSearch2, ScanSearch } from "lucide-react";
 
 import { ArbitrageTable } from "@/components/arbitrage/arbitrage-table";
-import { Card } from "@/components/ui/card";
+import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
 import { StatCard } from "@/components/ui/stat-card";
 import {
@@ -86,14 +86,11 @@ export default async function ArbitragePage() {
         />
       </div>
 
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
-          Statuts missions liees
-        </h2>
-        <p className="mt-2 text-xs text-brand-textMuted">
+      <AppSection title="Statuts missions liees">
+        <p className="text-[13px] text-brand-textMuted">
           {missions.length} missions reliees au pipeline d&apos;arbitrage.
         </p>
-      </Card>
+      </AppSection>
 
       <ArbitrageTable rows={rows} />
     </div>

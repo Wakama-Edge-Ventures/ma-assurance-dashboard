@@ -110,7 +110,7 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-brand-textMuted">Claim ID</p>
-            <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{currentClaim.id}</p>
+            <p className="text-lg font-semibold text-white">{currentClaim.id}</p>
           </div>
           <div className="flex items-center gap-2">
             <ClaimStatusBadge status={currentClaim.status} />
@@ -118,7 +118,7 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
             <DataSourceBadge source={currentClaim.source} />
           </div>
         </div>
-        <div className="grid gap-3 text-sm text-slate-700 dark:text-slate-200 md:grid-cols-3">
+        <div className="grid gap-3 text-[13px] text-slate-300 md:grid-cols-3">
           <p>Police liee: {policy?.policyNumber ?? currentClaim.policyId}</p>
           <p>Agriculteur: {farmer?.fullName ?? "N/A"}</p>
           <p>Type: {getClaimTypeLabel(currentClaim.claimType)}</p>
@@ -131,10 +131,10 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Contexte signalement
           </h2>
-          <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+          <div className="mt-3 space-y-2 text-[13px] text-slate-300">
             <p>Type: {getClaimTypeLabel(currentClaim.claimType)}</p>
             <p>Statut: {currentClaim.status}</p>
             <p>Cree le: {currentClaim.createdAt ? formatDate(currentClaim.createdAt) : "N/A"}</p>
@@ -155,11 +155,11 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
         </Card>
 
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Police liee
           </h2>
           {policy ? (
-            <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+            <div className="mt-3 space-y-2 text-[13px] text-slate-300">
               <p>
                 Police: {policy.policyNumber} ({policy.id})
               </p>
@@ -173,7 +173,7 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
               <p>Capital assure: {formatMAD(policy.totalInsuredCapital ?? policy.coverageMad)}</p>
               <Link
                 href={`/fr/policies/${policy.id}`}
-                className="inline-flex rounded-md border border-brand-border px-3 py-2 text-xs text-slate-900 dark:text-slate-100 transition-colors hover:bg-slate-900"
+                className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
               >
                 Ouvrir la police
               </Link>
@@ -186,11 +186,11 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Evidence monitoring
           </h2>
           {linkedAlert ? (
-            <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+            <div className="mt-3 space-y-2 text-[13px] text-slate-300">
               <p>Alerte: {linkedAlert.id}</p>
               <p>Type: {getMonitoringSignalTypeLabel(linkedAlert.type ?? "SYSTEM")}</p>
               <p>Severite: {linkedAlert.severity ?? linkedAlert.level}</p>
@@ -198,7 +198,7 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
               <p>Cree le: {formatDate(linkedAlert.createdAt)}</p>
               <Link
                 href={`/fr/monitoring/${linkedAlert.id}`}
-                className="inline-flex rounded-md border border-brand-border px-3 py-2 text-xs text-slate-900 dark:text-slate-100 transition-colors hover:bg-slate-900"
+                className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
               >
                 Ouvrir monitoring
               </Link>
@@ -211,10 +211,10 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
         </Card>
 
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Contexte agriculteur / demande
           </h2>
-          <div className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-200">
+          <div className="mt-3 space-y-2 text-[13px] text-slate-300">
             <p>Agriculteur: {farmer?.fullName ?? "N/A"}</p>
             <p>Telephone: {farmer?.phone ?? "N/A"}</p>
             <p>Region: {farmer?.region ?? "N/A"}</p>
@@ -224,7 +224,7 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
             {application ? (
               <Link
                 href={`/fr/applications/${application.id}`}
-                className="inline-flex rounded-md border border-brand-border px-3 py-2 text-xs text-slate-900 dark:text-slate-100 transition-colors hover:bg-slate-900"
+                className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
               >
                 Ouvrir la demande
               </Link>
@@ -237,10 +237,10 @@ export default async function ClaimDetailPage({ params }: ClaimDetailPageProps) 
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Integrite
           </h2>
-          <p className="mt-3 text-sm text-slate-700 dark:text-slate-200">
+          <p className="mt-3 text-[13px] text-slate-300">
             Le hash du dossier de suivi pourra etre ancre de maniere asynchrone.
             L&apos;ancrage Solana ne bloque pas le workflow metier.
           </p>

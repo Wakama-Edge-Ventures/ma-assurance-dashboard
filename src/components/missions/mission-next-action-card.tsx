@@ -27,15 +27,15 @@ export function MissionNextActionCard({ mission }: MissionNextActionCardProps) {
   const action = nextAction(mission);
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+      <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
         Prochaine action
       </h2>
-      <p className="mt-2 text-sm text-brand-textMuted">
+      <p className="mt-2 text-[13px] text-brand-textMuted">
         Navigation rapide selon l&apos;etat operationnel de la mission.
       </p>
       <Link
         href={action.href}
-        className="mt-4 inline-block rounded-md bg-brand-violet px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+        className="mt-4 inline-flex items-center rounded-full border border-violet-400/28 bg-violet-500/14 px-3.5 py-1.5 font-mono text-[12.5px] text-violet-200 transition-colors hover:bg-violet-500/24"
       >
         {action.label}
       </Link>

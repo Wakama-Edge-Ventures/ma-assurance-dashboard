@@ -80,6 +80,14 @@ NEXT_PUBLIC_DEBUG_API_SHAPES=false
 - Le mode live accepte les formats `[...]` et `{ data: [...] }`.
 - Si la donnee live est mal formee, le fallback `SEED_DEMO` est applique pour la stabilite MVP.
 
+## Phase 24 — UI Consistency Pass
+- Oracle design tokens applied across all 22+ protected pages for full visual coherence.
+- Section headings, body text, action buttons, chip pills, hero ID text all use the Wakama Oracle mono/dark palette.
+- List page `Card + h2` summary blocks replaced by `AppSection` across 7 list pages.
+- Detail pages (applications, monitoring, claims, pricing, missions, arbitrage, rax, policies) fully cleaned of legacy light-mode text/button styles.
+- No changes to service behavior, API logic, fallback, auth, routes, or compliance wording.
+- See `docs/UI_CONSISTENCY_QA.md` for full checklist.
+
 ## Phase 23 — Advanced pages (Analytics, Reports, Settings)
 - **/fr/analytics** upgraded to a full risk intelligence center: regional heatmap, culture exposure, alert intelligence, RAX/WRS distribution, mission and claims analytics.
 - **/fr/reports** upgraded to a full reporting center: 8 report templates, advanced generator with filters, CSV/JSON/PDF export, report preview panel, demo history.

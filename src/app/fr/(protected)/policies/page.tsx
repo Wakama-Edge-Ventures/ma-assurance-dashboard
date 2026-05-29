@@ -1,7 +1,7 @@
 import { BellRing, CircleDollarSign, FileBadge2, RefreshCw, ShieldCheck } from "lucide-react";
 
 import { PoliciesTable, PolicyRow } from "@/components/policies/policies-table";
-import { Card } from "@/components/ui/card";
+import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
 import { StatCard } from "@/components/ui/stat-card";
 import {
@@ -117,15 +117,12 @@ export default async function PoliciesPage() {
         />
       </div>
 
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
-          Monitoring readiness
-        </h2>
-        <p className="mt-3 text-sm text-brand-textMuted">
+      <AppSection title="Monitoring readiness">
+        <p className="text-[13px] text-brand-textMuted">
           Une police active peut declencher le monitoring 360deg : NDVI, meteo, IoT, alertes
           et sinistres parametriques.
         </p>
-      </Card>
+      </AppSection>
 
       <PoliciesTable rows={rows} />
     </div>

@@ -20,16 +20,16 @@ export function PricingBreakdownCard({
 }: PricingBreakdownCardProps) {
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+      <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
         Breakdown tarification
       </h2>
-      <div className="mt-3 grid gap-3 text-sm text-slate-700 dark:text-slate-200 md:grid-cols-2">
+      <div className="mt-3 grid gap-3 text-[13px] text-slate-300 md:grid-cols-2">
         <p>Capital assure total: {formatMAD(totalInsuredCapital)}</p>
         <p>Prime pure: {formatMAD(purePremiumAmount)}</p>
         <p>Frais de gestion: {formatMAD(managementFees)}</p>
         <p>Taux taxes: {formatPercent(taxRateApplied * 100)}</p>
         <p>Montant taxes: {formatMAD(taxAmount)}</p>
-        <p className="font-semibold text-slate-900 dark:text-slate-100">
+        <p className="font-semibold text-white">
           Prime commerciale TTC: {formatMAD(totalCommercialPremiumTtc)}
         </p>
       </div>

@@ -20,7 +20,7 @@ export function RaxNextActionCard({ tier, applicationId }: RaxNextActionCardProp
 
   return (
     <Card className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+      <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
         Prochaine action
       </h2>
       <p className="text-sm text-brand-textMuted">
@@ -28,14 +28,14 @@ export function RaxNextActionCard({ tier, applicationId }: RaxNextActionCardProp
       </p>
       <Link
         href={primary.href}
-        className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-900 dark:text-slate-100 transition-colors hover:bg-slate-900"
+        className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
       >
         {primary.label}
       </Link>
       {applicationId ? (
         <Link
           href={`/fr/applications/${applicationId}`}
-          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-xs text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-900 dark:text-slate-100"
+          className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
         >
           Ouvrir la demande liee
         </Link>

@@ -29,7 +29,13 @@
       "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run lint 2>&1 | tail -20\")",
       "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run build 2>&1 | tail -40\")",
       "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run build 2>&1 | tail -50\")",
-      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run smoke:live-shared 2>&1 | tail -20\")"
+      "Bash(wsl -d UbuntuWakama bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run smoke:live-shared 2>&1 | tail -20\")",
+      "Bash(ls \"\\\\\\\\wsl.localhost\\\\UbuntuWakama\\\\home\\\\wakama\\\\dev\\\\ma-assurance-dashboard\\\\src\\\\components\\\\ui\\\\\" 2>/dev/null || ls /mnt/wsl/UbuntuWakama/home/wakama/dev/ma-assurance-dashboard/src/components/ui/ 2>/dev/null || echo \"trying WSL path\")",
+      "Bash(cd \"\\\\\\\\wsl.localhost\\\\UbuntuWakama\\\\home\\\\wakama\\\\dev\\\\ma-assurance-dashboard\")",
+      "Bash(wsl -d UbuntuWakama -- bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && rtk next build 2>&1 | tail -50\")",
+      "Bash(wsl -d UbuntuWakama -- bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run lint 2>&1 | tail -30\")",
+      "Bash(wsl -d UbuntuWakama -- bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run build 2>&1 | tail -50\")",
+      "Bash(wsl -d UbuntuWakama -- bash -c \"cd /home/wakama/dev/ma-assurance-dashboard && npm run smoke:live-shared 2>&1\")"
     ],
     "additionalDirectories": [
       "\\home\\wakama\\dev\\ma-assurance-dashboard\\src\\app",

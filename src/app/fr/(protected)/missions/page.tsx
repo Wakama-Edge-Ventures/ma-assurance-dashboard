@@ -1,7 +1,7 @@
 import { ClipboardCheck, HardDriveUpload, Radar, Settings2, ShieldCheck } from "lucide-react";
 
 import { MissionsTable } from "@/components/missions/missions-table";
-import { Card } from "@/components/ui/card";
+import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
 import { StatCard } from "@/components/ui/stat-card";
 import {
@@ -90,21 +90,18 @@ export default async function MissionsPage() {
         />
       </div>
 
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
-          Distribution des statuts mission
-        </h2>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <AppSection title="Distribution des statuts mission">
+        <div className="flex flex-wrap gap-2">
           {Object.entries(distribution).map(([status, count]) => (
             <span
               key={status}
-              className="rounded-full border border-brand-border bg-slate-900 px-3 py-1 text-xs text-brand-textMuted"
+              className="rounded-full border border-slate-400/10 bg-slate-800/60 px-3 py-1 font-mono text-[11px] text-slate-400"
             >
               {getMissionStatusLabel(status as (typeof missions)[number]["status"])}: {count}
             </span>
           ))}
         </div>
-      </Card>
+      </AppSection>
 
       <MissionsTable rows={rows} />
     </div>

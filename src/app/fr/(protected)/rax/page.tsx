@@ -2,7 +2,7 @@ import { Calculator, CheckCircle2, FileBarChart2, ShieldAlert, ShieldCheck } fro
 
 import { RaxFormulaCard } from "@/components/rax/rax-formula-card";
 import { RaxRow, RaxTable } from "@/components/rax/rax-table";
-import { Card } from "@/components/ui/card";
+import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
 import { StatCard } from "@/components/ui/stat-card";
@@ -146,15 +146,12 @@ export default async function RaxPage() {
         />
       </div>
 
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
-          Distribution des tiers risque
-        </h2>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <AppSection title="Distribution des tiers risque">
+        <div className="flex flex-wrap gap-2">
           {(Object.keys(distribution) as RiskTier[]).map((tier) => (
             <div
               key={tier}
-              className="flex items-center gap-2 rounded-full border border-brand-border bg-slate-900 px-3 py-1 text-xs text-brand-textMuted"
+              className="flex items-center gap-2 rounded-full border border-slate-400/10 bg-slate-800/60 px-3 py-1 font-mono text-[11px] text-slate-400"
             >
               <RiskTierBadge tier={tier} />
               <span>
@@ -163,7 +160,7 @@ export default async function RaxPage() {
             </div>
           ))}
         </div>
-      </Card>
+      </AppSection>
 
       <RaxTable rows={rows} />
     </div>
