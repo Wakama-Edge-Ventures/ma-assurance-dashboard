@@ -53,6 +53,55 @@ export interface UpdateInsuranceApplicationStatusResult {
   sideEffectsPresent: boolean;
 }
 
+export interface InsuranceMissionConfigRequiredChecks {
+  polygon: boolean;
+  identity: boolean;
+  landDocument: boolean;
+  surfaceTolerance: boolean;
+}
+
+export interface InsuranceMissionConfigSideEffects {
+  missionCreated: boolean;
+  missionSent: boolean;
+  fieldAuditCreated: boolean;
+  raxCalculated: boolean;
+  pricingCalculated: boolean;
+  policyCreated: boolean;
+  claimCreated: boolean;
+  evidenceBundleCreated: boolean;
+  blockchainAnchored: boolean;
+}
+
+export interface InsuranceMissionConfigPayload {
+  missionType: string;
+  proofLevel: string;
+  surfaceTolerancePercent: number;
+  requiresPolygonCheck: boolean;
+  requiresCinCheck: boolean;
+  requiresLandDocumentCheck: boolean;
+  requiredDocuments: string[];
+  requiredChecks: InsuranceMissionConfigRequiredChecks;
+  noteDirectionRisques?: string;
+  status: string;
+}
+
+export interface InsuranceMissionConfig {
+  missionType: string;
+  proofLevel: string;
+  surfaceTolerancePercent: number;
+  requiresPolygonCheck: boolean;
+  requiresCinCheck: boolean;
+  requiresLandDocumentCheck: boolean;
+  requiredDocuments: string[];
+  requiredChecks: InsuranceMissionConfigRequiredChecks;
+  noteDirectionRisques: string;
+  status: string;
+  sideEffects: InsuranceMissionConfigSideEffects;
+  version: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
 function toUrl(path: string) {
   const base = API_BASE_URL.endsWith("/") ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
   const safePath = path.startsWith("/") ? path : `/${path}`;
@@ -99,6 +148,39 @@ function readBoolean(record: unknown, key: string): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
 
+function readBooleanLike(record: unknown, key: string): boolean | null {
+  if (!record || typeof record !== "object") return null;
+  const value = (record as Record<string, unknown>)[key];
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+    return null;
+  }
+  if (typeof value !== "string") return null;
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true" || normalized === "1" || normalized === "yes") return true;
+  if (normalized === "false" || normalized === "0" || normalized === "no") return false;
+  return null;
+}
+
+function readNumberLike(record: unknown, key: string): number | null {
+  if (!record || typeof record !== "object") return null;
+  const value = (record as Record<string, unknown>)[key];
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string" || !value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readStringArray(record: unknown, key: string): string[] {
+  if (!record || typeof record !== "object") return [];
+  const value = (record as Record<string, unknown>)[key];
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()));
+}
+
 function emptyRiskReviewSideEffects(): RiskReviewSideEffects {
   return {
     missionCreated: false,
@@ -134,6 +216,133 @@ function mapRiskReviewSideEffects(value: unknown): RiskReviewSideEffects {
     raxCalculated: readBoolean(value, "raxCalculated") ?? false,
     pricingCalculated: readBoolean(value, "pricingCalculated") ?? false,
     blockchainAnchored: readBoolean(value, "blockchainAnchored") ?? false,
+  };
+}
+
+function emptyMissionConfigSideEffects(): InsuranceMissionConfigSideEffects {
+  return {
+    missionCreated: false,
+    missionSent: false,
+    fieldAuditCreated: false,
+    raxCalculated: false,
+    pricingCalculated: false,
+    policyCreated: false,
+    claimCreated: false,
+    evidenceBundleCreated: false,
+    blockchainAnchored: false,
+  };
+}
+
+function hasMissionConfigSideEffects(value: unknown): boolean {
+  const record = asObject(value);
+  if (!record) return false;
+  const keys: Array<keyof InsuranceMissionConfigSideEffects> = [
+    "missionCreated",
+    "missionSent",
+    "fieldAuditCreated",
+    "raxCalculated",
+    "pricingCalculated",
+    "policyCreated",
+    "claimCreated",
+    "evidenceBundleCreated",
+    "blockchainAnchored",
+  ];
+  return keys.some((key) => typeof record[key] === "boolean");
+}
+
+function mapMissionConfigSideEffects(value: unknown): InsuranceMissionConfigSideEffects {
+  return {
+    missionCreated: readBooleanLike(value, "missionCreated") ?? false,
+    missionSent: readBooleanLike(value, "missionSent") ?? false,
+    fieldAuditCreated: readBooleanLike(value, "fieldAuditCreated") ?? false,
+    raxCalculated: readBooleanLike(value, "raxCalculated") ?? false,
+    pricingCalculated: readBooleanLike(value, "pricingCalculated") ?? false,
+    policyCreated: readBooleanLike(value, "policyCreated") ?? false,
+    claimCreated: readBooleanLike(value, "claimCreated") ?? false,
+    evidenceBundleCreated: readBooleanLike(value, "evidenceBundleCreated") ?? false,
+    blockchainAnchored: readBooleanLike(value, "blockchainAnchored") ?? false,
+  };
+}
+
+function extractMissionConfigRecord(payload: unknown): Record<string, unknown> | null {
+  const root = asObject(payload);
+  if (!root) return null;
+
+  const data = asObject(root.data);
+  const candidates = [
+    asObject(root.missionConfig),
+    asObject(data?.missionConfig),
+    asObject(root.config),
+    asObject(data?.config),
+    data,
+    root,
+  ];
+
+  const hasMissionConfigShape = (value: Record<string, unknown> | null) =>
+    Boolean(
+      value &&
+        (value.missionType !== undefined ||
+          value.proofLevel !== undefined ||
+          value.surfaceTolerancePercent !== undefined ||
+          value.requiredDocuments !== undefined ||
+          value.requiredChecks !== undefined ||
+          value.status !== undefined),
+    );
+
+  return candidates.find((candidate) => hasMissionConfigShape(candidate)) ?? null;
+}
+
+function extractMissionConfigSideEffects(
+  payload: unknown,
+  missionConfig: Record<string, unknown> | null,
+): InsuranceMissionConfigSideEffects {
+  const root = asObject(payload);
+  const data = asObject(root?.data);
+  const candidates = [
+    missionConfig?.sideEffects,
+    root?.sideEffects,
+    data?.sideEffects,
+    asObject(root?.missionConfig)?.sideEffects,
+    asObject(data?.missionConfig)?.sideEffects,
+  ];
+  const source = candidates.find((candidate) => hasMissionConfigSideEffects(candidate));
+  return source ? mapMissionConfigSideEffects(source) : emptyMissionConfigSideEffects();
+}
+
+function mapMissionConfig(payload: unknown): InsuranceMissionConfig | null {
+  const missionConfig = extractMissionConfigRecord(payload);
+  if (!missionConfig) return null;
+
+  const requiredChecks = asObject(missionConfig.requiredChecks);
+  const sideEffects = extractMissionConfigSideEffects(payload, missionConfig);
+
+  const noteDirectionRisques =
+    readString(missionConfig, "noteDirectionRisques") ??
+    readString(missionConfig, "riskReviewNote") ??
+    readString(missionConfig, "note") ??
+    "";
+
+  return {
+    missionType: readString(missionConfig, "missionType") ?? "",
+    proofLevel: readString(missionConfig, "proofLevel") ?? "",
+    surfaceTolerancePercent: readNumberLike(missionConfig, "surfaceTolerancePercent") ?? 0,
+    requiresPolygonCheck: readBooleanLike(missionConfig, "requiresPolygonCheck") ?? false,
+    requiresCinCheck: readBooleanLike(missionConfig, "requiresCinCheck") ?? false,
+    requiresLandDocumentCheck:
+      readBooleanLike(missionConfig, "requiresLandDocumentCheck") ?? false,
+    requiredDocuments: readStringArray(missionConfig, "requiredDocuments"),
+    requiredChecks: {
+      polygon: readBooleanLike(requiredChecks, "polygon") ?? false,
+      identity: readBooleanLike(requiredChecks, "identity") ?? false,
+      landDocument: readBooleanLike(requiredChecks, "landDocument") ?? false,
+      surfaceTolerance: readBooleanLike(requiredChecks, "surfaceTolerance") ?? false,
+    },
+    noteDirectionRisques,
+    status: readString(missionConfig, "status") ?? "",
+    sideEffects,
+    version: readNumberLike(missionConfig, "version"),
+    createdAt: readString(missionConfig, "createdAt"),
+    updatedAt: readString(missionConfig, "updatedAt"),
   };
 }
 
@@ -403,4 +612,46 @@ export async function updateInsuranceApplicationStatus(
     sideEffects,
     sideEffectsPresent: present,
   };
+}
+
+export async function getInsuranceMissionConfig(
+  applicationId: string,
+): Promise<InsuranceMissionConfig | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/mission-config`,
+  );
+  return mapMissionConfig(payload);
+}
+
+export async function saveInsuranceMissionConfig(
+  applicationId: string,
+  payload: InsuranceMissionConfigPayload,
+): Promise<InsuranceMissionConfig | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const response = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/mission-config`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  return mapMissionConfig(response);
+}
+
+export async function getInsuranceMissionConfigVersions(
+  applicationId: string,
+): Promise<InsuranceMissionConfig[]> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/mission-config/versions`,
+  );
+
+  const items = extractArrayFromApiResponse(payload, ["versions", "items", "data"]);
+  return items
+    .map((item) => mapMissionConfig(item))
+    .filter((item): item is InsuranceMissionConfig => item !== null);
 }

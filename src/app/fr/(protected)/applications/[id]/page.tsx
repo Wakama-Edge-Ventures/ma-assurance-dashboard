@@ -5,8 +5,14 @@ import { use, useEffect, useMemo, useState } from "react";
 import {
   ApiError,
   getInsuranceApplicationById,
+  getInsuranceMissionConfig,
+  getInsuranceMissionConfigVersions,
   InsuranceApplicationByIdResult,
+  InsuranceMissionConfig,
+  InsuranceMissionConfigPayload,
+  InsuranceMissionConfigSideEffects,
   InsuranceRiskReviewStatus,
+  saveInsuranceMissionConfig,
   updateInsuranceApplicationStatus,
 } from "@/lib/api";
 import {
@@ -59,6 +65,104 @@ const NON_ACTIONABLE_RISK_REVIEW_STATUSES: InsuranceDcaApplication["status"][] =
 
 const RISK_REVIEW_NOTE_MAX_LENGTH = 500;
 
+const MISSION_CONFIG_NOTE_MAX_LENGTH = 500;
+
+const DEFAULT_MISSION_CONFIG: InsuranceMissionConfigPayload = {
+  missionType: "FIELD_AUDIT_PREPARATION",
+  proofLevel: "STANDARD",
+  surfaceTolerancePercent: 5,
+  requiresPolygonCheck: true,
+  requiresCinCheck: true,
+  requiresLandDocumentCheck: true,
+  requiredDocuments: ["CIN", "ATTESTATION_EXPLOITATION", "POLYGONE_GPS"],
+  requiredChecks: {
+    polygon: true,
+    identity: true,
+    landDocument: true,
+    surfaceTolerance: true,
+  },
+  status: "MISSION_CONFIG_DRAFT",
+};
+
+const DEFAULT_MISSION_CONFIG_SIDE_EFFECTS: InsuranceMissionConfigSideEffects = {
+  missionCreated: false,
+  missionSent: false,
+  fieldAuditCreated: false,
+  raxCalculated: false,
+  pricingCalculated: false,
+  policyCreated: false,
+  claimCreated: false,
+  evidenceBundleCreated: false,
+  blockchainAnchored: false,
+};
+
+interface MissionConfigFormState {
+  missionType: string;
+  proofLevel: string;
+  surfaceTolerancePercent: string;
+  requiresPolygonCheck: boolean;
+  requiresCinCheck: boolean;
+  requiresLandDocumentCheck: boolean;
+  requiredDocumentsText: string;
+  checkPolygon: boolean;
+  checkIdentity: boolean;
+  checkLandDocument: boolean;
+  checkSurfaceTolerance: boolean;
+  noteDirectionRisques: string;
+  status: string;
+}
+
+function toMissionConfigFormState(config: InsuranceMissionConfig | null): MissionConfigFormState {
+  const source = config
+    ? {
+        missionType: config.missionType || DEFAULT_MISSION_CONFIG.missionType,
+        proofLevel: config.proofLevel || DEFAULT_MISSION_CONFIG.proofLevel,
+        surfaceTolerancePercent:
+          Number.isFinite(config.surfaceTolerancePercent) && config.surfaceTolerancePercent >= 0
+            ? config.surfaceTolerancePercent
+            : DEFAULT_MISSION_CONFIG.surfaceTolerancePercent,
+        requiresPolygonCheck: config.requiresPolygonCheck,
+        requiresCinCheck: config.requiresCinCheck,
+        requiresLandDocumentCheck: config.requiresLandDocumentCheck,
+        requiredDocuments:
+          config.requiredDocuments.length > 0
+            ? config.requiredDocuments
+            : DEFAULT_MISSION_CONFIG.requiredDocuments,
+        requiredChecks: {
+          polygon: config.requiredChecks.polygon,
+          identity: config.requiredChecks.identity,
+          landDocument: config.requiredChecks.landDocument,
+          surfaceTolerance: config.requiredChecks.surfaceTolerance,
+        },
+        noteDirectionRisques: config.noteDirectionRisques,
+        status: config.status || DEFAULT_MISSION_CONFIG.status,
+      }
+    : DEFAULT_MISSION_CONFIG;
+
+  return {
+    missionType: source.missionType,
+    proofLevel: source.proofLevel,
+    surfaceTolerancePercent: String(source.surfaceTolerancePercent),
+    requiresPolygonCheck: source.requiresPolygonCheck,
+    requiresCinCheck: source.requiresCinCheck,
+    requiresLandDocumentCheck: source.requiresLandDocumentCheck,
+    requiredDocumentsText: source.requiredDocuments.join(", "),
+    checkPolygon: source.requiredChecks.polygon,
+    checkIdentity: source.requiredChecks.identity,
+    checkLandDocument: source.requiredChecks.landDocument,
+    checkSurfaceTolerance: source.requiredChecks.surfaceTolerance,
+    noteDirectionRisques: source.noteDirectionRisques ?? "",
+    status: source.status,
+  };
+}
+
+function parseRequiredDocuments(value: string): string[] {
+  return value
+    .split(/[\n,]/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 const RISK_REVIEW_REASONS: Record<InsuranceRiskReviewStatus, string> = {
   UNDER_RISK_REVIEW: "Contrôle dossier avant mission",
   MORE_INFO_REQUIRED: "Complément requis avant poursuite",
@@ -109,6 +213,41 @@ function getRiskReviewMutationErrorMessage(error: unknown): string {
   return error.message || "Erreur API pendant la revue Direction des Risques.";
 }
 
+function getMissionConfigLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Impossible de charger la configuration mission.";
+  }
+  if (error.status === 400) {
+    return "Requete invalide (400) sur la configuration mission.";
+  }
+  if (error.status === 401) {
+    return "Session expiree (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Acces refuse (403) sur la configuration mission.";
+  }
+  return error.message || "Erreur API pendant le chargement de la configuration mission.";
+}
+
+function getMissionConfigSaveErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Enregistrement du brouillon impossible.";
+  }
+  if (error.status === 400) {
+    return "Requete invalide (400) pour l'enregistrement du brouillon.";
+  }
+  if (error.status === 401) {
+    return "Session expiree (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Acces refuse (403) pour l'enregistrement du brouillon.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404) pour la configuration mission.";
+  }
+  return error.message || "Erreur API pendant l'enregistrement du brouillon.";
+}
+
 function hasForbiddenSideEffects(
   sideEffects: {
     missionCreated: boolean;
@@ -129,6 +268,20 @@ function hasForbiddenSideEffects(
   );
 }
 
+function hasMissionConfigForbiddenSideEffects(sideEffects: InsuranceMissionConfigSideEffects): boolean {
+  return (
+    sideEffects.missionCreated ||
+    sideEffects.missionSent ||
+    sideEffects.fieldAuditCreated ||
+    sideEffects.raxCalculated ||
+    sideEffects.pricingCalculated ||
+    sideEffects.policyCreated ||
+    sideEffects.claimCreated ||
+    sideEffects.evidenceBundleCreated ||
+    sideEffects.blockchainAnchored
+  );
+}
+
 export default function ApplicationDetailPage({ params }: ApplicationDetailPageProps) {
   const resolvedParams = use(params);
   const applicationId = resolvedParams.id;
@@ -142,6 +295,22 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     type: "success" | "error" | "critical";
     message: string;
   } | null>(null);
+  const [missionConfigLoading, setMissionConfigLoading] = useState(false);
+  const [missionConfigSaving, setMissionConfigSaving] = useState(false);
+  const [missionConfigError, setMissionConfigError] = useState<string | null>(null);
+  const [missionConfigFeedback, setMissionConfigFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [missionConfig, setMissionConfig] = useState<InsuranceMissionConfig | null>(null);
+  const [missionConfigVersionsCount, setMissionConfigVersionsCount] = useState(0);
+  const [missionConfigLatestVersion, setMissionConfigLatestVersion] = useState<number | null>(null);
+  const [missionConfigSideEffects, setMissionConfigSideEffects] = useState<InsuranceMissionConfigSideEffects>(
+    DEFAULT_MISSION_CONFIG_SIDE_EFFECTS,
+  );
+  const [missionConfigForm, setMissionConfigForm] = useState<MissionConfigFormState>(
+    toMissionConfigFormState(null),
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -225,7 +394,155 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
   }
 
+  async function handleMissionConfigSave() {
+    if (missionConfigSaving || missionConfigLoading) return;
+
+    const surfaceTolerancePercent = Number(missionConfigForm.surfaceTolerancePercent);
+    if (!Number.isFinite(surfaceTolerancePercent) || surfaceTolerancePercent < 0) {
+      setMissionConfigFeedback({
+        type: "error",
+        message: "Le pourcentage de tolerance surface doit etre un nombre positif.",
+      });
+      return;
+    }
+
+    const requiredDocuments = parseRequiredDocuments(missionConfigForm.requiredDocumentsText);
+    if (requiredDocuments.length === 0) {
+      setMissionConfigFeedback({
+        type: "error",
+        message: "Au moins un document requis doit etre renseigne.",
+      });
+      return;
+    }
+
+    const payload: InsuranceMissionConfigPayload = {
+      missionType: missionConfigForm.missionType.trim() || DEFAULT_MISSION_CONFIG.missionType,
+      proofLevel: missionConfigForm.proofLevel.trim() || DEFAULT_MISSION_CONFIG.proofLevel,
+      surfaceTolerancePercent,
+      requiresPolygonCheck: missionConfigForm.requiresPolygonCheck,
+      requiresCinCheck: missionConfigForm.requiresCinCheck,
+      requiresLandDocumentCheck: missionConfigForm.requiresLandDocumentCheck,
+      requiredDocuments,
+      requiredChecks: {
+        polygon: missionConfigForm.checkPolygon,
+        identity: missionConfigForm.checkIdentity,
+        landDocument: missionConfigForm.checkLandDocument,
+        surfaceTolerance: missionConfigForm.checkSurfaceTolerance,
+      },
+      noteDirectionRisques: missionConfigForm.noteDirectionRisques.trim() || undefined,
+      status: missionConfigForm.status.trim() || DEFAULT_MISSION_CONFIG.status,
+    };
+
+    setMissionConfigSaving(true);
+    setMissionConfigError(null);
+    setMissionConfigFeedback(null);
+
+    try {
+      const savedConfig = await saveInsuranceMissionConfig(applicationId, payload);
+      const sideEffects = savedConfig?.sideEffects ?? DEFAULT_MISSION_CONFIG_SIDE_EFFECTS;
+      setMissionConfig(savedConfig);
+      setMissionConfigSideEffects(sideEffects);
+      setMissionConfigForm(toMissionConfigFormState(savedConfig));
+
+      const versions = await getInsuranceMissionConfigVersions(applicationId).catch((error) => {
+        if (error instanceof ApiError && error.status === 404) return [];
+        throw error;
+      });
+      setMissionConfigVersionsCount(versions.length);
+      setMissionConfigLatestVersion(
+        versions.length > 0
+          ? Math.max(...versions.map((item) => item.version ?? 0))
+          : (savedConfig?.version ?? null),
+      );
+
+      if (hasMissionConfigForbiddenSideEffects(sideEffects)) {
+        setMissionConfigFeedback({
+          type: "critical",
+          message:
+            "Erreur critique: un effet secondaire interdit a ete detecte (mission terrain, audit, RAX, pricing, police, sinistre, evidence, blockchain).",
+        });
+        return;
+      }
+
+      setMissionConfigFeedback({
+        type: "success",
+        message: "Brouillon mission enregistre. Aucune mission terrain n'a ete envoyee.",
+      });
+    } catch (saveError) {
+      setMissionConfigFeedback({
+        type: "error",
+        message: getMissionConfigSaveErrorMessage(saveError),
+      });
+    } finally {
+      setMissionConfigSaving(false);
+    }
+  }
+
   const application = result?.application ?? null;
+  const showMissionConfigSection = application?.status === "READY_FOR_MISSION_CONFIG";
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (!showMissionConfigSection) {
+      setMissionConfigLoading(false);
+      setMissionConfigError(null);
+      setMissionConfigFeedback(null);
+      setMissionConfig(null);
+      setMissionConfigVersionsCount(0);
+      setMissionConfigLatestVersion(null);
+      setMissionConfigSideEffects(DEFAULT_MISSION_CONFIG_SIDE_EFFECTS);
+      setMissionConfigForm(toMissionConfigFormState(null));
+      return () => {
+        mounted = false;
+      };
+    }
+
+    async function loadMissionConfig() {
+      setMissionConfigLoading(true);
+      setMissionConfigError(null);
+      setMissionConfigFeedback(null);
+
+      try {
+        const [config, versions] = await Promise.all([
+          getInsuranceMissionConfig(applicationId).catch((error) => {
+            if (error instanceof ApiError && error.status === 404) return null;
+            throw error;
+          }),
+          getInsuranceMissionConfigVersions(applicationId).catch((error) => {
+            if (error instanceof ApiError && error.status === 404) return [];
+            throw error;
+          }),
+        ]);
+
+        if (!mounted) return;
+
+        setMissionConfig(config);
+        setMissionConfigForm(toMissionConfigFormState(config));
+        setMissionConfigSideEffects(config?.sideEffects ?? DEFAULT_MISSION_CONFIG_SIDE_EFFECTS);
+        setMissionConfigVersionsCount(versions.length);
+        setMissionConfigLatestVersion(
+          versions.length > 0
+            ? Math.max(...versions.map((item) => item.version ?? 0))
+            : (config?.version ?? null),
+        );
+      } catch (loadError) {
+        if (!mounted) return;
+        setMissionConfigError(getMissionConfigLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) {
+          setMissionConfigLoading(false);
+        }
+      }
+    }
+
+    void loadMissionConfig();
+
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId, showMissionConfigSection]);
+
   const waitingLine = useMemo(
     () => (application ? hasWaitingReviewStatus(application.status) : false),
     [application],
@@ -484,6 +801,300 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           <p className="text-xs text-slate-500">Source des effets secondaires: fallback frontend</p>
         ) : null}
       </Card>
+
+      {showMissionConfigSection ? (
+        <Card className="space-y-4">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
+            Configuration mission contrôlée
+          </h2>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-100">
+              Brouillon Direction des Risques
+            </span>
+            <span className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-0.5 text-[11px] text-cyan-100">
+              Aucune mission terrain envoyée
+            </span>
+          </div>
+
+          <p className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+            Cette configuration prépare le protocole de preuve. Elle ne déclenche pas encore d’audit terrain.
+          </p>
+
+          <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+            {missionConfig ? (
+              <p>
+                Draft existant charge
+                {missionConfig.version !== null ? ` (version ${missionConfig.version})` : ""}.
+              </p>
+            ) : (
+              <p>Aucun draft existant detecte. Valeurs par defaut pre-remplies.</p>
+            )}
+            <p>Versions disponibles: {missionConfigVersionsCount}</p>
+            <p>
+              Derniere version connue:{" "}
+              {missionConfigLatestVersion === null ? "Non disponible" : missionConfigLatestVersion}
+            </p>
+            <p>Source API: GET/POST /v1/insurance/applications/:id/mission-config</p>
+            <p>Source API: GET /v1/insurance/applications/:id/mission-config/versions</p>
+          </div>
+
+          {missionConfigLoading ? (
+            <p className="text-xs text-slate-400">Chargement de la configuration mission...</p>
+          ) : null}
+          {missionConfigError ? (
+            <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+              {missionConfigError}
+            </p>
+          ) : null}
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Type de mission</span>
+              <select
+                value={missionConfigForm.missionType}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({ ...prev, missionType: event.target.value }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <option value="FIELD_AUDIT_PREPARATION">FIELD_AUDIT_PREPARATION</option>
+                <option value="PARCEL_VERIFICATION">PARCEL_VERIFICATION</option>
+                <option value="DOCUMENT_REVIEW">DOCUMENT_REVIEW</option>
+              </select>
+            </label>
+
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Niveau de preuve</span>
+              <select
+                value={missionConfigForm.proofLevel}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({ ...prev, proofLevel: event.target.value }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <option value="STANDARD">STANDARD</option>
+                <option value="ELEVATED">ELEVATED</option>
+                <option value="STRICT">STRICT</option>
+              </select>
+            </label>
+
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Tolerance surface %</span>
+              <input
+                type="number"
+                min={0}
+                step="0.1"
+                value={missionConfigForm.surfaceTolerancePercent}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({
+                    ...prev,
+                    surfaceTolerancePercent: event.target.value,
+                  }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </label>
+
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Statut</span>
+              <input
+                type="text"
+                value={missionConfigForm.status}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({ ...prev, status: event.target.value }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-3 text-sm text-slate-300 md:grid-cols-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={missionConfigForm.requiresPolygonCheck}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({
+                    ...prev,
+                    requiresPolygonCheck: event.target.checked,
+                  }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+              />
+              Verification polygone
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={missionConfigForm.requiresCinCheck}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({
+                    ...prev,
+                    requiresCinCheck: event.target.checked,
+                  }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+              />
+              Verification CIN
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={missionConfigForm.requiresLandDocumentCheck}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({
+                    ...prev,
+                    requiresLandDocumentCheck: event.target.checked,
+                  }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+              />
+              Verification document foncier
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={missionConfigForm.checkSurfaceTolerance}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({
+                    ...prev,
+                    checkSurfaceTolerance: event.target.checked,
+                  }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+              />
+              Controle tolerance surface
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={missionConfigForm.checkPolygon}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({
+                    ...prev,
+                    checkPolygon: event.target.checked,
+                  }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+              />
+              Check requis: polygon
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={missionConfigForm.checkIdentity}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({
+                    ...prev,
+                    checkIdentity: event.target.checked,
+                  }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+              />
+              Check requis: identity
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={missionConfigForm.checkLandDocument}
+                onChange={(event) =>
+                  setMissionConfigForm((prev) => ({
+                    ...prev,
+                    checkLandDocument: event.target.checked,
+                  }))
+                }
+                disabled={missionConfigSaving || missionConfigLoading}
+              />
+              Check requis: landDocument
+            </label>
+          </div>
+
+          <label className="space-y-1 text-sm text-slate-300">
+            <span>Documents requis (separes par virgule ou ligne)</span>
+            <textarea
+              value={missionConfigForm.requiredDocumentsText}
+              onChange={(event) =>
+                setMissionConfigForm((prev) => ({
+                  ...prev,
+                  requiredDocumentsText: event.target.value,
+                }))
+              }
+              disabled={missionConfigSaving || missionConfigLoading}
+              className="min-h-20 w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+            />
+          </label>
+
+          <label className="space-y-1 text-sm text-slate-300">
+            <span>Note Direction des Risques</span>
+            <textarea
+              value={missionConfigForm.noteDirectionRisques}
+              onChange={(event) =>
+                setMissionConfigForm((prev) => ({
+                  ...prev,
+                  noteDirectionRisques: event.target.value.slice(0, MISSION_CONFIG_NOTE_MAX_LENGTH),
+                }))
+              }
+              maxLength={MISSION_CONFIG_NOTE_MAX_LENGTH}
+              disabled={missionConfigSaving || missionConfigLoading}
+              className="min-h-24 w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+            />
+            <p className="text-[11px] text-slate-500">
+              {missionConfigForm.noteDirectionRisques.length}/{MISSION_CONFIG_NOTE_MAX_LENGTH}
+            </p>
+          </label>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => void handleMissionConfigSave()}
+              disabled={missionConfigSaving || missionConfigLoading}
+              className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-4 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+            >
+              {missionConfigSaving ? "Enregistrement..." : "Enregistrer le brouillon"}
+            </button>
+          </div>
+
+          {missionConfigFeedback ? (
+            <p
+              className={
+                missionConfigFeedback.type === "success"
+                  ? "rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100"
+                  : missionConfigFeedback.type === "critical"
+                    ? "rounded-xl border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs text-rose-100"
+                    : "rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-100"
+              }
+            >
+              {missionConfigFeedback.message}
+            </p>
+          ) : null}
+
+          <div className="space-y-2 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300">
+            <p className="font-medium text-slate-200">sideEffects mission-config</p>
+            <p>missionCreated: {String(missionConfigSideEffects.missionCreated)}</p>
+            <p>missionSent: {String(missionConfigSideEffects.missionSent)}</p>
+            <p>fieldAuditCreated: {String(missionConfigSideEffects.fieldAuditCreated)}</p>
+            <p>raxCalculated: {String(missionConfigSideEffects.raxCalculated)}</p>
+            <p>pricingCalculated: {String(missionConfigSideEffects.pricingCalculated)}</p>
+            <p>policyCreated: {String(missionConfigSideEffects.policyCreated)}</p>
+            <p>claimCreated: {String(missionConfigSideEffects.claimCreated)}</p>
+            <p>evidenceBundleCreated: {String(missionConfigSideEffects.evidenceBundleCreated)}</p>
+            <p>blockchainAnchored: {String(missionConfigSideEffects.blockchainAnchored)}</p>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            Aucun envoi mission, aucune assignation agent, aucun field audit, aucun RAX, aucun pricing, aucune police,
+            aucun sinistre, aucune evidence et aucun ancrage blockchain depuis cet ecran.
+          </p>
+          <p className="text-xs text-brand-textMuted">
+            Wakama prépare et documente. L’assureur décide.
+          </p>
+        </Card>
+      ) : null}
 
       <Card className="space-y-4">
         <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">Revue Direction des Risques</h2>
