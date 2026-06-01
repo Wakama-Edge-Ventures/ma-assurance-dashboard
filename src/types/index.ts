@@ -293,3 +293,109 @@ export interface InsuranceClaim {
     | "REJECTED_BY_INSURER";
   source: DataSource;
 }
+
+export type InsuranceDcaApplicationStatus =
+  | "DRAFT"
+  | "DRAFT_SUBMITTED"
+  | "UNDER_RISK_REVIEW"
+  | "MORE_INFO_REQUIRED"
+  | "READY_FOR_MISSION_CONFIG"
+  | "MISSION_CONFIGURED"
+  | "MISSION_SENT"
+  | "FIELD_AUDIT_COMPLETE"
+  | "BACK_OFFICE_REVIEW"
+  | "RAX_SCORED"
+  | "OFFER_SENT"
+  | "FARMER_ACCEPTED"
+  | "CONTRACT_SIGNED"
+  | "ACTIVE"
+  | "CLAIM_OPEN"
+  | "CLOSED"
+  | "REJECTED";
+
+export interface InsuranceDcaSideEffects {
+  missionCreated: boolean;
+  policyCreated: boolean;
+  claimCreated: boolean;
+  raxCalculated: boolean;
+  pricingCalculated: boolean;
+  blockchainAnchored: boolean;
+  sideEffectsSource?: "BACKEND" | "FRONTEND_FALLBACK";
+  sourceNote?: string;
+}
+
+export interface InsuranceDcaFarmer {
+  id?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneMasked?: string | null;
+  cinMasked?: string | null;
+  preferredLanguage?: string | null;
+  source?: DataSource;
+}
+
+export interface InsuranceDcaParcelle {
+  id?: string | null;
+  name?: string | null;
+  culture?: string | null;
+  superficie?: number | null;
+  declaredArea?: number | null;
+  lat?: number | null;
+  lng?: number | null;
+  country?: string | null;
+  source?: DataSource;
+}
+
+export interface InsuranceDcaClaimHistoryItem {
+  id?: string | null;
+  status?: string | null;
+  createdAt?: string | null;
+  year?: number | null;
+  type?: string | null;
+  cause?: string | null;
+  estimatedAmount?: number | null;
+  note?: string | null;
+  source: DataSource;
+}
+
+export interface InsuranceDcaPreparedDocument {
+  id?: string | null;
+  type?: string | null;
+  label?: string | null;
+  filename?: string | null;
+  name?: string | null;
+  status?: string | null;
+  url?: string | null;
+  createdAt?: string | null;
+  source: DataSource;
+}
+
+export interface InsuranceDcaApplication {
+  id: string;
+  reference: string | null;
+  dcaNumber?: string | null;
+  status: InsuranceDcaApplicationStatus | "UNAVAILABLE";
+  backendStatus?: string | null;
+  source: DataSource;
+  declarativeSource?: DataSource;
+  sourceOfTruth?: string | null;
+  legacyAuditFallbackUsed?: boolean | null;
+  submittedAt?: string | null;
+  createdAt?: string | null;
+  periodYears?: number | null;
+  noClaimsDeclared?: boolean | null;
+  applicationCountry?: string | null;
+  farmerCountry?: string | null;
+  parcelleCountry?: string | null;
+  farmer: InsuranceDcaFarmer;
+  parcelle: InsuranceDcaParcelle;
+  crop?: string | null;
+  culture?: string | null;
+  declaredArea?: number | null;
+  consentCndp?: boolean | null;
+  consentCndpAt?: string | null;
+  consentCndpSource?: DataSource;
+  preparedDocuments: InsuranceDcaPreparedDocument[];
+  claimHistory: InsuranceDcaClaimHistoryItem[];
+  sideEffects: InsuranceDcaSideEffects;
+}

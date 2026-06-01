@@ -7,6 +7,10 @@ import {
   IotReading,
   NdviSnapshot,
   InsuranceApplication,
+  InsuranceDcaApplication,
+  InsuranceDcaApplicationStatus,
+  InsuranceDcaClaimHistoryItem,
+  InsuranceDcaPreparedDocument,
   InsuranceClaim,
   InsuranceFieldAudit,
   InsuranceMission,
@@ -65,6 +69,33 @@ function asBooleanLike(value: unknown): boolean | null {
 
 function asSource(value: unknown, fallback: DataSource = "LIVE"): DataSource {
   return normalizeSource(value, fallback);
+}
+
+function maskPhone(value: string | null): string | null {
+  if (!value) return null;
+  const visible = value.slice(-2);
+  if (!visible) return null;
+  return `${"*".repeat(Math.max(value.length - 2, 0))}${visible}`;
+}
+
+function maskCin(value: string | null): string | null {
+  if (!value) return null;
+  if (value.length <= 2) return `${"*".repeat(value.length)}`;
+  return `${value.slice(0, 2)}${"*".repeat(Math.max(value.length - 4, 0))}${value.slice(-2)}`;
+}
+
+function toSafeUrl(value: unknown): string | null {
+  const raw = asStringLike(value);
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.toString();
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function getNestedValue(value: unknown, path: string): unknown {
@@ -182,6 +213,400 @@ export function toInsuranceApplication(raw: unknown): InsuranceApplication | nul
     riskTier,
     createdAt,
     source: asSource(o.source, "LIVE"),
+  };
+}
+
+function resolveDcaStatus(value: unknown): InsuranceDcaApplication["status"] {
+  const raw = asStringLike(value)?.trim().toUpperCase() ?? null;
+  if (!raw) return "UNAVAILABLE";
+
+  const allowed = new Set<InsuranceDcaApplicationStatus>([
+    "DRAFT",
+    "DRAFT_SUBMITTED",
+    "UNDER_RISK_REVIEW",
+    "MORE_INFO_REQUIRED",
+    "READY_FOR_MISSION_CONFIG",
+    "MISSION_CONFIGURED",
+    "MISSION_SENT",
+    "FIELD_AUDIT_COMPLETE",
+    "BACK_OFFICE_REVIEW",
+    "RAX_SCORED",
+    "OFFER_SENT",
+    "FARMER_ACCEPTED",
+    "CONTRACT_SIGNED",
+    "ACTIVE",
+    "CLAIM_OPEN",
+    "CLOSED",
+    "REJECTED",
+  ]);
+
+  if (allowed.has(raw as InsuranceDcaApplicationStatus)) {
+    return raw as InsuranceDcaApplicationStatus;
+  }
+  return "UNAVAILABLE";
+}
+
+export function formatBooleanFr(value: boolean | null | undefined): string {
+  if (value === true) return "Oui";
+  if (value === false) return "Non";
+  return "Non disponible";
+}
+
+export function formatDcaStatusFr(status: string | null | undefined): string {
+  const normalized = asStringLike(status)?.trim().toUpperCase();
+  if (!normalized) return "Non disponible";
+
+  const labels: Record<string, string> = {
+    DRAFT: "Brouillon",
+    DRAFT_SUBMITTED: "Brouillon soumis",
+    UNDER_RISK_REVIEW: "En revue Direction des Risques",
+    MORE_INFO_REQUIRED: "Complément requis",
+    READY_FOR_MISSION_CONFIG: "Prêt pour paramétrage mission",
+    MISSION_CONFIGURED: "Mission configurée",
+    MISSION_SENT: "Mission envoyée",
+    FIELD_AUDIT_COMPLETE: "Audit terrain terminé",
+    BACK_OFFICE_REVIEW: "Revue back-office",
+    RAX_SCORED: "RAX calculé",
+    OFFER_SENT: "Offre envoyée",
+    FARMER_ACCEPTED: "Accord farmer reçu",
+    CONTRACT_SIGNED: "Contrat signé",
+    ACTIVE: "Actif",
+    CLAIM_OPEN: "Sinistre ouvert",
+    CLOSED: "Clôturé",
+    REJECTED: "Rejeté",
+    UNAVAILABLE: "Non disponible",
+  };
+
+  if (labels[normalized]) return labels[normalized];
+  return normalized.replaceAll("_", " ");
+}
+
+export function formatSourceFr(source: string | null | undefined): string {
+  const normalized = asStringLike(source)?.trim().toUpperCase();
+  if (!normalized) return "Source non qualifiée";
+
+  const labels: Record<string, string> = {
+    LIVE: "Donnée réelle",
+    SEED_DEMO: "Donnée de démonstration",
+    MANUAL_ESTIMATE: "Estimation déclarative",
+    DEGRADED: "Mode dégradé",
+    UNAVAILABLE: "Non disponible",
+    EXCEL_IMPORT: "Import Excel",
+    BACKEND: "Backend",
+  };
+
+  return labels[normalized] ?? "Source non qualifiée";
+}
+
+export function formatDocumentStatusFr(status: string | null | undefined): string {
+  const normalized = asStringLike(status)?.trim().toUpperCase();
+  if (!normalized) return "Statut non disponible";
+
+  const labels: Record<string, string> = {
+    PREPARED: "Préparé",
+    UPLOADED: "Téléversé",
+    VERIFIED: "Vérifié",
+    REJECTED: "Rejeté",
+    PENDING: "En attente",
+  };
+
+  return labels[normalized] ?? "Statut non disponible";
+}
+
+export function formatSideEffectsSourceFr(source: string | null | undefined): string {
+  const normalized = asStringLike(source)?.trim().toUpperCase();
+  if (!normalized) return "Source non disponible";
+  if (normalized === "BACKEND") return "Confirmé par le backend";
+  if (normalized === "FRONTEND_FALLBACK") return "Fallback frontend";
+  return "Source non disponible";
+}
+
+export function formatSourceOfTruthFr(value: string | null | undefined): string {
+  const normalized = asStringLike(value)?.trim().toUpperCase();
+  if (!normalized) return "Source de vérité non disponible";
+  if (normalized === "DEDICATED_DCA_TABLES") return "Tables DCA dédiées";
+  if (normalized === "LEGACY_AUDIT_FALLBACK") return "Ancien fallback d’audit";
+  return "Source de vérité non disponible";
+}
+
+function mapDcaPreparedDocuments(
+  source: unknown,
+  fallbackSource: DataSource,
+): InsuranceDcaPreparedDocument[] {
+  if (!Array.isArray(source)) return [];
+  return source.map((item) => {
+    const o = asObject(item);
+    const docType = asStringLike(o?.type ?? o?.documentType) ?? null;
+    const name = asStringLike(o?.name ?? o?.fileName ?? o?.label ?? docType) ?? null;
+    const sourceFromPayload = o?.source ?? o?.sourceLabel ?? o?.dataSource;
+    return {
+      id: asStringLike(o?.id ?? o?.documentId) ?? null,
+      type: docType,
+      label: asStringLike(o?.label ?? o?.title ?? o?.name ?? docType) ?? null,
+      filename: asStringLike(o?.fileName ?? o?.filename ?? o?.name) ?? null,
+      name,
+      status: asStringLike(o?.status ?? o?.documentStatus) ?? null,
+      url: toSafeUrl(o?.url ?? o?.downloadUrl ?? o?.fileUrl),
+      createdAt: asStringLike(o?.createdAt ?? o?.uploadedAt ?? o?.generatedAt) ?? null,
+      source: asSource(sourceFromPayload, fallbackSource),
+    };
+  });
+}
+
+function mapDcaClaimHistory(
+  source: unknown,
+  fallbackSource: DataSource,
+): InsuranceDcaClaimHistoryItem[] {
+  if (!Array.isArray(source)) return [];
+  return source.map((item) => {
+    const o = asObject(item);
+    const createdAt = asStringLike(o?.createdAt ?? o?.eventDate ?? o?.date) ?? null;
+    const parsedYear =
+      asNumber(o?.year) ??
+      (() => {
+        if (!createdAt) return null;
+        const date = new Date(createdAt);
+        return Number.isNaN(date.getTime()) ? null : date.getUTCFullYear();
+      })();
+    return {
+      id: asStringLike(o?.id ?? o?.claimEventId ?? o?.claimId) ?? null,
+      status: asStringLike(o?.status ?? o?.eventType) ?? null,
+      createdAt,
+      year: parsedYear,
+      type: asStringLike(o?.type ?? o?.claimType ?? o?.eventType) ?? null,
+      cause: asStringLike(o?.cause ?? o?.claimCause ?? o?.reason ?? o?.type) ?? null,
+      estimatedAmount:
+        asNumber(o?.estimatedAmount) ??
+        asNumber(o?.estimatedLossMad) ??
+        asNumber(o?.amount) ??
+        null,
+      note:
+        asStringLike(o?.note ?? o?.notes ?? o?.description ?? o?.crop) ?? null,
+      source: asSource(o?.source ?? o?.sourceLabel ?? o?.dataSource, fallbackSource),
+    };
+  });
+}
+
+export function mapInsuranceDcaApplication(raw: unknown): InsuranceDcaApplication | null {
+  const o = asObject(raw);
+  if (!o) return null;
+
+  const dataObj = asObject(o.data);
+  const applicationObj = asObject(o.application) ?? o;
+  const dcaDeclarationObj =
+    asObject(o.dcaDeclaration) ?? asObject(applicationObj.dcaDeclaration);
+  const rawDeclarationObj =
+    asObject(dcaDeclarationObj?.rawDeclaration) ??
+    asObject(applicationObj.rawDeclaration);
+
+  const id = asStringLike(
+    applicationObj.id ?? applicationObj.applicationId ?? o.id ?? o.applicationId,
+  );
+  if (!id) return null;
+
+  const source = asSource(
+    applicationObj.source ??
+      asObject(applicationObj.sourceDisclosure)?.source ??
+      o.source ??
+      dcaDeclarationObj?.sourceLabel ??
+      o.sourceLabel,
+    "UNAVAILABLE",
+  );
+
+  const declarativeSource = asSource(
+    asObject(applicationObj.sourceDisclosure)?.source ??
+      dcaDeclarationObj?.sourceLabel ??
+      source,
+    source,
+  );
+
+  const farmerObj =
+    asObject(o.farmer) ??
+    asObject(applicationObj.farmer) ??
+    asObject(o.farmerProfile) ??
+    asObject(applicationObj.farmerProfile) ??
+    asObject(dcaDeclarationObj?.farmer);
+
+  const parcelleObj =
+    asObject(o.parcelle) ??
+    asObject(o.parcel) ??
+    asObject(applicationObj.parcelle) ??
+    asObject(applicationObj.parcel) ??
+    asObject(dcaDeclarationObj?.parcelle) ??
+    asObject(dcaDeclarationObj?.parcel);
+
+  const declaredArea =
+    asNumber(applicationObj.declaredArea) ??
+    asNumber(applicationObj.superficie) ??
+    asNumber(applicationObj.surfaceHa) ??
+    asNumber(applicationObj.areaHa) ??
+    asNumber(dcaDeclarationObj?.declaredArea) ??
+    asNumber(dcaDeclarationObj?.surfaceHa) ??
+    asNumber(dcaDeclarationObj?.areaHa) ??
+    asNumber(parcelleObj?.declaredArea) ??
+    asNumber(parcelleObj?.superficie) ??
+    asNumber(parcelleObj?.surfaceHa) ??
+    asNumber(parcelleObj?.areaHa) ??
+    null;
+
+  const sideEffectsObj =
+    asObject(o.sideEffects) ??
+    asObject(applicationObj.sideEffects) ??
+    asObject(dataObj?.sideEffects);
+  const hasSideEffects = Boolean(sideEffectsObj);
+  const sideEffects = {
+    missionCreated: asBooleanLike(sideEffectsObj?.missionCreated) ?? false,
+    policyCreated: asBooleanLike(sideEffectsObj?.policyCreated) ?? false,
+    claimCreated: asBooleanLike(sideEffectsObj?.claimCreated) ?? false,
+    raxCalculated: asBooleanLike(sideEffectsObj?.raxCalculated) ?? false,
+    pricingCalculated: asBooleanLike(sideEffectsObj?.pricingCalculated) ?? false,
+    blockchainAnchored: asBooleanLike(sideEffectsObj?.blockchainAnchored) ?? false,
+    sideEffectsSource: hasSideEffects ? ("BACKEND" as const) : ("FRONTEND_FALLBACK" as const),
+    sourceNote: hasSideEffects
+      ? undefined
+      : "UNAVAILABLE / assumed false by frontend fallback",
+  };
+
+  const preparedDocuments = mapDcaPreparedDocuments(
+    o.preparedDocuments ??
+      dcaDeclarationObj?.preparedDocuments ??
+      applicationObj.preparedDocuments ??
+      asObject(applicationObj.dcaDeclaration)?.preparedDocuments ??
+      rawDeclarationObj?.documentsPrepared ??
+      o.documents,
+    source,
+  );
+
+  const claimHistory = mapDcaClaimHistory(
+    o.declaredClaimEvents ??
+      o.claimHistory ??
+      o.claimEvents ??
+      o.insuranceDcaClaimEvents ??
+      dcaDeclarationObj?.claimEvents ??
+      dcaDeclarationObj?.declaredClaimEvents ??
+      asObject(applicationObj.dcaDeclaration)?.claimEvents ??
+      asObject(applicationObj.dcaDeclaration)?.declaredClaimEvents ??
+      asObject(rawDeclarationObj?.declaredClaimHistory)?.events,
+    source,
+  );
+
+  const phoneRaw =
+    asStringLike(farmerObj?.phoneMasked ?? farmerObj?.maskedPhone ?? farmerObj?.phone) ?? null;
+  const cinRaw =
+    asStringLike(farmerObj?.cinMasked ?? farmerObj?.nationalIdMasked ?? farmerObj?.cin) ?? null;
+
+  const frontendStatus = asStringLike(
+    o.frontendStatus ?? applicationObj.frontendStatus ?? dataObj?.frontendStatus,
+  );
+  const backendStatus = asStringLike(applicationObj.status ?? o.status ?? dataObj?.status);
+  const status = resolveDcaStatus(frontendStatus ?? backendStatus);
+
+  const consentCndp =
+    asBooleanLike(
+      dcaDeclarationObj?.consentCndp ??
+        asObject(applicationObj.dcaDeclaration)?.consentCndp ??
+        applicationObj.cndpConsentChecked ??
+        farmerObj?.cndpConsent,
+    ) ?? null;
+
+  const consentCndpAt =
+    asStringLike(
+      applicationObj.cndpConsentTimestamp ??
+        farmerObj?.cndpConsentAt ??
+        asObject(applicationObj.farmer)?.cndpConsentAt,
+    ) ?? null;
+
+  const preferredLanguage =
+    asStringLike(
+      dcaDeclarationObj?.preferredLanguage ??
+        asObject(applicationObj.dcaDeclaration)?.preferredLanguage ??
+        rawDeclarationObj?.preferredLanguage,
+    ) ?? null;
+
+  const periodYears =
+    asNumber(dcaDeclarationObj?.periodYears) ??
+    asNumber(asObject(applicationObj.dcaDeclaration)?.periodYears) ??
+    null;
+  const noClaimsDeclared =
+    asBooleanLike(
+      dcaDeclarationObj?.noClaimsDeclared ??
+        asObject(applicationObj.dcaDeclaration)?.noClaimsDeclared,
+    ) ?? null;
+
+  return {
+    id,
+    reference: asStringLike(applicationObj.reference ?? applicationObj.dcaNumber) ?? null,
+    dcaNumber: asStringLike(applicationObj.dcaNumber ?? applicationObj.reference) ?? null,
+    status,
+    backendStatus,
+    source,
+    declarativeSource,
+    sourceOfTruth: asStringLike(dcaDeclarationObj?.sourceOfTruth) ?? null,
+    legacyAuditFallbackUsed:
+      asBooleanLike(dcaDeclarationObj?.legacyAuditFallbackUsed) ?? null,
+    submittedAt:
+      asStringLike(applicationObj.submittedAt ?? applicationObj.createdAt) ?? null,
+    createdAt: asStringLike(applicationObj.createdAt ?? o.createdAt) ?? null,
+    periodYears,
+    noClaimsDeclared,
+    applicationCountry: asStringLike(applicationObj.country) ?? null,
+    farmerCountry: asStringLike(farmerObj?.country) ?? null,
+    parcelleCountry: asStringLike(parcelleObj?.country) ?? null,
+    farmer: {
+      id: asStringLike(farmerObj?.id ?? farmerObj?.farmerId) ?? null,
+      firstName: asStringLike(farmerObj?.firstName) ?? null,
+      lastName: asStringLike(farmerObj?.lastName) ?? null,
+      phoneMasked:
+        asStringLike(farmerObj?.phoneMasked ?? farmerObj?.maskedPhone) ??
+        maskPhone(phoneRaw),
+      cinMasked:
+        asStringLike(farmerObj?.cinMasked ?? farmerObj?.nationalIdMasked) ??
+        maskCin(cinRaw),
+      preferredLanguage:
+        preferredLanguage ??
+        asStringLike(
+          farmerObj?.preferredLanguage ?? farmerObj?.language ?? farmerObj?.locale,
+        ) ??
+        null,
+      source: asSource(farmerObj?.source ?? source, source),
+    },
+    parcelle: {
+      id: asStringLike(parcelleObj?.id ?? parcelleObj?.parcelleId ?? parcelleObj?.parcelId) ?? null,
+      name: asStringLike(parcelleObj?.name ?? parcelleObj?.label) ?? null,
+      culture: asStringLike(parcelleObj?.culture ?? parcelleObj?.crop) ?? null,
+      superficie:
+        asNumber(parcelleObj?.superficie) ??
+        asNumber(parcelleObj?.surfaceHa) ??
+        asNumber(parcelleObj?.areaHa) ??
+        null,
+      declaredArea,
+      lat: asNumber(parcelleObj?.lat ?? applicationObj.lat ?? o.lat) ?? null,
+      lng: asNumber(parcelleObj?.lng ?? applicationObj.lng ?? o.lng) ?? null,
+      country: asStringLike(parcelleObj?.country) ?? null,
+      source: asSource(parcelleObj?.source ?? source, source),
+    },
+    crop:
+      asStringLike(applicationObj.crop ?? applicationObj.cropCode ?? applicationObj.cropType) ??
+      asStringLike(dcaDeclarationObj?.crop) ??
+      asStringLike(parcelleObj?.crop ?? parcelleObj?.culture) ??
+      null,
+    culture:
+      asStringLike(applicationObj.culture ?? applicationObj.cropType) ??
+      asStringLike(parcelleObj?.culture ?? parcelleObj?.crop) ??
+      null,
+    declaredArea,
+    consentCndp,
+    consentCndpAt,
+    consentCndpSource: asSource(
+      dcaDeclarationObj?.sourceLabel ??
+        applicationObj.cndpSource ??
+        applicationObj.consentCndpSource ??
+        source,
+      source,
+    ),
+    preparedDocuments,
+    claimHistory,
+    sideEffects,
   };
 }
 
