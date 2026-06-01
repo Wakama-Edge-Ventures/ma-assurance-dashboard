@@ -4,6 +4,8 @@ import { use, useEffect, useMemo, useState } from "react";
 
 import {
   ApiError,
+  createInsuranceMissionDispatchDraft,
+  CreateInsuranceMissionDispatchDraftResult,
   getInsuranceApplicationById,
   getInsuranceMissionConfig,
   getInsuranceMissionConfigVersions,
@@ -52,6 +54,7 @@ function hasWaitingReviewStatus(status: InsuranceDcaApplication["status"]) {
 }
 
 const NON_ACTIONABLE_RISK_REVIEW_STATUSES: InsuranceDcaApplication["status"][] = [
+  "MISSION_DISPATCH_DRAFT",
   "MISSION_SENT",
   "FIELD_AUDIT_COMPLETE",
   "RAX_SCORED",
@@ -66,6 +69,29 @@ const NON_ACTIONABLE_RISK_REVIEW_STATUSES: InsuranceDcaApplication["status"][] =
 const RISK_REVIEW_NOTE_MAX_LENGTH = 500;
 
 const MISSION_CONFIG_NOTE_MAX_LENGTH = 500;
+const MISSION_DISPATCH_NOTE_MAX_LENGTH = 1000;
+
+const MISSION_CONFIG_AND_DISPATCH_COMPATIBLE_STATUSES: InsuranceDcaApplication["status"][] = [
+  "READY_FOR_MISSION_CONFIG",
+  "MISSION_CONFIG_DRAFT",
+  "MISSION_CONFIGURED",
+  "MISSION_DISPATCH_DRAFT",
+];
+
+const MISSION_DISPATCH_LOCKED_STATUSES: InsuranceDcaApplication["status"][] = [
+  "MISSION_SENT",
+  "FIELD_AUDIT_COMPLETE",
+  "BACK_OFFICE_REVIEW",
+  "RAX_SCORED",
+  "OFFER_SENT",
+  "FARMER_ACCEPTED",
+  "CONTRACT_SIGNED",
+  "ACTIVE",
+  "CLAIM_OPEN",
+  "CLOSED",
+  "REJECTED",
+  "UNAVAILABLE",
+];
 
 const DEFAULT_MISSION_CONFIG: InsuranceMissionConfigPayload = {
   missionType: "FIELD_AUDIT_PREPARATION",
@@ -110,6 +136,12 @@ interface MissionConfigFormState {
   checkSurfaceTolerance: boolean;
   noteDirectionRisques: string;
   status: string;
+}
+
+interface MissionDispatchFormState {
+  scheduledWindowStart: string;
+  scheduledWindowEnd: string;
+  dispatchNote: string;
 }
 
 function toMissionConfigFormState(config: InsuranceMissionConfig | null): MissionConfigFormState {
@@ -161,6 +193,37 @@ function parseRequiredDocuments(value: string): string[] {
     .split(/[\n,]/g)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function toDateTimeLocalInputValue(value?: string | null): string {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  const hours = String(parsed.getHours()).padStart(2, "0");
+  const minutes = String(parsed.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function toIsoStringFromDateTimeLocal(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
+function toMissionDispatchFormState(
+  draft?: CreateInsuranceMissionDispatchDraftResult["missionDispatchDraft"] | null,
+): MissionDispatchFormState {
+  return {
+    scheduledWindowStart: toDateTimeLocalInputValue(draft?.scheduledWindowStart ?? null),
+    scheduledWindowEnd: toDateTimeLocalInputValue(draft?.scheduledWindowEnd ?? null),
+    dispatchNote: draft?.dispatchNote ?? "",
+  };
 }
 
 const RISK_REVIEW_REASONS: Record<InsuranceRiskReviewStatus, string> = {
@@ -248,6 +311,25 @@ function getMissionConfigSaveErrorMessage(error: unknown): string {
   return error.message || "Erreur API pendant l'enregistrement du brouillon.";
 }
 
+function getMissionDispatchMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Préparation du dispatch impossible.";
+  }
+  if (error.status === 400) {
+    return "Requête invalide (400) pour la préparation du dispatch.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) pour la préparation du dispatch.";
+  }
+  if (error.status === 404) {
+    return "Dossier DCA introuvable (404) pour la préparation du dispatch.";
+  }
+  return error.message || "Erreur API pendant la préparation du dispatch.";
+}
+
 function hasForbiddenSideEffects(
   sideEffects: {
     missionCreated: boolean;
@@ -271,6 +353,22 @@ function hasForbiddenSideEffects(
 function hasMissionConfigForbiddenSideEffects(sideEffects: InsuranceMissionConfigSideEffects): boolean {
   return (
     sideEffects.missionCreated ||
+    sideEffects.missionSent ||
+    sideEffects.fieldAuditCreated ||
+    sideEffects.raxCalculated ||
+    sideEffects.pricingCalculated ||
+    sideEffects.policyCreated ||
+    sideEffects.claimCreated ||
+    sideEffects.evidenceBundleCreated ||
+    sideEffects.blockchainAnchored
+  );
+}
+
+function hasMissionDispatchForbiddenSideEffects(
+  sideEffects: CreateInsuranceMissionDispatchDraftResult["sideEffects"],
+): boolean {
+  return (
+    (sideEffects.missionCreated ?? false) ||
     sideEffects.missionSent ||
     sideEffects.fieldAuditCreated ||
     sideEffects.raxCalculated ||
@@ -310,6 +408,16 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
   );
   const [missionConfigForm, setMissionConfigForm] = useState<MissionConfigFormState>(
     toMissionConfigFormState(null),
+  );
+  const [missionDispatchSaving, setMissionDispatchSaving] = useState(false);
+  const [missionDispatchFeedback, setMissionDispatchFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [missionDispatchSideEffects, setMissionDispatchSideEffects] =
+    useState<CreateInsuranceMissionDispatchDraftResult["sideEffects"] | null>(null);
+  const [missionDispatchForm, setMissionDispatchForm] = useState<MissionDispatchFormState>(
+    toMissionDispatchFormState(null),
   );
 
   useEffect(() => {
@@ -478,8 +586,81 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
   }
 
+  async function handleMissionDispatchDraftPrepare() {
+    if (missionDispatchSaving || missionConfigLoading) return;
+
+    const missionConfigId = missionConfig?.id?.trim() ?? "";
+    if (!missionConfigId) {
+      setMissionDispatchFeedback({
+        type: "error",
+        message: "Configuration mission requise avant préparation du dispatch.",
+      });
+      return;
+    }
+
+    const scheduledWindowStartIso = toIsoStringFromDateTimeLocal(missionDispatchForm.scheduledWindowStart);
+    const scheduledWindowEndIso = toIsoStringFromDateTimeLocal(missionDispatchForm.scheduledWindowEnd);
+
+    if (scheduledWindowStartIso && scheduledWindowEndIso) {
+      const startDate = new Date(scheduledWindowStartIso);
+      const endDate = new Date(scheduledWindowEndIso);
+      if (endDate.getTime() <= startDate.getTime()) {
+        setMissionDispatchFeedback({
+          type: "error",
+          message: "La fenêtre de fin doit être postérieure au début.",
+        });
+        return;
+      }
+    }
+
+    setMissionDispatchSaving(true);
+    setMissionDispatchFeedback(null);
+
+    try {
+      const response = await createInsuranceMissionDispatchDraft(applicationId, {
+        missionConfigId,
+        dispatchMode: "DRAFT_ONLY",
+        scheduledWindowStart: scheduledWindowStartIso,
+        scheduledWindowEnd: scheduledWindowEndIso,
+        dispatchNote: missionDispatchForm.dispatchNote.trim() || undefined,
+      });
+
+      setMissionDispatchForm(toMissionDispatchFormState(response.missionDispatchDraft));
+      setMissionDispatchSideEffects(response.sideEffects);
+      await refreshApplicationAfterMutation();
+
+      if (hasMissionDispatchForbiddenSideEffects(response.sideEffects)) {
+        setMissionDispatchFeedback({
+          type: "critical",
+          message:
+            "ALERTE — Un effet secondaire interdit a été détecté. Vérifier immédiatement le backend.",
+        });
+        return;
+      }
+
+      setMissionDispatchFeedback({
+        type: "success",
+        message: "Dispatch mission préparé",
+      });
+    } catch (mutationError) {
+      setMissionDispatchFeedback({
+        type: "error",
+        message: getMissionDispatchMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setMissionDispatchSaving(false);
+    }
+  }
+
   const application = result?.application ?? null;
-  const showMissionConfigSection = application?.status === "READY_FOR_MISSION_CONFIG";
+  const showMissionConfigSection = application
+    ? MISSION_CONFIG_AND_DISPATCH_COMPATIBLE_STATUSES.includes(application.status)
+    : false;
+  const showMissionDispatchSection = showMissionConfigSection;
+  const missionConfigId = missionConfig?.id?.trim() ?? "";
+  const missionDispatchLockedByStatus = application
+    ? MISSION_DISPATCH_LOCKED_STATUSES.includes(application.status)
+    : true;
 
   useEffect(() => {
     let mounted = true;
@@ -493,6 +674,10 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       setMissionConfigLatestVersion(null);
       setMissionConfigSideEffects(DEFAULT_MISSION_CONFIG_SIDE_EFFECTS);
       setMissionConfigForm(toMissionConfigFormState(null));
+      setMissionDispatchSaving(false);
+      setMissionDispatchFeedback(null);
+      setMissionDispatchSideEffects(null);
+      setMissionDispatchForm(toMissionDispatchFormState(null));
       return () => {
         mounted = false;
       };
@@ -1092,6 +1277,149 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           </p>
           <p className="text-xs text-brand-textMuted">
             Wakama prépare et documente. L’assureur décide.
+          </p>
+        </Card>
+      ) : null}
+
+      {showMissionDispatchSection ? (
+        <Card className="space-y-4">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
+            Préparation dispatch mission
+          </h2>
+
+          <p className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+            Préparation opérationnelle uniquement — mission non envoyée
+          </p>
+
+          <div className="grid gap-2 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-sm text-slate-300 md:grid-cols-2">
+            <p>Configuration mission liée: {missionConfigId || "Non disponible"}</p>
+            <p>Statut configuration: {missionConfig?.status || "Non disponible"}</p>
+            <p>
+              Version mission config:{" "}
+              {missionConfig?.version ?? missionConfigLatestVersion ?? "Non disponible"}
+            </p>
+            <p>Source API: POST /v1/insurance/applications/:id/mission-dispatch-draft</p>
+          </div>
+
+          {!missionConfigId ? (
+            <p className="rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
+              Configuration mission requise avant préparation du dispatch.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="space-y-1 text-sm text-slate-300">
+                  <span>Fenêtre souhaitée début</span>
+                  <input
+                    type="datetime-local"
+                    value={missionDispatchForm.scheduledWindowStart}
+                    onChange={(event) =>
+                      setMissionDispatchForm((prev) => ({
+                        ...prev,
+                        scheduledWindowStart: event.target.value,
+                      }))
+                    }
+                    disabled={missionDispatchSaving || missionDispatchLockedByStatus}
+                    className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+                  />
+                </label>
+
+                <label className="space-y-1 text-sm text-slate-300">
+                  <span>Fenêtre souhaitée fin</span>
+                  <input
+                    type="datetime-local"
+                    value={missionDispatchForm.scheduledWindowEnd}
+                    onChange={(event) =>
+                      setMissionDispatchForm((prev) => ({
+                        ...prev,
+                        scheduledWindowEnd: event.target.value,
+                      }))
+                    }
+                    disabled={missionDispatchSaving || missionDispatchLockedByStatus}
+                    className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+                  />
+                </label>
+              </div>
+
+              <label className="space-y-1 text-sm text-slate-300">
+                <span>Note dispatch</span>
+                <textarea
+                  value={missionDispatchForm.dispatchNote}
+                  onChange={(event) =>
+                    setMissionDispatchForm((prev) => ({
+                      ...prev,
+                      dispatchNote: event.target.value.slice(0, MISSION_DISPATCH_NOTE_MAX_LENGTH),
+                    }))
+                  }
+                  maxLength={MISSION_DISPATCH_NOTE_MAX_LENGTH}
+                  disabled={missionDispatchSaving || missionDispatchLockedByStatus}
+                  className="min-h-24 w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+                />
+                <p className="text-[11px] text-slate-500">
+                  {missionDispatchForm.dispatchNote.length}/{MISSION_DISPATCH_NOTE_MAX_LENGTH}
+                </p>
+              </label>
+
+              <label className="space-y-1 text-sm text-slate-300">
+                <span>Agent suggéré</span>
+                <input
+                  type="text"
+                  value="Agent App non activée dans cette phase — aucun agent envoyé"
+                  disabled
+                  className="w-full rounded-lg border border-slate-600/50 bg-slate-900/50 px-3 py-2 text-xs text-slate-400"
+                />
+              </label>
+            </div>
+          )}
+
+          <div>
+            <button
+              type="button"
+              onClick={() => void handleMissionDispatchDraftPrepare()}
+              disabled={!missionConfigId || missionDispatchSaving || missionDispatchLockedByStatus}
+              className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-4 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+            >
+              {missionDispatchSaving ? "Préparation..." : "Préparer le dispatch"}
+            </button>
+          </div>
+
+          {missionDispatchFeedback ? (
+            <p
+              className={
+                missionDispatchFeedback.type === "success"
+                  ? "rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100"
+                  : missionDispatchFeedback.type === "critical"
+                    ? "rounded-xl border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-xs text-rose-100"
+                    : "rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-100"
+              }
+            >
+              {missionDispatchFeedback.message}
+            </p>
+          ) : null}
+
+          {missionDispatchSideEffects ? (
+            <div className="space-y-2 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300">
+              <p className="font-medium text-slate-200">sideEffects mission-dispatch-draft</p>
+              {missionDispatchSideEffects.missionCreated !== undefined ? (
+                <p>missionCreated: {String(missionDispatchSideEffects.missionCreated)}</p>
+              ) : null}
+              <p>missionSent: {String(missionDispatchSideEffects.missionSent)}</p>
+              <p>fieldAuditCreated: {String(missionDispatchSideEffects.fieldAuditCreated)}</p>
+              <p>raxCalculated: {String(missionDispatchSideEffects.raxCalculated)}</p>
+              <p>pricingCalculated: {String(missionDispatchSideEffects.pricingCalculated)}</p>
+              <p>policyCreated: {String(missionDispatchSideEffects.policyCreated)}</p>
+              <p>claimCreated: {String(missionDispatchSideEffects.claimCreated)}</p>
+              <p>evidenceBundleCreated: {String(missionDispatchSideEffects.evidenceBundleCreated)}</p>
+              <p>blockchainAnchored: {String(missionDispatchSideEffects.blockchainAnchored)}</p>
+            </div>
+          ) : null}
+
+          <p className="text-xs text-slate-400">
+            La mission n&apos;est pas encore envoyée à un agent. Cette étape prépare uniquement l&apos;organisation opérationnelle.
+            Aucun audit terrain n&apos;est lancé.
+          </p>
+          <p className="text-xs text-brand-textMuted">
+            Wakama prépare et documente. L&apos;assureur décide.
           </p>
         </Card>
       ) : null}

@@ -86,6 +86,7 @@ export interface InsuranceMissionConfigPayload {
 }
 
 export interface InsuranceMissionConfig {
+  id?: string | null;
   missionType: string;
   proofLevel: string;
   surfaceTolerancePercent: number;
@@ -100,6 +101,53 @@ export interface InsuranceMissionConfig {
   version: number | null;
   createdAt: string | null;
   updatedAt: string | null;
+}
+
+export interface CreateInsuranceMissionDispatchDraftPayload {
+  missionConfigId: string;
+  dispatchMode: "DRAFT_ONLY";
+  suggestedAgentId?: string | null;
+  scheduledWindowStart?: string | null;
+  scheduledWindowEnd?: string | null;
+  dispatchNote?: string | null;
+}
+
+export interface InsuranceMissionDispatchDraft {
+  id: string;
+  applicationId: string;
+  missionConfigId: string;
+  missionConfigVersion?: number | null;
+  dispatchMode: "DRAFT_ONLY";
+  suggestedAgentId?: string | null;
+  scheduledWindowStart?: string | null;
+  scheduledWindowEnd?: string | null;
+  dispatchNote?: string | null;
+  status: "MISSION_DISPATCH_DRAFT";
+  source: "LIVE";
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface InsuranceMissionDispatchDraftSideEffects {
+  missionCreated?: boolean;
+  missionSent: boolean;
+  fieldAuditCreated: boolean;
+  policyCreated: boolean;
+  claimCreated: boolean;
+  raxCalculated: boolean;
+  pricingCalculated: boolean;
+  evidenceBundleCreated: boolean;
+  blockchainAnchored: boolean;
+}
+
+export interface CreateInsuranceMissionDispatchDraftResult {
+  missionDispatchDraft: InsuranceMissionDispatchDraft;
+  application?: {
+    id: string;
+    status?: string;
+    frontendStatus?: string;
+  };
+  sideEffects: InsuranceMissionDispatchDraftSideEffects;
 }
 
 function toUrl(path: string) {
@@ -324,6 +372,10 @@ function mapMissionConfig(payload: unknown): InsuranceMissionConfig | null {
     "";
 
   return {
+    id:
+      readString(missionConfig, "id") ??
+      readString(missionConfig, "missionConfigId") ??
+      readString(missionConfig, "configId"),
     missionType: readString(missionConfig, "missionType") ?? "",
     proofLevel: readString(missionConfig, "proofLevel") ?? "",
     surfaceTolerancePercent: readNumberLike(missionConfig, "surfaceTolerancePercent") ?? 0,
@@ -345,6 +397,77 @@ function mapMissionConfig(payload: unknown): InsuranceMissionConfig | null {
     createdAt: readString(missionConfig, "createdAt"),
     updatedAt: readString(missionConfig, "updatedAt"),
   };
+}
+
+function emptyMissionDispatchDraftSideEffects(): InsuranceMissionDispatchDraftSideEffects {
+  return {
+    missionSent: false,
+    fieldAuditCreated: false,
+    policyCreated: false,
+    claimCreated: false,
+    raxCalculated: false,
+    pricingCalculated: false,
+    evidenceBundleCreated: false,
+    blockchainAnchored: false,
+  };
+}
+
+function hasMissionDispatchDraftSideEffects(value: unknown): boolean {
+  const record = asObject(value);
+  if (!record) return false;
+  const keys: Array<keyof InsuranceMissionDispatchDraftSideEffects> = [
+    "missionCreated",
+    "missionSent",
+    "fieldAuditCreated",
+    "policyCreated",
+    "claimCreated",
+    "raxCalculated",
+    "pricingCalculated",
+    "evidenceBundleCreated",
+    "blockchainAnchored",
+  ];
+  return keys.some((key) => typeof record[key] === "boolean");
+}
+
+function mapMissionDispatchDraftSideEffects(value: unknown): InsuranceMissionDispatchDraftSideEffects {
+  const missionCreated = readBooleanLike(value, "missionCreated");
+  return {
+    missionCreated: missionCreated === null ? undefined : missionCreated,
+    missionSent: readBooleanLike(value, "missionSent") ?? false,
+    fieldAuditCreated: readBooleanLike(value, "fieldAuditCreated") ?? false,
+    policyCreated: readBooleanLike(value, "policyCreated") ?? false,
+    claimCreated: readBooleanLike(value, "claimCreated") ?? false,
+    raxCalculated: readBooleanLike(value, "raxCalculated") ?? false,
+    pricingCalculated: readBooleanLike(value, "pricingCalculated") ?? false,
+    evidenceBundleCreated: readBooleanLike(value, "evidenceBundleCreated") ?? false,
+    blockchainAnchored: readBooleanLike(value, "blockchainAnchored") ?? false,
+  };
+}
+
+function extractMissionDispatchDraftRecord(payload: unknown): Record<string, unknown> | null {
+  const root = asObject(payload);
+  if (!root) return null;
+
+  const data = asObject(root.data);
+  const candidates = [
+    asObject(root.missionDispatchDraft),
+    asObject(data?.missionDispatchDraft),
+    asObject(root.dispatchDraft),
+    asObject(data?.dispatchDraft),
+    asObject(root.data),
+    root,
+  ];
+
+  return (
+    candidates.find((candidate) =>
+      Boolean(
+        candidate &&
+          (candidate.id !== undefined ||
+            candidate.applicationId !== undefined ||
+            candidate.missionConfigId !== undefined),
+      ),
+    ) ?? null
+  );
 }
 
 function extractRiskReviewSideEffects(
@@ -641,6 +764,102 @@ export async function saveInsuranceMissionConfig(
     },
   );
   return mapMissionConfig(response);
+}
+
+export async function createInsuranceMissionDispatchDraft(
+  applicationId: string,
+  payload: CreateInsuranceMissionDispatchDraftPayload,
+): Promise<CreateInsuranceMissionDispatchDraftResult> {
+  const safeId = encodeURIComponent(applicationId);
+  const missionConfigId = payload.missionConfigId.trim();
+  if (!missionConfigId) {
+    throw new ApiError(400, "missionConfigId est requis.");
+  }
+
+  const body: Record<string, unknown> = {
+    missionConfigId,
+    dispatchMode: "DRAFT_ONLY",
+  };
+
+  if (payload.suggestedAgentId !== undefined) {
+    body.suggestedAgentId = payload.suggestedAgentId;
+  }
+  if (payload.scheduledWindowStart !== undefined) {
+    body.scheduledWindowStart = payload.scheduledWindowStart;
+  }
+  if (payload.scheduledWindowEnd !== undefined) {
+    body.scheduledWindowEnd = payload.scheduledWindowEnd;
+  }
+  if (payload.dispatchNote !== undefined) {
+    body.dispatchNote = payload.dispatchNote;
+  }
+
+  const response = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/mission-dispatch-draft`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  const root = asObject(response);
+  const data = asObject(root?.data);
+  const draftRecord = extractMissionDispatchDraftRecord(response);
+
+  if (!draftRecord) {
+    throw new ApiError(
+      502,
+      "Réponse backend invalide: missionDispatchDraft manquant.",
+      response,
+    );
+  }
+
+  const missionDispatchDraft: InsuranceMissionDispatchDraft = {
+    id: readString(draftRecord, "id") ?? "",
+    applicationId: readString(draftRecord, "applicationId") ?? applicationId,
+    missionConfigId: readString(draftRecord, "missionConfigId") ?? missionConfigId,
+    missionConfigVersion: readNumberLike(draftRecord, "missionConfigVersion"),
+    dispatchMode: "DRAFT_ONLY",
+    suggestedAgentId: readString(draftRecord, "suggestedAgentId"),
+    scheduledWindowStart: readString(draftRecord, "scheduledWindowStart"),
+    scheduledWindowEnd: readString(draftRecord, "scheduledWindowEnd"),
+    dispatchNote: readString(draftRecord, "dispatchNote"),
+    status: "MISSION_DISPATCH_DRAFT",
+    source: "LIVE",
+    createdAt: readString(draftRecord, "createdAt") ?? undefined,
+    updatedAt: readString(draftRecord, "updatedAt") ?? undefined,
+  };
+
+  const sideEffectsCandidates = [
+    root?.sideEffects,
+    data?.sideEffects,
+    draftRecord.sideEffects,
+  ];
+  const sideEffectsSource = sideEffectsCandidates.find((item) =>
+    hasMissionDispatchDraftSideEffects(item),
+  );
+  const sideEffects = sideEffectsSource
+    ? mapMissionDispatchDraftSideEffects(sideEffectsSource)
+    : emptyMissionDispatchDraftSideEffects();
+
+  const rawApplication = asObject(root?.application) ?? asObject(data?.application);
+  const application =
+    rawApplication && readString(rawApplication, "id")
+      ? {
+          id: readString(rawApplication, "id") as string,
+          status: readString(rawApplication, "status") ?? undefined,
+          frontendStatus: readString(rawApplication, "frontendStatus") ?? undefined,
+        }
+      : undefined;
+
+  return {
+    missionDispatchDraft,
+    application,
+    sideEffects,
+  };
 }
 
 export async function getInsuranceMissionConfigVersions(
