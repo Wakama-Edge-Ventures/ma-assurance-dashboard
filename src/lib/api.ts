@@ -318,6 +318,7 @@ function mapMissionConfig(payload: unknown): InsuranceMissionConfig | null {
 
   const noteDirectionRisques =
     readString(missionConfig, "noteDirectionRisques") ??
+    readString(missionConfig, "riskDirectorNote") ??
     readString(missionConfig, "riskReviewNote") ??
     readString(missionConfig, "note") ??
     "";
@@ -652,6 +653,35 @@ export async function getInsuranceMissionConfigVersions(
 
   const items = extractArrayFromApiResponse(payload, ["versions", "items", "data"]);
   return items
-    .map((item) => mapMissionConfig(item))
+    .map((item) => {
+      const mapped = mapMissionConfig(item);
+      if (mapped) return mapped;
+
+      const raw = asObject(item);
+      const version = readNumberLike(raw, "version");
+      if (version === null) return null;
+
+      return {
+        missionType: "",
+        proofLevel: "",
+        surfaceTolerancePercent: 0,
+        requiresPolygonCheck: false,
+        requiresCinCheck: false,
+        requiresLandDocumentCheck: false,
+        requiredDocuments: [],
+        requiredChecks: {
+          polygon: false,
+          identity: false,
+          landDocument: false,
+          surfaceTolerance: false,
+        },
+        noteDirectionRisques: "",
+        status: "",
+        sideEffects: emptyMissionConfigSideEffects(),
+        version,
+        createdAt: readString(raw, "createdAt"),
+        updatedAt: readString(raw, "updatedAt"),
+      } satisfies InsuranceMissionConfig;
+    })
     .filter((item): item is InsuranceMissionConfig => item !== null);
 }

@@ -824,7 +824,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
             {missionConfig ? (
               <p>
-                Draft existant charge
+                Draft existant chargé
                 {missionConfig.version !== null ? ` (version ${missionConfig.version})` : ""}.
               </p>
             ) : (
@@ -832,7 +832,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             )}
             <p>Versions disponibles: {missionConfigVersionsCount}</p>
             <p>
-              Derniere version connue:{" "}
+              Dernière version connue:{" "}
               {missionConfigLatestVersion === null ? "Non disponible" : missionConfigLatestVersion}
             </p>
             <p>Source API: GET/POST /v1/insurance/applications/:id/mission-config</p>
@@ -882,7 +882,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             </label>
 
             <label className="space-y-1 text-sm text-slate-300">
-              <span>Tolerance surface %</span>
+              <span>Tolérance surface %</span>
               <input
                 type="number"
                 min={0}
@@ -926,7 +926,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
                 }
                 disabled={missionConfigSaving || missionConfigLoading}
               />
-              Verification polygone
+              Vérification polygone
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -940,7 +940,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
                 }
                 disabled={missionConfigSaving || missionConfigLoading}
               />
-              Verification CIN
+              Vérification CIN
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -954,7 +954,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
                 }
                 disabled={missionConfigSaving || missionConfigLoading}
               />
-              Verification document foncier
+              Vérification document foncier
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -968,7 +968,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
                 }
                 disabled={missionConfigSaving || missionConfigLoading}
               />
-              Controle tolerance surface
+              Contrôle tolérance surface
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -1015,7 +1015,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           </div>
 
           <label className="space-y-1 text-sm text-slate-300">
-            <span>Documents requis (separes par virgule ou ligne)</span>
+            <span>Documents requis (séparés par virgule ou ligne)</span>
             <textarea
               value={missionConfigForm.requiredDocumentsText}
               onChange={(event) =>
@@ -1088,7 +1088,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
 
           <p className="text-xs text-slate-400">
             Aucun envoi mission, aucune assignation agent, aucun field audit, aucun RAX, aucun pricing, aucune police,
-            aucun sinistre, aucune evidence et aucun ancrage blockchain depuis cet ecran.
+            aucun sinistre, aucune evidence et aucun ancrage blockchain depuis cet écran.
           </p>
           <p className="text-xs text-brand-textMuted">
             Wakama prépare et documente. L’assureur décide.
