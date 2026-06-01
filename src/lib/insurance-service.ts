@@ -60,6 +60,7 @@ const USE_LIVE_INSURANCE_API =
 const DEBUG_API_SHAPES = process.env.NEXT_PUBLIC_DEBUG_API_SHAPES === "true";
 const PAGINATION_PAGE_SIZE = 100;
 const MAX_PAGINATION_PAGES = 20;
+const SENSITIVE_LOG_KEY = /(token|authorization|secret|password|cin|phone|rib|polygon|polygone|document|dca|payload|lat|lng|gps)/i;
 
 interface DashboardOverview {
   applications: InsuranceApplication[];
@@ -101,7 +102,13 @@ export interface SharedWakamaDataOverview {
 }
 
 function warnFallback(endpoint: string, error: unknown) {
-  console.warn("[Wakama API fallback]", endpoint, error);
+  const details =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "unknown error";
+  console.warn("[Wakama API fallback]", endpoint, details);
 }
 
 function getRootKeys(value: unknown): string[] {
@@ -138,8 +145,18 @@ function getFirstItemKeys(list: unknown[]): string[] {
   return Object.keys(first as Record<string, unknown>);
 }
 
+function sanitizeLogKeys(keys: string[]): string[] {
+  return keys.map((key) => (SENSITIVE_LOG_KEY.test(key) ? "[redacted]" : key));
+}
+
 function warnShape(endpoint: string, payload: unknown) {
-  console.warn("[Wakama API shape]", endpoint, "root keys:", getRootKeys(payload));
+  if (!DEBUG_API_SHAPES) return;
+  console.warn(
+    "[Wakama API shape]",
+    endpoint,
+    "root keys:",
+    sanitizeLogKeys(getRootKeys(payload)),
+  );
 }
 
 function warnMappedEmpty(
@@ -148,8 +165,9 @@ function warnMappedEmpty(
   mapperName: string,
   firstItemKeys: string[],
 ) {
+  if (!DEBUG_API_SHAPES) return;
   console.warn(
-    `[Wakama API fallback] ${endpoint} mapped 0/${rawLength} with ${mapperName}. First item keys: ${JSON.stringify(firstItemKeys)}`,
+    `[Wakama API fallback] ${endpoint} mapped 0/${rawLength} with ${mapperName}. First item keys: ${JSON.stringify(sanitizeLogKeys(firstItemKeys))}`,
   );
 }
 
@@ -159,11 +177,11 @@ function debugApiShape(endpoint: string, payload: unknown, rawList: unknown[]) {
     "[Wakama API debug]",
     endpoint,
     "root keys:",
-    getRootKeys(payload),
+    sanitizeLogKeys(getRootKeys(payload)),
     "array length:",
     rawList.length,
     "first item keys:",
-    getFirstItemKeys(rawList),
+    sanitizeLogKeys(getFirstItemKeys(rawList)),
   );
 }
 
