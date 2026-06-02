@@ -165,7 +165,7 @@ export interface InsuranceMission {
 export interface InsuranceFieldAudit {
   id: string;
   applicationId: string;
-  missionId?: string;
+  missionId?: string | null;
   farmerId: string;
   declaredAreaHa: number;
   measuredAreaHa: number;
@@ -184,6 +184,15 @@ export interface InsuranceFieldAudit {
   anomalyDetected: boolean;
   notes: string;
   source: DataSource;
+  // Phase 33A fields — back-office field audit review
+  missionDispatchId?: string | null;
+  missionConfigId?: string | null;
+  agentUserId?: string | null;
+  measuredSurfaceHa?: number | null;
+  measuredPolygonGeojson?: string | null;
+  hashStatus?: string | null;
+  fieldAuditStatus?: string | null;
+  syncedAt?: string | null;
 }
 
 export interface RaxEvaluation {

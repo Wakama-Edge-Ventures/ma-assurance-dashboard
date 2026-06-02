@@ -3,7 +3,7 @@ import {
   extractArrayFromApiResponse,
   mapInsuranceDcaApplication,
 } from "@/lib/dto-mappers";
-import { InsuranceDcaApplication, InsuranceDcaSideEffects } from "@/types";
+import { InsuranceDcaApplication, InsuranceDcaSideEffects, InsuranceFieldAudit } from "@/types";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.wakama.farm";
@@ -626,8 +626,45 @@ export async function getInsuranceApplications(): Promise<unknown> {
 
 export interface InsuranceApplicationByIdResult {
   application: InsuranceDcaApplication | null;
+  latestFieldAudit?: InsuranceFieldAudit | null;
   detailNote?: string;
   usedListFallback: boolean;
+}
+
+function mapLatestFieldAudit(raw: unknown): InsuranceFieldAudit | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.id !== "string" || typeof r.applicationId !== "string") return null;
+  return {
+    // Phase 33A fields
+    id: r.id,
+    applicationId: r.applicationId,
+    missionId: typeof r.missionId === "string" ? r.missionId : null,
+    missionDispatchId: typeof r.missionDispatchId === "string" ? r.missionDispatchId : null,
+    missionConfigId: typeof r.missionConfigId === "string" ? r.missionConfigId : null,
+    agentUserId: typeof r.agentUserId === "string" ? r.agentUserId : null,
+    measuredSurfaceHa: typeof r.measuredSurfaceHa === "number" ? r.measuredSurfaceHa : null,
+    measuredPolygonGeojson: typeof r.measuredPolygonGeojson === "string" ? r.measuredPolygonGeojson : null,
+    hashStatus: typeof r.hashStatus === "string" ? r.hashStatus : "PENDING",
+    fieldAuditStatus: typeof r.fieldAuditStatus === "string" ? r.fieldAuditStatus : null,
+    source: (typeof r.source === "string" ? r.source : "UNAVAILABLE") as InsuranceFieldAudit["source"],
+    syncedAt: typeof r.syncedAt === "string" ? r.syncedAt : null,
+    createdAt: typeof r.createdAt === "string" ? r.createdAt : new Date().toISOString(),
+    // Legacy required fields — defaulted for Phase 33A records that lack them
+    farmerId: typeof r.farmerId === "string" ? r.farmerId : "",
+    declaredAreaHa: typeof r.declaredAreaHa === "number" ? r.declaredAreaHa : 0,
+    measuredAreaHa: typeof r.measuredAreaHa === "number" ? r.measuredAreaHa : 0,
+    areaDeltaPercent: typeof r.areaDeltaPercent === "number" ? r.areaDeltaPercent : 0,
+    assetsApprovedCount: typeof r.assetsApprovedCount === "number" ? r.assetsApprovedCount : 0,
+    assetsRejectedCount: typeof r.assetsRejectedCount === "number" ? r.assetsRejectedCount : 0,
+    integrityHash: typeof r.integrityHash === "string" ? r.integrityHash : "",
+    auditMode: (typeof r.auditMode === "string" ? r.auditMode : "NATIVE_AGENT") as InsuranceFieldAudit["auditMode"],
+    status: (typeof r.status === "string" ? r.status : "DRAFT") as InsuranceFieldAudit["status"],
+    vegetationScore: typeof r.vegetationScore === "number" ? r.vegetationScore : 0,
+    irrigationType: (typeof r.irrigationType === "string" ? r.irrigationType : "PLUVIAL") as InsuranceFieldAudit["irrigationType"],
+    anomalyDetected: typeof r.anomalyDetected === "boolean" ? r.anomalyDetected : false,
+    notes: typeof r.notes === "string" ? r.notes : "",
+  };
 }
 
 function mapApplicationDetailPayload(payload: unknown): InsuranceDcaApplication | null {
@@ -663,8 +700,14 @@ export async function getInsuranceApplicationById(
     const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}`);
     const mapped = mapApplicationDetailPayload(payload);
     if (mapped) {
+      const rawRoot =
+        payload && typeof payload === "object" && !Array.isArray(payload)
+          ? (payload as Record<string, unknown>)
+          : null;
+      const latestFieldAudit = rawRoot ? mapLatestFieldAudit(rawRoot.latestFieldAudit) : null;
       return {
         application: mapped,
+        latestFieldAudit,
         usedListFallback: false,
       };
     }

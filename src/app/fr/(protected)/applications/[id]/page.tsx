@@ -22,6 +22,7 @@ import {
   sendInsuranceMissionDispatch,
   updateInsuranceApplicationStatus,
 } from "@/lib/api";
+import { InsuranceFieldAudit } from "@/types";
 import {
   formatBooleanFr,
   formatDcaStatusFr,
@@ -52,6 +53,46 @@ function formatDate(value?: string | null) {
 function asMad(value?: number | null) {
   if (value === null || value === undefined) return "Non disponible";
   return `${value.toLocaleString("fr-FR")} MAD`;
+}
+
+function formatFieldAuditStatusFr(status: string | null | undefined): string {
+  switch (status) {
+    case "FIELD_AUDIT_NOT_STARTED": return "Non démarré";
+    case "FIELD_AUDIT_IN_PROGRESS": return "En cours";
+    case "FIELD_AUDIT_SUBMITTED": return "Soumis par agent";
+    case "FIELD_AUDIT_SECURITY_HOLD": return "Blocage sécurité";
+    case "FIELD_AUDIT_ACCEPTED_FOR_REVIEW": return "Accepté pour revue";
+    case "READY_FOR_BACK_OFFICE_REVIEW": return "Prêt pour revue back-office";
+    default: return status ?? "Non disponible";
+  }
+}
+
+function formatHashStatusFr(status: string | null | undefined): string {
+  switch (status) {
+    case "PENDING": return "Vérification en attente";
+    case "SERVER_VALIDATED": return "Hash serveur validé";
+    case "NEEDS_REVIEW": return "Revue nécessaire";
+    case "SECURITY_HOLD": return "Blocage sécurité — hash non validé";
+    default: return status ?? "Non disponible";
+  }
+}
+
+function formatFieldAuditSourceFr(source: string | null | undefined): string {
+  switch (source) {
+    case "AGENT_APP": return "App agent terrain";
+    case "LIVE": return "LIVE";
+    case "MANUAL_ESTIMATE": return "Estimation manuelle";
+    case "SEED_DEMO": return "Démo seedée";
+    case "DEGRADED": return "Dégradé";
+    case "UNAVAILABLE": return "Non disponible";
+    default: return source ?? "Non disponible";
+  }
+}
+
+function maskAgentUserId(id: string | null | undefined): string {
+  if (!id) return "Non disponible";
+  if (id.length <= 8) return `AGT-****`;
+  return `AGT-${id.slice(0, 4).toUpperCase()}…${id.slice(-4).toUpperCase()}`;
 }
 
 function hasWaitingReviewStatus(status: InsuranceDcaApplication["status"]) {
@@ -706,6 +747,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
   }
 
   const application = result?.application ?? null;
+  const latestFieldAudit: InsuranceFieldAudit | null = result?.latestFieldAudit ?? null;
   const showMissionConfigSection = application
     ? MISSION_CONFIG_AND_DISPATCH_COMPATIBLE_STATUSES.includes(application.status)
     : false;
@@ -1045,6 +1087,134 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         {application.sideEffects.sourceNote ? (
           <p className="text-xs text-slate-500">Source des effets secondaires: fallback frontend</p>
         ) : null}
+      </Card>
+
+      <Card className="space-y-4">
+        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
+          Revue back-office audit terrain
+        </h2>
+
+        {latestFieldAudit ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              {latestFieldAudit.hashStatus === "SERVER_VALIDATED" ? (
+                <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-100">
+                  Hash validé
+                </span>
+              ) : latestFieldAudit.hashStatus === "SECURITY_HOLD" ? (
+                <span className="rounded-full border border-rose-400/35 bg-rose-500/10 px-2.5 py-0.5 text-[11px] text-rose-200">
+                  Blocage sécurité
+                </span>
+              ) : (
+                <span className="rounded-full border border-slate-400/30 bg-slate-800/60 px-2.5 py-0.5 text-[11px] text-slate-300">
+                  Hash: {latestFieldAudit.hashStatus}
+                </span>
+              )}
+              {(latestFieldAudit.fieldAuditStatus === "FIELD_AUDIT_SECURITY_HOLD" ||
+                latestFieldAudit.hashStatus === "SECURITY_HOLD") && (
+                <span className="rounded-full border border-amber-400/35 bg-amber-500/10 px-2.5 py-0.5 text-[11px] text-amber-200">
+                  Attention requise
+                </span>
+              )}
+            </div>
+
+            {latestFieldAudit.hashStatus === "SECURITY_HOLD" && (
+              <p className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                Blocage sécurité détecté — hash payload non validé par le serveur. Revue manuelle requise avant toute suite.
+              </p>
+            )}
+
+            <div className="grid gap-2 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[13px] text-slate-300 md:grid-cols-2">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">ID audit terrain</p>
+                <p className="font-mono text-xs text-slate-200">{latestFieldAudit.id}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Statut audit</p>
+                <p>{formatFieldAuditStatusFr(latestFieldAudit.fieldAuditStatus)}</p>
+                <p className="text-[11px] text-slate-500">Code: {latestFieldAudit.fieldAuditStatus ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Statut hash</p>
+                <p className={
+                  latestFieldAudit.hashStatus === "SERVER_VALIDATED"
+                    ? "text-emerald-200"
+                    : latestFieldAudit.hashStatus === "SECURITY_HOLD"
+                      ? "text-rose-200"
+                      : "text-slate-300"
+                }>
+                  {formatHashStatusFr(latestFieldAudit.hashStatus)}
+                </p>
+                <p className="text-[11px] text-slate-500">Code: {latestFieldAudit.hashStatus}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Source</p>
+                <p>{formatFieldAuditSourceFr(latestFieldAudit.source)}</p>
+                <p className="text-[11px] text-slate-500">Code: {latestFieldAudit.source}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Agent</p>
+                <p className="font-mono text-xs">{maskAgentUserId(latestFieldAudit.agentUserId)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Surface mesurée</p>
+                <p>
+                  {latestFieldAudit.measuredSurfaceHa !== null && latestFieldAudit.measuredSurfaceHa !== undefined
+                    ? `${latestFieldAudit.measuredSurfaceHa.toLocaleString("fr-FR")} ha`
+                    : "Non disponible"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Polygone mesuré</p>
+                <p>{latestFieldAudit.measuredPolygonGeojson ? "Présent" : "Absent"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Synchronisé le</p>
+                <p>{formatDate(latestFieldAudit.syncedAt)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Créé le</p>
+                <p>{formatDate(latestFieldAudit.createdAt)}</p>
+              </div>
+            </div>
+
+            <div className="space-y-1 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300">
+              <p className="font-medium text-slate-200">sideEffects — revue back-office</p>
+              <p>fieldAuditCreated: <span className="text-emerald-300">true</span></p>
+              <p>raxCalculated: false</p>
+              <p>pricingCalculated: false</p>
+              <p>policyCreated: false</p>
+              <p>claimCreated: false</p>
+              <p>evidenceBundleCreated: false</p>
+              <p>blockchainAnchored: false</p>
+            </div>
+
+            <p className="rounded-xl border border-cyan-400/20 bg-cyan-500/8 px-3 py-2 text-xs text-cyan-100/90">
+              Aucun RAX déclenché par cette revue. Aucune police, sinistre, evidence bundle ou ancrage blockchain depuis cet écran.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="rounded-xl border border-slate-400/20 bg-slate-800/50 px-3 py-2 text-xs text-slate-300">
+              Audit terrain non disponible — aucun audit terrain soumis pour cette DCA.
+            </p>
+
+            <div className="space-y-1 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300">
+              <p className="font-medium text-slate-200">sideEffects — revue back-office</p>
+              <p>fieldAuditCreated: false</p>
+              <p>raxCalculated: false</p>
+              <p>pricingCalculated: false</p>
+              <p>policyCreated: false</p>
+              <p>claimCreated: false</p>
+              <p>evidenceBundleCreated: false</p>
+              <p>blockchainAnchored: false</p>
+            </div>
+          </>
+        )}
+
+        <p className="text-xs text-brand-textMuted">
+          Wakama prépare et documente. L&apos;assureur reste décisionnaire.
+        </p>
       </Card>
 
       {showMissionConfigSection ? (
