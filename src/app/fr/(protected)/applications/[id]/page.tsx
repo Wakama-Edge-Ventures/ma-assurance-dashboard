@@ -3,6 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 
 import {
+  acceptInsuranceFieldAuditForReview,
   ApiError,
   assignInsuranceMissionDispatch,
   createInsuranceMissionDispatchDraft,
@@ -93,6 +94,35 @@ function maskAgentUserId(id: string | null | undefined): string {
   if (!id) return "Non disponible";
   if (id.length <= 8) return `AGT-****`;
   return `AGT-${id.slice(0, 4).toUpperCase()}…${id.slice(-4).toUpperCase()}`;
+}
+
+function SideEffectPill({ label, active }: { label: string; active: boolean }) {
+  return active ? (
+    <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-200">
+      {label}
+    </span>
+  ) : (
+    <span className="rounded-full border border-slate-400/20 bg-slate-800/50 px-2.5 py-0.5 text-[11px] text-slate-500">
+      {label}
+    </span>
+  );
+}
+
+function FieldAuditStatusBadge({ status }: { status: string | null | undefined }) {
+  if (!status) return null;
+  const variants: Record<string, string> = {
+    FIELD_AUDIT_SUBMITTED: "border-cyan-400/35 bg-cyan-500/10 text-cyan-100",
+    FIELD_AUDIT_ACCEPTED_FOR_REVIEW: "border-indigo-400/35 bg-indigo-500/10 text-indigo-100",
+    READY_FOR_BACK_OFFICE_REVIEW: "border-violet-400/35 bg-violet-500/10 text-violet-100",
+    FIELD_AUDIT_SECURITY_HOLD: "border-rose-400/35 bg-rose-500/10 text-rose-200",
+    FIELD_AUDIT_IN_PROGRESS: "border-amber-400/35 bg-amber-500/10 text-amber-200",
+  };
+  const cls = variants[status] ?? "border-slate-400/25 bg-slate-800/50 text-slate-300";
+  return (
+    <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${cls}`}>
+      {formatFieldAuditStatusFr(status)}
+    </span>
+  );
 }
 
 function hasWaitingReviewStatus(status: InsuranceDcaApplication["status"]) {
@@ -473,6 +503,11 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
   const [dispatchResult, setDispatchResult] = useState<MissionDispatchResult | null>(null);
   const [sendLoading, setSendLoading] = useState(false);
   const [sendFeedback, setSendFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [acceptAuditLoading, setAcceptAuditLoading] = useState(false);
+  const [acceptAuditFeedback, setAcceptAuditFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -743,6 +778,27 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       setSendFeedback({ type: "error", message: err instanceof Error ? err.message : "Erreur lors de l'envoi." });
     } finally {
       setSendLoading(false);
+    }
+  }
+
+  async function handleAcceptFieldAuditForReview() {
+    if (!latestFieldAudit || acceptAuditLoading) return;
+    setAcceptAuditLoading(true);
+    setAcceptAuditFeedback(null);
+    try {
+      await acceptInsuranceFieldAuditForReview(latestFieldAudit.id);
+      await refreshApplicationAfterMutation();
+      setAcceptAuditFeedback({
+        type: "success",
+        message: "Audit terrain accepté pour revue back-office. Aucun RAX ni tarification déclenchés.",
+      });
+    } catch (err) {
+      setAcceptAuditFeedback({
+        type: "error",
+        message: err instanceof ApiError ? err.message : "Erreur inattendue lors de l'acceptation.",
+      });
+    } finally {
+      setAcceptAuditLoading(false);
     }
   }
 
@@ -1062,103 +1118,92 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
 
       <Card className="space-y-3">
         <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">Effets secondaires backend</h2>
-        <div className="grid gap-2 text-[13px] text-slate-300 md:grid-cols-2">
-          <p>Mission: {application.sideEffects.missionCreated ? "Créée" : "Non créée"}</p>
-          <p>Police: {application.sideEffects.policyCreated ? "Créée" : "Non créée"}</p>
-          <p>Sinistre: {application.sideEffects.claimCreated ? "Créé" : "Non créé"}</p>
-          <p>RAX: {application.sideEffects.raxCalculated ? "Calculé" : "Non calculé"}</p>
-          <p>Tarification: {application.sideEffects.pricingCalculated ? "Calculée" : "Non calculée"}</p>
-          <p>Ancrage blockchain: {application.sideEffects.blockchainAnchored ? "Ancré" : "Non ancré"}</p>
+        <div className="flex flex-wrap gap-2">
+          <SideEffectPill label="Mission" active={application.sideEffects.missionCreated} />
+          <SideEffectPill label="Police" active={application.sideEffects.policyCreated} />
+          <SideEffectPill label="Sinistre" active={application.sideEffects.claimCreated} />
+          <SideEffectPill label="RAX" active={application.sideEffects.raxCalculated} />
+          <SideEffectPill label="Tarification" active={application.sideEffects.pricingCalculated} />
+          <SideEffectPill label="Blockchain" active={application.sideEffects.blockchainAnchored} />
         </div>
-        {application.sideEffects.missionCreated ||
-        application.sideEffects.policyCreated ||
-        application.sideEffects.claimCreated ||
-        application.sideEffects.raxCalculated ||
-        application.sideEffects.pricingCalculated ||
-        application.sideEffects.blockchainAnchored ? (
-          <p className="text-xs text-slate-400">État retourné par le backend &mdash; aucune action déclenchée par cet écran.</p>
-        ) : null}
         {application.sideEffects.sideEffectsSource ? (
           <p className="text-xs text-slate-500">
-            Source des effets secondaires:{" "}
-            {formatSideEffectsSourceFr(application.sideEffects.sideEffectsSource)}
+            Source:{" "}{formatSideEffectsSourceFr(application.sideEffects.sideEffectsSource)}
           </p>
         ) : null}
         {application.sideEffects.sourceNote ? (
-          <p className="text-xs text-slate-500">Source des effets secondaires: fallback frontend</p>
+          <p className="text-xs text-slate-500">Fallback frontend actif</p>
         ) : null}
       </Card>
 
       <Card className="space-y-4">
-        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
-          Revue back-office audit terrain
-        </h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
+              Revue back-office audit terrain
+            </h2>
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              Consultation des données d&apos;audit soumises par l&apos;agent terrain.
+            </p>
+          </div>
+          {latestFieldAudit && <FieldAuditStatusBadge status={latestFieldAudit.fieldAuditStatus} />}
+        </div>
 
         {latestFieldAudit ? (
           <>
+            {/* Hash status + security hold */}
             <div className="flex flex-wrap items-center gap-2">
               {latestFieldAudit.hashStatus === "SERVER_VALIDATED" ? (
-                <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-100">
-                  Hash validé
+                <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-100">
+                  Hash serveur validé
                 </span>
               ) : latestFieldAudit.hashStatus === "SECURITY_HOLD" ? (
-                <span className="rounded-full border border-rose-400/35 bg-rose-500/10 px-2.5 py-0.5 text-[11px] text-rose-200">
+                <span className="rounded-full border border-rose-400/35 bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-medium text-rose-200">
                   Blocage sécurité
                 </span>
               ) : (
                 <span className="rounded-full border border-slate-400/30 bg-slate-800/60 px-2.5 py-0.5 text-[11px] text-slate-300">
-                  Hash: {latestFieldAudit.hashStatus}
-                </span>
-              )}
-              {(latestFieldAudit.fieldAuditStatus === "FIELD_AUDIT_SECURITY_HOLD" ||
-                latestFieldAudit.hashStatus === "SECURITY_HOLD") && (
-                <span className="rounded-full border border-amber-400/35 bg-amber-500/10 px-2.5 py-0.5 text-[11px] text-amber-200">
-                  Attention requise
+                  {formatHashStatusFr(latestFieldAudit.hashStatus)}
                 </span>
               )}
             </div>
 
             {latestFieldAudit.hashStatus === "SECURITY_HOLD" && (
-              <p className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
-                Blocage sécurité détecté — hash payload non validé par le serveur. Revue manuelle requise avant toute suite.
-              </p>
+              <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
+                <p className="font-semibold text-rose-100">Blocage sécurité — hash non validé</p>
+                <p className="mt-1">Hash payload non validé par le serveur. Revue manuelle requise avant toute suite. Action de revue bloquée.</p>
+              </div>
             )}
 
-            <div className="grid gap-2 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[13px] text-slate-300 md:grid-cols-2">
+            {/* Data grid */}
+            <div className="grid gap-x-4 gap-y-3 rounded-xl border border-slate-400/10 bg-slate-900/35 px-4 py-4 text-[13px] md:grid-cols-2">
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-slate-500">ID audit terrain</p>
-                <p className="font-mono text-xs text-slate-200">{latestFieldAudit.id}</p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">Statut audit</p>
-                <p>{formatFieldAuditStatusFr(latestFieldAudit.fieldAuditStatus)}</p>
-                <p className="text-[11px] text-slate-500">Code: {latestFieldAudit.fieldAuditStatus ?? "—"}</p>
+                <p className="mt-0.5 font-mono text-xs text-slate-200 break-all">{latestFieldAudit.id}</p>
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-slate-500">Statut hash</p>
-                <p className={
+                <p className={`mt-0.5 text-sm font-medium ${
                   latestFieldAudit.hashStatus === "SERVER_VALIDATED"
-                    ? "text-emerald-200"
+                    ? "text-emerald-300"
                     : latestFieldAudit.hashStatus === "SECURITY_HOLD"
-                      ? "text-rose-200"
+                      ? "text-rose-300"
                       : "text-slate-300"
-                }>
+                }`}>
                   {formatHashStatusFr(latestFieldAudit.hashStatus)}
                 </p>
-                <p className="text-[11px] text-slate-500">Code: {latestFieldAudit.hashStatus}</p>
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-slate-500">Source</p>
-                <p>{formatFieldAuditSourceFr(latestFieldAudit.source)}</p>
-                <p className="text-[11px] text-slate-500">Code: {latestFieldAudit.source}</p>
+                <p className="mt-0.5 text-slate-300">{formatFieldAuditSourceFr(latestFieldAudit.source)}</p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">Agent</p>
-                <p className="font-mono text-xs">{maskAgentUserId(latestFieldAudit.agentUserId)}</p>
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Agent terrain</p>
+                <p className="mt-0.5 font-mono text-xs text-slate-300">{maskAgentUserId(latestFieldAudit.agentUserId)}</p>
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-slate-500">Surface mesurée</p>
-                <p>
+                <p className="mt-0.5 text-slate-300">
                   {latestFieldAudit.measuredSurfaceHa !== null && latestFieldAudit.measuredSurfaceHa !== undefined
                     ? `${latestFieldAudit.measuredSurfaceHa.toLocaleString("fr-FR")} ha`
                     : "Non disponible"}
@@ -1166,30 +1211,62 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-slate-500">Polygone mesuré</p>
-                <p>{latestFieldAudit.measuredPolygonGeojson ? "Présent" : "Absent"}</p>
+                <p className="mt-0.5 text-slate-300">{latestFieldAudit.measuredPolygonGeojson ? "Présent" : "Absent"}</p>
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-slate-500">Synchronisé le</p>
-                <p>{formatDate(latestFieldAudit.syncedAt)}</p>
+                <p className="mt-0.5 text-slate-300">{formatDate(latestFieldAudit.syncedAt)}</p>
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-slate-500">Créé le</p>
-                <p>{formatDate(latestFieldAudit.createdAt)}</p>
+                <p className="mt-0.5 text-slate-300">{formatDate(latestFieldAudit.createdAt)}</p>
               </div>
             </div>
 
-            <div className="space-y-1 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300">
-              <p className="font-medium text-slate-200">sideEffects — revue back-office</p>
-              <p>fieldAuditCreated: <span className="text-emerald-300">true</span></p>
-              <p>raxCalculated: false</p>
-              <p>pricingCalculated: false</p>
-              <p>policyCreated: false</p>
-              <p>claimCreated: false</p>
-              <p>evidenceBundleCreated: false</p>
-              <p>blockchainAnchored: false</p>
+            {/* SideEffects badge grid */}
+            <div className="rounded-xl border border-slate-400/10 bg-slate-900/35 px-4 py-3 space-y-2">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Effets secondaires — cette revue</p>
+              <div className="flex flex-wrap gap-2">
+                <SideEffectPill label="fieldAuditCreated" active={true} />
+                <SideEffectPill label="raxCalculated" active={false} />
+                <SideEffectPill label="pricingCalculated" active={false} />
+                <SideEffectPill label="policyCreated" active={false} />
+                <SideEffectPill label="claimCreated" active={false} />
+                <SideEffectPill label="evidenceBundleCreated" active={false} />
+                <SideEffectPill label="blockchainAnchored" active={false} />
+              </div>
             </div>
 
-            <p className="rounded-xl border border-cyan-400/20 bg-cyan-500/8 px-3 py-2 text-xs text-cyan-100/90">
+            {/* Action: accept for review */}
+            {latestFieldAudit.fieldAuditStatus === "FIELD_AUDIT_SUBMITTED" &&
+              latestFieldAudit.hashStatus !== "SECURITY_HOLD" && (
+              <div className="space-y-2 rounded-xl border border-cyan-400/20 bg-cyan-500/5 px-4 py-3">
+                <p className="text-[11px] uppercase tracking-wide text-slate-400">Action contrôlée</p>
+                <button
+                  type="button"
+                  disabled={acceptAuditLoading}
+                  onClick={() => { void handleAcceptFieldAuditForReview(); }}
+                  className="rounded-xl border border-cyan-400/40 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 transition-colors hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {acceptAuditLoading ? "Traitement en cours…" : "Accepter pour revue back-office"}
+                </button>
+                <p className="text-[11px] text-slate-500">
+                  N&apos;enclenche ni RAX, ni tarification, ni evidence bundle, ni ancrage blockchain.
+                </p>
+              </div>
+            )}
+
+            {acceptAuditFeedback && (
+              <p className={`rounded-xl border px-3 py-2 text-xs ${
+                acceptAuditFeedback.type === "success"
+                  ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+                  : "border-rose-400/25 bg-rose-500/10 text-rose-200"
+              }`}>
+                {acceptAuditFeedback.message}
+              </p>
+            )}
+
+            <p className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-2 text-xs text-slate-400">
               Aucun RAX déclenché par cette revue. Aucune police, sinistre, evidence bundle ou ancrage blockchain depuis cet écran.
             </p>
           </>
@@ -1199,15 +1276,17 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
               Audit terrain non disponible — aucun audit terrain soumis pour cette DCA.
             </p>
 
-            <div className="space-y-1 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300">
-              <p className="font-medium text-slate-200">sideEffects — revue back-office</p>
-              <p>fieldAuditCreated: false</p>
-              <p>raxCalculated: false</p>
-              <p>pricingCalculated: false</p>
-              <p>policyCreated: false</p>
-              <p>claimCreated: false</p>
-              <p>evidenceBundleCreated: false</p>
-              <p>blockchainAnchored: false</p>
+            <div className="rounded-xl border border-slate-400/10 bg-slate-900/35 px-4 py-3 space-y-2">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Effets secondaires — cette revue</p>
+              <div className="flex flex-wrap gap-2">
+                <SideEffectPill label="fieldAuditCreated" active={false} />
+                <SideEffectPill label="raxCalculated" active={false} />
+                <SideEffectPill label="pricingCalculated" active={false} />
+                <SideEffectPill label="policyCreated" active={false} />
+                <SideEffectPill label="claimCreated" active={false} />
+                <SideEffectPill label="evidenceBundleCreated" active={false} />
+                <SideEffectPill label="blockchainAnchored" active={false} />
+              </div>
             </div>
           </>
         )}

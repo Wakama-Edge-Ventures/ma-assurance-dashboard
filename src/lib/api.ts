@@ -1001,6 +1001,59 @@ export async function sendInsuranceMissionDispatch(
   };
 }
 
+export interface AcceptFieldAuditForReviewSideEffects {
+  fieldAuditCreated: false;
+  fieldAuditAcceptedForReview: true;
+  raxCalculated: false;
+  pricingCalculated: false;
+  policyCreated: false;
+  claimCreated: false;
+  evidenceBundleCreated: false;
+  blockchainAnchored: false;
+}
+
+export interface AcceptFieldAuditForReviewResult {
+  fieldAudit: InsuranceFieldAudit;
+  applicationNextStatusSuggested: "READY_FOR_BACK_OFFICE_REVIEW";
+  sideEffects: AcceptFieldAuditForReviewSideEffects;
+}
+
+export async function acceptInsuranceFieldAuditForReview(
+  fieldAuditId: string,
+): Promise<AcceptFieldAuditForReviewResult> {
+  const safeId = encodeURIComponent(fieldAuditId);
+  const raw = await apiFetch<unknown>(`/v1/insurance/field-audits/${safeId}/accept-for-review`, {
+    method: "PATCH",
+  });
+
+  const r = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>)
+    : null;
+  if (!r || typeof r.fieldAudit !== "object") {
+    throw new ApiError(500, "Réponse inattendue du serveur.");
+  }
+
+  const fieldAudit = mapLatestFieldAudit(r.fieldAudit);
+  if (!fieldAudit) {
+    throw new ApiError(500, "Données audit terrain invalides dans la réponse.");
+  }
+
+  return {
+    fieldAudit,
+    applicationNextStatusSuggested: "READY_FOR_BACK_OFFICE_REVIEW",
+    sideEffects: {
+      fieldAuditCreated: false,
+      fieldAuditAcceptedForReview: true,
+      raxCalculated: false,
+      pricingCalculated: false,
+      policyCreated: false,
+      claimCreated: false,
+      evidenceBundleCreated: false,
+      blockchainAnchored: false,
+    },
+  };
+}
+
 export async function getInsuranceMissionConfigVersions(
   applicationId: string,
 ): Promise<InsuranceMissionConfig[]> {
