@@ -4,9 +4,12 @@ import { use, useEffect, useMemo, useState } from "react";
 
 import {
   ApiError,
+  assignInsuranceMissionDispatch,
   createInsuranceMissionDispatchDraft,
   CreateInsuranceMissionDispatchDraftResult,
+  FieldAgent,
   getInsuranceApplicationById,
+  getInsuranceFieldAgents,
   getInsuranceMissionConfig,
   getInsuranceMissionConfigVersions,
   InsuranceApplicationByIdResult,
@@ -14,7 +17,9 @@ import {
   InsuranceMissionConfigPayload,
   InsuranceMissionConfigSideEffects,
   InsuranceRiskReviewStatus,
+  MissionDispatchResult,
   saveInsuranceMissionConfig,
+  sendInsuranceMissionDispatch,
   updateInsuranceApplicationStatus,
 } from "@/lib/api";
 import {
@@ -419,6 +424,14 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
   const [missionDispatchForm, setMissionDispatchForm] = useState<MissionDispatchFormState>(
     toMissionDispatchFormState(null),
   );
+  const [fieldAgents, setFieldAgents] = useState<FieldAgent[]>([]);
+  const [fieldAgentsLoading, setFieldAgentsLoading] = useState(false);
+  const [selectedAgentUserId, setSelectedAgentUserId] = useState<string>("");
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignFeedback, setAssignFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [dispatchResult, setDispatchResult] = useState<MissionDispatchResult | null>(null);
+  const [sendLoading, setSendLoading] = useState(false);
+  const [sendFeedback, setSendFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -652,6 +665,46 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
   }
 
+  async function handleAssignAgent() {
+    if (assignLoading || !selectedAgentUserId) return;
+    const missionConfigId = missionConfig?.id?.trim() ?? "";
+    if (!missionConfigId) {
+      setAssignFeedback({ type: "error", message: "Configuration mission requise avant assignation." });
+      return;
+    }
+    setAssignLoading(true);
+    setAssignFeedback(null);
+    try {
+      const result = await assignInsuranceMissionDispatch(applicationId, {
+        missionConfigId,
+        assignedAgentUserId: selectedAgentUserId,
+        dispatchNote: missionDispatchForm.dispatchNote.trim() || undefined,
+      });
+      setDispatchResult(result);
+      setAssignFeedback({ type: "success", message: `Agent assigné — statut: ${result.status}` });
+    } catch (err) {
+      setAssignFeedback({ type: "error", message: err instanceof Error ? err.message : "Erreur lors de l'assignation." });
+    } finally {
+      setAssignLoading(false);
+    }
+  }
+
+  async function handleSendDispatch() {
+    if (sendLoading || !dispatchResult?.missionConfigId) return;
+    setSendLoading(true);
+    setSendFeedback(null);
+    try {
+      const result = await sendInsuranceMissionDispatch(applicationId, dispatchResult.missionConfigId);
+      setDispatchResult(result);
+      await refreshApplicationAfterMutation();
+      setSendFeedback({ type: "success", message: `Dispatch envoyé — statut: ${result.status}. Visible dans l'Agent App.` });
+    } catch (err) {
+      setSendFeedback({ type: "error", message: err instanceof Error ? err.message : "Erreur lors de l'envoi." });
+    } finally {
+      setSendLoading(false);
+    }
+  }
+
   const application = result?.application ?? null;
   const showMissionConfigSection = application
     ? MISSION_CONFIG_AND_DISPATCH_COMPATIBLE_STATUSES.includes(application.status)
@@ -722,6 +775,13 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
 
     void loadMissionConfig();
+
+    // Load field agents list for assign UI
+    setFieldAgentsLoading(true);
+    getInsuranceFieldAgents()
+      .then((agents) => { if (mounted) setFieldAgents(agents); })
+      .catch(() => { /* non-critical */ })
+      .finally(() => { if (mounted) setFieldAgentsLoading(false); });
 
     return () => {
       mounted = false;
@@ -1418,6 +1478,89 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             La mission n&apos;est pas encore envoyée à un agent. Cette étape prépare uniquement l&apos;organisation opérationnelle.
             Aucun audit terrain n&apos;est lancé.
           </p>
+          <p className="text-xs text-brand-textMuted">
+            Wakama prépare et documente. L&apos;assureur décide.
+          </p>
+        </Card>
+      ) : null}
+
+      {showMissionDispatchSection && missionConfigId ? (
+        <Card className="space-y-4">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
+            Assignation agent de terrain
+          </h2>
+
+          <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+            Cette action rend la mission visible dans l&apos;Agent App. Elle ne lance pas l&apos;audit terrain.
+          </p>
+
+          {dispatchResult ? (
+            <div className="rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300 space-y-1">
+              <p className="font-medium text-slate-200">Statut dispatch</p>
+              <p>Statut: <span className={dispatchResult.status === "MISSION_SENT" ? "text-emerald-300" : "text-cyan-300"}>{dispatchResult.status}</span></p>
+              <p>Mode filtrage: {dispatchResult.assignmentFilteringMode}</p>
+              <p>Agent assigné: {dispatchResult.assignedAgentUserId ?? "—"}</p>
+              <p>fieldAuditCreated: false | insuranceMissionCreated: false</p>
+            </div>
+          ) : null}
+
+          <div className="space-y-3">
+            <label className="space-y-1 text-sm text-slate-300 block">
+              <span>Sélectionner un agent de terrain</span>
+              <select
+                value={selectedAgentUserId}
+                onChange={(e) => setSelectedAgentUserId(e.target.value)}
+                disabled={assignLoading || sendLoading || fieldAgentsLoading}
+                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <option value="">{fieldAgentsLoading ? "Chargement..." : "— Choisir un agent —"}</option>
+                {fieldAgents.map((a) => (
+                  <option key={a.userId} value={a.userId}>
+                    {a.displayName} ({a.email}) — {a.status}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="flex gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => void handleAssignAgent()}
+                disabled={!selectedAgentUserId || assignLoading || sendLoading}
+                className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-4 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {assignLoading ? "Assignation..." : "Assigner l'agent"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void handleSendDispatch()}
+                disabled={!dispatchResult || dispatchResult.status === "MISSION_SENT" || sendLoading || assignLoading}
+                className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-4 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {sendLoading ? "Envoi..." : "Envoyer à l'Agent App"}
+              </button>
+            </div>
+          </div>
+
+          {assignFeedback ? (
+            <p className={assignFeedback.type === "success"
+              ? "rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100"
+              : "rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-100"
+            }>
+              {assignFeedback.message}
+            </p>
+          ) : null}
+
+          {sendFeedback ? (
+            <p className={sendFeedback.type === "success"
+              ? "rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100"
+              : "rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-100"
+            }>
+              {sendFeedback.message}
+            </p>
+          ) : null}
+
           <p className="text-xs text-brand-textMuted">
             Wakama prépare et documente. L&apos;assureur décide.
           </p>

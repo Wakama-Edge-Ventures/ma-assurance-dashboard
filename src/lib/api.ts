@@ -862,6 +862,102 @@ export async function createInsuranceMissionDispatchDraft(
   };
 }
 
+export type FieldAgent = {
+  userId: string;
+  agentProfileId: string | null;
+  email: string;
+  displayName: string;
+  status: string;
+  organizationType: "WAKAMA" | "INSURER" | "UNKNOWN";
+};
+
+export async function getInsuranceFieldAgents(): Promise<FieldAgent[]> {
+  const response = await apiFetch<unknown>("/v1/insurance/field-agents");
+  const root = asObject(response);
+  const items = Array.isArray(root?.agents) ? (root!.agents as unknown[]) : [];
+  return items.flatMap((item) => {
+    const obj = asObject(item);
+    if (!obj) return [];
+    return [{
+      userId: readString(obj, "userId") ?? "",
+      agentProfileId: readString(obj, "agentProfileId") ?? null,
+      email: readString(obj, "email") ?? "",
+      displayName: readString(obj, "displayName") ?? "",
+      status: readString(obj, "status") ?? "UNKNOWN",
+      organizationType: (readString(obj, "organizationType") ?? "UNKNOWN") as FieldAgent["organizationType"],
+    }];
+  });
+}
+
+export type MissionDispatchAssignPayload = {
+  missionConfigId: string;
+  assignedAgentUserId: string;
+  scheduledWindowStart?: string | null;
+  scheduledWindowEnd?: string | null;
+  dispatchNote?: string | null;
+};
+
+export type MissionDispatchResult = {
+  id: string;
+  applicationId: string;
+  missionConfigId: string;
+  assignedAgentUserId: string | null;
+  status: string;
+  assignmentFilteringMode: string;
+};
+
+export async function assignInsuranceMissionDispatch(
+  applicationId: string,
+  payload: MissionDispatchAssignPayload,
+): Promise<MissionDispatchResult> {
+  const safeId = encodeURIComponent(applicationId);
+  const response = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/mission-dispatch/assign`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  const root = asObject(response);
+  const dispatch = asObject(root?.dispatch);
+  if (!dispatch) throw new ApiError(502, "Réponse backend invalide: dispatch manquant.", response);
+  return {
+    id: readString(dispatch, "id") ?? "",
+    applicationId: readString(dispatch, "applicationId") ?? applicationId,
+    missionConfigId: readString(dispatch, "missionConfigId") ?? payload.missionConfigId,
+    assignedAgentUserId: readString(dispatch, "assignedAgentUserId") ?? null,
+    status: readString(dispatch, "status") ?? "MISSION_ASSIGNED",
+    assignmentFilteringMode: readString(dispatch, "assignmentFilteringMode") ?? "AGENT_PROFILE",
+  };
+}
+
+export async function sendInsuranceMissionDispatch(
+  applicationId: string,
+  missionConfigId: string,
+): Promise<MissionDispatchResult> {
+  const safeId = encodeURIComponent(applicationId);
+  const response = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/mission-dispatch/send`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ missionConfigId }),
+    },
+  );
+  const root = asObject(response);
+  const dispatch = asObject(root?.dispatch);
+  if (!dispatch) throw new ApiError(502, "Réponse backend invalide: dispatch manquant.", response);
+  return {
+    id: readString(dispatch, "id") ?? "",
+    applicationId,
+    missionConfigId,
+    assignedAgentUserId: readString(dispatch, "assignedAgentUserId") ?? null,
+    status: readString(dispatch, "status") ?? "MISSION_SENT",
+    assignmentFilteringMode: readString(dispatch, "assignmentFilteringMode") ?? "AGENT_PROFILE",
+  };
+}
+
 export async function getInsuranceMissionConfigVersions(
   applicationId: string,
 ): Promise<InsuranceMissionConfig[]> {
