@@ -33,7 +33,6 @@ import {
   formatSourceOfTruthFr,
 } from "@/lib/dto-mappers";
 import { InsuranceDcaApplication } from "@/types";
-import { Card } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/page-title";
 
 interface ApplicationDetailPageProps {
@@ -95,6 +94,126 @@ function maskAgentUserId(id: string | null | undefined): string {
   if (id.length <= 8) return `AGT-****`;
   return `AGT-${id.slice(0, 4).toUpperCase()}…${id.slice(-4).toUpperCase()}`;
 }
+
+// ── Design system components ─────────────────────────────────────────────────
+
+type DcaAccent = "cyan" | "emerald" | "violet" | "amber" | "rose" | "slate";
+
+function DcaSectionCard({ children, accent = "slate" }: { children: React.ReactNode; accent?: DcaAccent }) {
+  const border: Record<DcaAccent, string> = {
+    cyan: "border-cyan-400/20",
+    emerald: "border-emerald-400/20",
+    violet: "border-violet-400/20",
+    amber: "border-amber-400/20",
+    rose: "border-rose-400/25",
+    slate: "border-slate-400/15",
+  };
+  return (
+    <div className={`rounded-2xl border ${border[accent]} bg-[#0b1220] p-5 shadow-lg space-y-4`}>
+      {children}
+    </div>
+  );
+}
+
+function DcaSectionHeader({
+  kicker,
+  title,
+  subtitle,
+  accent = "slate",
+}: {
+  kicker?: string;
+  title: string;
+  subtitle?: string;
+  accent?: DcaAccent;
+}) {
+  const bl: Record<DcaAccent, string> = {
+    cyan: "border-l-cyan-400",
+    emerald: "border-l-emerald-400",
+    violet: "border-l-violet-500",
+    amber: "border-l-amber-400",
+    rose: "border-l-rose-400",
+    slate: "border-l-slate-500",
+  };
+  return (
+    <div className={`border-l-2 pl-3 ${bl[accent]}`}>
+      {kicker && <p className="text-[10px] uppercase tracking-[0.15em] text-slate-500">{kicker}</p>}
+      <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
+      {subtitle && <p className="mt-0.5 text-[11px] text-slate-400">{subtitle}</p>}
+    </div>
+  );
+}
+
+function DcaInfoTile({
+  label,
+  value,
+  mono = false,
+  full = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  mono?: boolean;
+  full?: boolean;
+}) {
+  return (
+    <div className={`space-y-0.5 ${full ? "col-span-full" : ""}`}>
+      <p className="text-[10px] uppercase tracking-wide text-slate-500">{label}</p>
+      <div className={`text-sm text-slate-200 ${mono ? "font-mono text-xs break-all" : ""}`}>{value}</div>
+    </div>
+  );
+}
+
+function DcaStatusBadge({ status }: { status: string | null | undefined }) {
+  if (!status) return <span className="text-slate-500 text-xs">—</span>;
+  const map: Record<string, string> = {
+    DRAFT: "border-slate-400/25 bg-slate-800/60 text-slate-300",
+    DRAFT_SUBMITTED: "border-cyan-400/35 bg-cyan-500/10 text-cyan-100",
+    UNDER_RISK_REVIEW: "border-amber-400/35 bg-amber-500/10 text-amber-100",
+    MORE_INFO_REQUIRED: "border-orange-400/35 bg-orange-500/10 text-orange-100",
+    READY_FOR_MISSION_CONFIG: "border-emerald-400/35 bg-emerald-500/10 text-emerald-100",
+    MISSION_CONFIG_DRAFT: "border-sky-400/30 bg-sky-500/8 text-sky-200",
+    MISSION_CONFIGURED: "border-emerald-400/35 bg-emerald-500/10 text-emerald-100",
+    MISSION_DISPATCH_DRAFT: "border-indigo-400/35 bg-indigo-500/10 text-indigo-100",
+    MISSION_SENT: "border-violet-400/35 bg-violet-500/10 text-violet-100",
+    FIELD_AUDIT_COMPLETE: "border-emerald-400/40 bg-emerald-500/15 text-emerald-200",
+    BACK_OFFICE_REVIEW: "border-violet-400/40 bg-violet-500/15 text-violet-200",
+    RAX_SCORED: "border-cyan-400/40 bg-cyan-500/15 text-cyan-200",
+    OFFER_SENT: "border-amber-400/35 bg-amber-500/10 text-amber-100",
+    FARMER_ACCEPTED: "border-emerald-400/35 bg-emerald-500/10 text-emerald-100",
+    CONTRACT_SIGNED: "border-emerald-400/45 bg-emerald-500/20 text-emerald-100",
+    ACTIVE: "border-emerald-400/50 bg-emerald-500/20 text-emerald-100 font-semibold",
+    CLAIM_OPEN: "border-rose-400/40 bg-rose-500/15 text-rose-200",
+    CLOSED: "border-slate-400/30 bg-slate-700/30 text-slate-400",
+    REJECTED: "border-rose-400/35 bg-rose-500/10 text-rose-200",
+    UNAVAILABLE: "border-slate-400/20 bg-slate-800/50 text-slate-500",
+  };
+  const cls = map[status] ?? "border-slate-400/25 bg-slate-800/60 text-slate-300";
+  return (
+    <span className={`rounded-full border px-3 py-1 text-[11px] font-medium ${cls}`}>
+      {formatDcaStatusFr(status as InsuranceDcaApplication["status"] | "UNAVAILABLE")}
+    </span>
+  );
+}
+
+function DcaSourceBadge({ source }: { source: string | null | undefined }) {
+  if (!source) return <span className="text-slate-500 text-xs">—</span>;
+  const map: Record<string, string> = {
+    LIVE: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200",
+    MANUAL_ESTIMATE: "border-amber-400/35 bg-amber-500/10 text-amber-200",
+    SEED_DEMO: "border-violet-400/30 bg-violet-500/8 text-violet-300",
+    EXCEL_IMPORT: "border-cyan-400/30 bg-cyan-500/8 text-cyan-300",
+    UNAVAILABLE: "border-slate-400/20 bg-slate-800/50 text-slate-500",
+    DEGRADED: "border-orange-400/30 bg-orange-500/8 text-orange-300",
+    MANUAL_ENTRY: "border-amber-400/25 bg-amber-500/8 text-amber-300",
+  };
+  const cls = map[source] ?? "border-slate-400/20 bg-slate-800/50 text-slate-400";
+  return (
+    <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${cls}`}>
+      {formatSourceFr(source as InsuranceDcaApplication["source"])}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function SideEffectPill({ label, active }: { label: string; active: boolean }) {
   return active ? (
@@ -904,31 +1023,33 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
 
   if (error) {
     return (
-      <Card className="space-y-3">
-        <PageTitle
-          title={`Détail DCA ${applicationId}`}
-          description="Lecture seule du dossier assurance."
+      <DcaSectionCard accent="rose">
+        <DcaSectionHeader
+          kicker="Détail DCA"
+          title={`Dossier ${applicationId}`}
+          subtitle="Lecture seule du dossier assurance."
+          accent="rose"
         />
-        <p className="text-xs text-slate-500">Source du dossier: {formatSourceFr("UNAVAILABLE")}</p>
-        <p className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-200">
+        <p className="rounded-xl border border-rose-400/20 bg-rose-400/8 px-4 py-3 text-sm text-rose-200">
           {error}
         </p>
-      </Card>
+      </DcaSectionCard>
     );
   }
 
   if (!application) {
     return (
-      <Card className="space-y-3">
-        <PageTitle
-          title={`Détail DCA ${applicationId}`}
-          description="Lecture seule du dossier assurance."
+      <DcaSectionCard accent="slate">
+        <DcaSectionHeader
+          kicker="Détail DCA"
+          title={`Dossier ${applicationId}`}
+          subtitle="Lecture seule du dossier assurance."
+          accent="slate"
         />
-        <p className="text-xs text-slate-500">Source du dossier: {formatSourceFr("UNAVAILABLE")}</p>
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-slate-400">
           Dossier introuvable. Aucune donnée DCA disponible pour cet identifiant.
         </p>
-      </Card>
+      </DcaSectionCard>
     );
   }
 
@@ -947,7 +1068,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     `En attente de génération — ID technique ${application.id}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageTitle
         title={`Dossier DCA ${application.reference ?? application.dcaNumber ?? application.id}`}
         description="Lecture seule du détail d'une demande assurance farmer."
@@ -955,169 +1076,214 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
 
       {result?.detailNote ? <p className="text-xs text-slate-400">{result.detailNote}</p> : null}
 
-      <Card className="space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* ── 1. Résumé DCA ── */}
+      <DcaSectionCard accent="cyan">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-brand-textMuted">Référence DCA</p>
-            <p className="text-lg font-semibold text-white">{referenceValue}</p>
-            <p className="text-xs text-slate-400">ID technique: {application.id}</p>
+            <DcaSectionHeader
+              kicker="Dossier de couverture agricole"
+              title={referenceValue}
+              subtitle={`ID technique : ${application.id}`}
+              accent="cyan"
+            />
           </div>
-          <div className="flex flex-col items-start gap-2">
-            <span className="rounded-full border border-slate-400/20 bg-slate-800/70 px-3 py-1 text-[11px] text-slate-300">
-              {formatDcaStatusFr(application.status)}
-            </span>
-            <p className="text-[11px] text-slate-500">Code interne statut: {application.status}</p>
-            {application.backendStatus && application.backendStatus !== application.status ? (
-              <p className="text-[11px] text-slate-500">
-                Statut backend: {formatDcaStatusFr(application.backendStatus)} ({application.backendStatus})
-              </p>
-            ) : null}
-            <p className="text-[11px] text-slate-400">Source du dossier: {formatSourceFr(application.source)}</p>
-            <p className="text-[11px] text-slate-500">Code interne source: {application.source}</p>
+          <div className="flex flex-wrap items-start gap-2">
+            <DcaStatusBadge status={application.status} />
+            <DcaSourceBadge source={application.source} />
           </div>
         </div>
-        <div className="grid gap-3 text-[13px] text-slate-300 md:grid-cols-2">
-          <p>Date de soumission: {formatDate(application.submittedAt ?? application.createdAt)}</p>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <DcaInfoTile
+            label="Date de soumission"
+            value={formatDate(application.submittedAt ?? application.createdAt)}
+          />
+          <DcaInfoTile
+            label="Source déclarative"
+            value={<DcaSourceBadge source={application.declarativeSource ?? application.source} />}
+          />
+          <DcaInfoTile
+            label="Table de vérité"
+            value={formatSourceOfTruthFr(application.sourceOfTruth)}
+          />
         </div>
-        {waitingLine ? (
-          <p className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-            Dossier reçu &mdash; en attente d&apos;analyse par l&apos;assureur.
-          </p>
-        ) : null}
-        <p className="text-xs text-brand-textMuted">
-          Wakama prépare, structure et documente le dossier. L&apos;assureur reste seul décisionnaire.
+
+        {application.backendStatus && application.backendStatus !== application.status && (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/40 px-4 py-2 text-[11px] text-slate-400">
+            Statut backend : {formatDcaStatusFr(application.backendStatus as InsuranceDcaApplication["status"] | "UNAVAILABLE")} — code : {application.backendStatus}
+          </div>
+        )}
+
+        {waitingLine && (
+          <div className="rounded-xl border border-amber-400/25 bg-amber-400/8 px-4 py-2.5 text-xs text-amber-200">
+            Dossier reçu — en attente d&apos;analyse par l&apos;assureur.
+          </div>
+        )}
+
+        <p className="text-[11px] text-slate-500">
+          Wakama prépare, structure et documente. L&apos;assureur reste seul décisionnaire.
         </p>
-        <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
-          <p className="font-medium text-slate-200">Dossier DCA persisté</p>
-          <p>Source déclarative: {formatSourceFr(application.declarativeSource ?? application.source)}</p>
-          <p>Table de vérité: {formatSourceOfTruthFr(application.sourceOfTruth)}</p>
-          <p>
-            Ancien fallback d&apos;audit:{" "}
-            {application.legacyAuditFallbackUsed === false
-              ? "non utilisé"
-              : formatBooleanFr(application.legacyAuditFallbackUsed)}
-          </p>
-          <p className="text-slate-500">
-            Codes internes: source {application.declarativeSource ?? application.source} | sourceOfTruth{" "}
-            {application.sourceOfTruth ?? "UNAVAILABLE"}
-          </p>
-        </div>
-      </Card>
+      </DcaSectionCard>
 
-      <Card className="space-y-3">
-        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">Farmer</h2>
-        <div className="grid gap-2 text-[13px] text-slate-300 md:grid-cols-2">
-          <p>
-            Nom / prénom:{" "}
-            {[application.farmer.firstName, application.farmer.lastName].filter(Boolean).join(" ") ||
-              "Non disponible"}
-          </p>
-          <p>Téléphone masqué: {application.farmer.phoneMasked ?? "Non disponible"}</p>
-          <p>CIN masquée: {application.farmer.cinMasked ?? "Non disponible"}</p>
-          <p>Langue préférée: {application.farmer.preferredLanguage ?? "Non disponible"}</p>
-          <p>Source: {formatSourceFr(application.farmer.source ?? "UNAVAILABLE")}</p>
+      {/* ── 2. Farmer ── */}
+      <DcaSectionCard accent="emerald">
+        <DcaSectionHeader
+          kicker="Bénéficiaire"
+          title="Agriculteur"
+          subtitle="Identité masquée — données déclarées à la souscription"
+          accent="emerald"
+        />
+        <div className="grid gap-4 md:grid-cols-3">
+          <DcaInfoTile
+            label="Nom / Prénom"
+            value={
+              [application.farmer.firstName, application.farmer.lastName].filter(Boolean).join(" ") ||
+              "Non disponible"
+            }
+          />
+          <DcaInfoTile label="Téléphone masqué" value={application.farmer.phoneMasked ?? "—"} mono />
+          <DcaInfoTile label="CIN masquée" value={application.farmer.cinMasked ?? "—"} mono />
+          <DcaInfoTile label="Langue préférée" value={application.farmer.preferredLanguage ?? "—"} />
+          <DcaInfoTile
+            label="Source"
+            value={<DcaSourceBadge source={application.farmer.source ?? "UNAVAILABLE"} />}
+          />
         </div>
-      </Card>
+      </DcaSectionCard>
 
-      <Card className="space-y-3">
-        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">Parcelle / objet du risque</h2>
-        <div className="grid gap-2 text-[13px] text-slate-300 md:grid-cols-2">
-          <p>Nom parcelle: {application.parcelle.name ?? "Non disponible"}</p>
-          <p>
-            Culture:{" "}
-            {application.parcelle.culture ?? application.crop ?? application.culture ?? "Non disponible"}
-          </p>
-          <p>
-            Superficie déclarée:{" "}
-            {declaredArea !== null && declaredArea !== undefined ? `${declaredArea} ha` : "Non disponible"}
-          </p>
-          <p>Latitude: {application.parcelle.lat ?? "Non disponible"}</p>
-          <p>Longitude: {application.parcelle.lng ?? "Non disponible"}</p>
-          <p>Source: {formatSourceFr(application.parcelle.source ?? "UNAVAILABLE")}</p>
+      {/* ── 3. Parcelle ── */}
+      <DcaSectionCard accent="emerald">
+        <DcaSectionHeader
+          kicker="Objet du risque"
+          title="Parcelle agricole"
+          subtitle="Données géographiques et culturales déclarées"
+          accent="emerald"
+        />
+        <div className="grid gap-4 md:grid-cols-3">
+          <DcaInfoTile label="Nom parcelle" value={application.parcelle.name ?? "—"} />
+          <DcaInfoTile
+            label="Culture"
+            value={application.parcelle.culture ?? application.crop ?? application.culture ?? "—"}
+          />
+          <DcaInfoTile
+            label="Superficie déclarée"
+            value={
+              declaredArea !== null && declaredArea !== undefined ? `${declaredArea} ha` : "—"
+            }
+          />
+          <DcaInfoTile label="Latitude" value={application.parcelle.lat ?? "—"} />
+          <DcaInfoTile label="Longitude" value={application.parcelle.lng ?? "—"} />
+          <DcaInfoTile
+            label="Source"
+            value={<DcaSourceBadge source={application.parcelle.source ?? "UNAVAILABLE"} />}
+          />
         </div>
-        {hasCountryMismatch ? (
-          <p className="rounded-lg border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-            Attention : métadonnée pays parcelle incohérente avec la DCA Maroc. À vérifier côté backend plus tard.
-          </p>
-        ) : null}
-      </Card>
+        {hasCountryMismatch && (
+          <div className="rounded-xl border border-amber-400/25 bg-amber-400/8 px-4 py-2.5 text-xs text-amber-200">
+            Attention : métadonnée pays parcelle incohérente avec la DCA Maroc. À vérifier côté backend.
+          </div>
+        )}
+      </DcaSectionCard>
 
-      <Card className="space-y-3">
-        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">Documents préparés</h2>
+      {/* ── 4. Documents préparés ── */}
+      <DcaSectionCard accent="slate">
+        <DcaSectionHeader
+          kicker="Pièces justificatives"
+          title="Documents préparés"
+          subtitle="Dossier structuré par Wakama pour l'assureur"
+          accent="slate"
+        />
         {application.preparedDocuments.length === 0 ? (
-          <p className="text-sm text-slate-300">Aucun document préparé disponible pour ce dossier.</p>
+          <p className="text-sm text-slate-400">Aucun document préparé disponible pour ce dossier.</p>
         ) : (
           <div className="space-y-3">
             {application.preparedDocuments.map((doc, index) => (
               <div
                 key={`${doc.id ?? "doc"}-${index}`}
-                className="rounded-xl border border-slate-400/10 bg-slate-900/35 p-3 text-sm text-slate-300"
+                className="grid gap-3 rounded-xl border border-slate-400/10 bg-slate-900/35 p-4 md:grid-cols-3"
               >
-                <p>Type: {doc.type ?? "Non disponible"}</p>
-                <p>Libellé/Fichier: {doc.label ?? doc.filename ?? doc.name ?? doc.type ?? "Non disponible"}</p>
-                <p>Statut: {formatDocumentStatusFr(doc.status)}</p>
-                {doc.status ? <p className="text-[11px] text-slate-500">Code interne statut: {doc.status}</p> : null}
-                <p>Date: {formatDate(doc.createdAt)}</p>
-                <p>Source: {formatSourceFr(doc.source)}</p>
-                <p className="text-[11px] text-slate-500">Code interne source: {doc.source}</p>
-                {doc.url ? (
-                  <a
-                    href={doc.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 inline-flex text-xs text-cyan-300 underline-offset-2 hover:underline"
-                  >
-                    Ouvrir document
-                  </a>
-                ) : null}
+                <DcaInfoTile label="Type" value={doc.type ?? "—"} />
+                <DcaInfoTile label="Libellé / Fichier" value={doc.label ?? doc.filename ?? doc.name ?? doc.type ?? "—"} />
+                <DcaInfoTile label="Statut" value={formatDocumentStatusFr(doc.status)} />
+                <DcaInfoTile label="Date" value={formatDate(doc.createdAt)} />
+                <DcaInfoTile label="Source" value={<DcaSourceBadge source={doc.source} />} />
+                {doc.url && (
+                  <div className="flex items-end">
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-lg border border-cyan-400/30 bg-cyan-500/8 px-3 py-1.5 text-xs text-cyan-300 hover:bg-cyan-500/15"
+                    >
+                      Ouvrir document
+                    </a>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
-      </Card>
+      </DcaSectionCard>
 
-      <Card className="space-y-3">
-        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">Historique sinistres farmer</h2>
+      {/* ── 5. Historique sinistres ── */}
+      <DcaSectionCard accent="amber">
+        <DcaSectionHeader
+          kicker="Antécédents"
+          title="Historique sinistres farmer"
+          subtitle="Sinistres déclarés lors de la souscription"
+          accent="amber"
+        />
         {application.claimHistory.length === 0 ? (
-          <p className="text-sm text-slate-300">Aucun antécédent de sinistre déclaré ou disponible.</p>
+          <p className="text-sm text-slate-400">Aucun antécédent de sinistre déclaré ou disponible.</p>
         ) : (
           <div className="space-y-3">
             {application.claimHistory.map((item, index) => (
               <div
                 key={`${item.id ?? "claim"}-${index}`}
-                className="rounded-xl border border-slate-400/10 bg-slate-900/35 p-3 text-sm text-slate-300"
+                className="grid gap-3 rounded-xl border border-slate-400/10 bg-slate-900/35 p-4 md:grid-cols-3"
               >
-                <p>Année: {item.year ?? "Non disponible"}</p>
-                <p>Type / cause: {item.type ?? item.cause ?? "Non disponible"}</p>
-                <p>Montant estimé: {asMad(item.estimatedAmount)}</p>
-                <p>Note: {item.note ?? "Non disponible"}</p>
-                <p>
-                  Résumé:{" "}
-                  {[item.year ?? "N/A", item.type ?? item.cause ?? "N/A", item.note ?? "N/A", asMad(item.estimatedAmount)].join(" - ")}
-                </p>
-                <p>Source: {formatSourceFr(item.source)}</p>
-                <p className="text-[11px] text-slate-500">Code interne source: {item.source}</p>
+                <DcaInfoTile label="Année" value={item.year ?? "—"} />
+                <DcaInfoTile label="Type / Cause" value={item.type ?? item.cause ?? "—"} />
+                <DcaInfoTile label="Montant estimé" value={asMad(item.estimatedAmount)} />
+                <DcaInfoTile label="Note" value={item.note ?? "—"} />
+                <DcaInfoTile label="Source" value={<DcaSourceBadge source={item.source} />} />
               </div>
             ))}
           </div>
         )}
-        <p className="text-xs text-slate-400">Période déclarée: {application.periodYears ?? "Non disponible"} ans</p>
-      </Card>
+        {application.periodYears !== null && application.periodYears !== undefined && (
+          <div className="rounded-xl border border-slate-400/10 bg-slate-900/35 px-4 py-2.5">
+            <DcaInfoTile label="Période déclarée" value={`${application.periodYears} ans`} />
+          </div>
+        )}
+      </DcaSectionCard>
 
-      <Card className="space-y-3">
-        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">Consentement CNDP</h2>
-        <div className="grid gap-2 text-[13px] text-slate-300 md:grid-cols-2">
-          <p>Consentement donné: {formatBooleanFr(application.consentCndp)}</p>
-          <p>Date: {formatDate(application.consentCndpAt)}</p>
-          <p>Source: {formatSourceFr(application.consentCndpSource ?? "UNAVAILABLE")}</p>
+      {/* ── 6. Consentement CNDP ── */}
+      <DcaSectionCard accent="slate">
+        <DcaSectionHeader
+          kicker="Conformité"
+          title="Consentement CNDP"
+          subtitle="Données personnelles — usage exclusif préparation dossier assureur"
+          accent="slate"
+        />
+        <div className="grid gap-4 md:grid-cols-3">
+          <DcaInfoTile label="Consentement donné" value={formatBooleanFr(application.consentCndp)} />
+          <DcaInfoTile label="Date consentement" value={formatDate(application.consentCndpAt)} />
+          <DcaInfoTile
+            label="Source"
+            value={<DcaSourceBadge source={application.consentCndpSource ?? "UNAVAILABLE"} />}
+          />
         </div>
-        <p className="text-xs text-slate-400">
-          Consentement CNDP utilisé uniquement pour la préparation et l&apos;analyse du dossier par l&apos;assureur.
-        </p>
-      </Card>
+      </DcaSectionCard>
 
-      <Card className="space-y-3">
-        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">Effets secondaires backend</h2>
+      {/* ── 7. Effets secondaires backend ── */}
+      <DcaSectionCard accent="slate">
+        <DcaSectionHeader
+          kicker="Traçabilité"
+          title="Effets secondaires backend"
+          subtitle="État retourné par le backend — aucune action déclenchée depuis cet écran"
+          accent="slate"
+        />
         <div className="flex flex-wrap gap-2">
           <SideEffectPill label="Mission" active={application.sideEffects.missionCreated} />
           <SideEffectPill label="Police" active={application.sideEffects.policyCreated} />
@@ -1126,26 +1292,25 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           <SideEffectPill label="Tarification" active={application.sideEffects.pricingCalculated} />
           <SideEffectPill label="Blockchain" active={application.sideEffects.blockchainAnchored} />
         </div>
-        {application.sideEffects.sideEffectsSource ? (
-          <p className="text-xs text-slate-500">
-            Source:{" "}{formatSideEffectsSourceFr(application.sideEffects.sideEffectsSource)}
+        {application.sideEffects.sideEffectsSource && (
+          <p className="text-[11px] text-slate-500">
+            Source : {formatSideEffectsSourceFr(application.sideEffects.sideEffectsSource)}
           </p>
-        ) : null}
-        {application.sideEffects.sourceNote ? (
-          <p className="text-xs text-slate-500">Fallback frontend actif</p>
-        ) : null}
-      </Card>
+        )}
+        {application.sideEffects.sourceNote && (
+          <p className="text-[11px] text-slate-500">Fallback frontend actif</p>
+        )}
+      </DcaSectionCard>
 
-      <Card className="space-y-4">
+      {/* ── 8. Revue back-office audit terrain ── */}
+      <DcaSectionCard accent="violet">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
-              Revue back-office audit terrain
-            </h2>
-            <p className="mt-0.5 text-[11px] text-slate-500">
-              Consultation des données d&apos;audit soumises par l&apos;agent terrain.
-            </p>
-          </div>
+          <DcaSectionHeader
+            kicker="Terrain — Phase 33A"
+            title="Revue back-office audit terrain"
+            subtitle="Consultation des données soumises par l'agent terrain"
+            accent="violet"
+          />
           {latestFieldAudit && <FieldAuditStatusBadge status={latestFieldAudit.fieldAuditStatus} />}
         </div>
 
@@ -1291,24 +1456,29 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           </>
         )}
 
-        <p className="text-xs text-brand-textMuted">
+        <p className="text-[11px] text-slate-500">
           Wakama prépare et documente. L&apos;assureur reste décisionnaire.
         </p>
-      </Card>
+      </DcaSectionCard>
 
+      {/* ── 9. Configuration mission contrôlée ── */}
       {showMissionConfigSection ? (
-        <Card className="space-y-4">
-          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
-            Configuration mission contrôlée
-          </h2>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-100">
-              Brouillon Direction des Risques
-            </span>
-            <span className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-0.5 text-[11px] text-cyan-100">
-              Aucune mission terrain envoyée
-            </span>
+        <DcaSectionCard accent="emerald">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <DcaSectionHeader
+              kicker="Protocole de preuve"
+              title="Configuration mission contrôlée"
+              subtitle="Prépare le protocole sans envoyer l'audit terrain"
+              accent="emerald"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-100">
+                Brouillon Direction des Risques
+              </span>
+              <span className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-0.5 text-[11px] text-cyan-200">
+                Aucune mission envoyée
+              </span>
+            </div>
           </div>
 
           <p className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
@@ -1567,38 +1737,41 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             </p>
           ) : null}
 
-          <div className="space-y-2 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300">
-            <p className="font-medium text-slate-200">sideEffects mission-config</p>
-            <p>missionCreated: {String(missionConfigSideEffects.missionCreated)}</p>
-            <p>missionSent: {String(missionConfigSideEffects.missionSent)}</p>
-            <p>fieldAuditCreated: {String(missionConfigSideEffects.fieldAuditCreated)}</p>
-            <p>raxCalculated: {String(missionConfigSideEffects.raxCalculated)}</p>
-            <p>pricingCalculated: {String(missionConfigSideEffects.pricingCalculated)}</p>
-            <p>policyCreated: {String(missionConfigSideEffects.policyCreated)}</p>
-            <p>claimCreated: {String(missionConfigSideEffects.claimCreated)}</p>
-            <p>evidenceBundleCreated: {String(missionConfigSideEffects.evidenceBundleCreated)}</p>
-            <p>blockchainAnchored: {String(missionConfigSideEffects.blockchainAnchored)}</p>
+          <div className="rounded-xl border border-slate-400/10 bg-slate-900/35 px-4 py-3 space-y-2">
+            <p className="text-[10px] uppercase tracking-wide text-slate-500">Effets secondaires mission-config</p>
+            <div className="flex flex-wrap gap-2">
+              <SideEffectPill label="missionCreated" active={missionConfigSideEffects.missionCreated} />
+              <SideEffectPill label="missionSent" active={missionConfigSideEffects.missionSent} />
+              <SideEffectPill label="fieldAuditCreated" active={missionConfigSideEffects.fieldAuditCreated} />
+              <SideEffectPill label="raxCalculated" active={missionConfigSideEffects.raxCalculated} />
+              <SideEffectPill label="pricingCalculated" active={missionConfigSideEffects.pricingCalculated} />
+              <SideEffectPill label="policyCreated" active={missionConfigSideEffects.policyCreated} />
+              <SideEffectPill label="claimCreated" active={missionConfigSideEffects.claimCreated} />
+              <SideEffectPill label="evidenceBundleCreated" active={missionConfigSideEffects.evidenceBundleCreated} />
+              <SideEffectPill label="blockchainAnchored" active={missionConfigSideEffects.blockchainAnchored} />
+            </div>
           </div>
 
-          <p className="text-xs text-slate-400">
-            Aucun envoi mission, aucune assignation agent, aucun field audit, aucun RAX, aucun pricing, aucune police,
-            aucun sinistre, aucune evidence et aucun ancrage blockchain depuis cet écran.
+          <p className="text-[11px] text-slate-500">
+            Wakama prépare et documente. L&apos;assureur décide.
           </p>
-          <p className="text-xs text-brand-textMuted">
-            Wakama prépare et documente. L’assureur décide.
-          </p>
-        </Card>
+        </DcaSectionCard>
       ) : null}
 
+      {/* ── 10. Préparation dispatch mission ── */}
       {showMissionDispatchSection ? (
-        <Card className="space-y-4">
-          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
-            Préparation dispatch mission
-          </h2>
-
-          <p className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
-            Préparation opérationnelle uniquement — mission non envoyée
-          </p>
+        <DcaSectionCard accent="cyan">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <DcaSectionHeader
+              kicker="Opérationnel"
+              title="Préparation dispatch mission"
+              subtitle="Planification sans envoi agent — mission non lancée"
+              accent="cyan"
+            />
+            <span className="rounded-full border border-cyan-400/30 bg-cyan-500/8 px-2.5 py-0.5 text-[11px] text-cyan-300">
+              Non envoyée
+            </span>
+          </div>
 
           <div className="grid gap-2 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-sm text-slate-300 md:grid-cols-2">
             <p>Configuration mission liée: {missionConfigId || "Non disponible"}</p>
@@ -1707,41 +1880,44 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           ) : null}
 
           {missionDispatchSideEffects ? (
-            <div className="space-y-2 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300">
-              <p className="font-medium text-slate-200">sideEffects mission-dispatch-draft</p>
-              {missionDispatchSideEffects.missionCreated !== undefined ? (
-                <p>missionCreated: {String(missionDispatchSideEffects.missionCreated)}</p>
-              ) : null}
-              <p>missionSent: {String(missionDispatchSideEffects.missionSent)}</p>
-              <p>fieldAuditCreated: {String(missionDispatchSideEffects.fieldAuditCreated)}</p>
-              <p>raxCalculated: {String(missionDispatchSideEffects.raxCalculated)}</p>
-              <p>pricingCalculated: {String(missionDispatchSideEffects.pricingCalculated)}</p>
-              <p>policyCreated: {String(missionDispatchSideEffects.policyCreated)}</p>
-              <p>claimCreated: {String(missionDispatchSideEffects.claimCreated)}</p>
-              <p>evidenceBundleCreated: {String(missionDispatchSideEffects.evidenceBundleCreated)}</p>
-              <p>blockchainAnchored: {String(missionDispatchSideEffects.blockchainAnchored)}</p>
+            <div className="rounded-xl border border-slate-400/10 bg-slate-900/35 px-4 py-3 space-y-2">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500">Effets secondaires dispatch</p>
+              <div className="flex flex-wrap gap-2">
+                {missionDispatchSideEffects.missionCreated !== undefined && (
+                  <SideEffectPill label="missionCreated" active={missionDispatchSideEffects.missionCreated} />
+                )}
+                <SideEffectPill label="missionSent" active={missionDispatchSideEffects.missionSent} />
+                <SideEffectPill label="fieldAuditCreated" active={missionDispatchSideEffects.fieldAuditCreated} />
+                <SideEffectPill label="raxCalculated" active={missionDispatchSideEffects.raxCalculated} />
+                <SideEffectPill label="pricingCalculated" active={missionDispatchSideEffects.pricingCalculated} />
+                <SideEffectPill label="policyCreated" active={missionDispatchSideEffects.policyCreated} />
+                <SideEffectPill label="claimCreated" active={missionDispatchSideEffects.claimCreated} />
+                <SideEffectPill label="evidenceBundleCreated" active={missionDispatchSideEffects.evidenceBundleCreated} />
+                <SideEffectPill label="blockchainAnchored" active={missionDispatchSideEffects.blockchainAnchored} />
+              </div>
             </div>
           ) : null}
 
-          <p className="text-xs text-slate-400">
-            La mission n&apos;est pas encore envoyée à un agent. Cette étape prépare uniquement l&apos;organisation opérationnelle.
-            Aucun audit terrain n&apos;est lancé.
-          </p>
-          <p className="text-xs text-brand-textMuted">
+          <p className="text-[11px] text-slate-500">
             Wakama prépare et documente. L&apos;assureur décide.
           </p>
-        </Card>
+        </DcaSectionCard>
       ) : null}
 
+      {/* ── 11. Assignation agent ── */}
       {showMissionDispatchSection && missionConfigId ? (
-        <Card className="space-y-4">
-          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">
-            Assignation agent de terrain
-          </h2>
-
-          <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+        <DcaSectionCard accent="amber">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <DcaSectionHeader
+              kicker="Agent terrain"
+              title="Assignation agent de terrain"
+              subtitle="Rend la mission visible dans l'Agent App — ne lance pas l'audit"
+              accent="amber"
+            />
+          </div>
+          <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-200">
             Cette action rend la mission visible dans l&apos;Agent App. Elle ne lance pas l&apos;audit terrain.
-          </p>
+          </div>
 
           {dispatchResult ? (
             <div className="rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-[11px] text-slate-300 space-y-1">
@@ -1810,36 +1986,41 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             </p>
           ) : null}
 
-          <p className="text-xs text-brand-textMuted">
+          <p className="text-[11px] text-slate-500">
             Wakama prépare et documente. L&apos;assureur décide.
           </p>
-        </Card>
+        </DcaSectionCard>
       ) : null}
 
-      <Card className="space-y-4">
-        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-300">Revue Direction des Risques</h2>
-
-        <div className="space-y-2 rounded-xl border border-slate-400/10 bg-slate-900/35 px-3 py-3 text-sm text-slate-300">
-          <p>Statut courant de la DCA: {formatDcaStatusFr(application.status)}</p>
-          <p className="text-xs text-slate-500">Code interne statut: {application.status}</p>
-          {application.backendStatus && application.backendStatus !== application.status ? (
-            <p className="text-xs text-slate-500">
-              Statut backend: {formatDcaStatusFr(application.backendStatus)} ({application.backendStatus})
-            </p>
-          ) : null}
+      {/* ── 12. Revue Direction des Risques ── */}
+      <DcaSectionCard accent={canRunRiskReviewActions ? "cyan" : "amber"}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="Direction des Risques"
+            title="Revue Direction des Risques"
+            subtitle="Transition de statut contrôlée — aucun RAX ni pricing depuis cet écran"
+            accent={canRunRiskReviewActions ? "cyan" : "amber"}
+          />
+          <DcaStatusBadge status={application.status} />
         </div>
 
+        {application.backendStatus && application.backendStatus !== application.status && (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/40 px-4 py-2 text-[11px] text-slate-400">
+            Statut backend : {formatDcaStatusFr(application.backendStatus as InsuranceDcaApplication["status"] | "UNAVAILABLE")} — code : {application.backendStatus}
+          </div>
+        )}
+
         {canRunRiskReviewActions ? (
-          <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-3">
-            <p className="text-xs font-medium text-emerald-200">Actions de revue disponibles</p>
-            <p className="mt-1 text-xs text-emerald-100/90">
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/8 px-4 py-3">
+            <p className="text-xs font-semibold text-emerald-200">Actions de revue disponibles</p>
+            <p className="mt-1 text-[11px] text-emerald-100/80">
               Wakama prépare et documente. L&apos;assureur reste décisionnaire.
             </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-3">
-            <p className="text-xs font-medium text-amber-200">Actions non actionnables dans ce statut</p>
-            <p className="mt-1 text-xs text-amber-100/90">
+          <div className="rounded-xl border border-amber-400/25 bg-amber-400/8 px-4 py-3">
+            <p className="text-xs font-semibold text-amber-200">Actions non actionnables dans ce statut</p>
+            <p className="mt-1 text-[11px] text-amber-100/80">
               Ce statut ne peut pas être modifié dans cette phase. Wakama prépare et documente. L&apos;assureur reste décisionnaire.
             </p>
           </div>
@@ -1924,13 +2105,13 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           </p>
         </div>
 
-        <p className="text-xs text-slate-400">
+        <p className="text-[11px] text-slate-500">
           Aucune mission, aucun RAX, aucun pricing, aucune police, aucun sinistre et aucun ancrage blockchain ne sont déclenchés depuis cette revue.
         </p>
-        <p className="text-xs text-brand-textMuted">
+        <p className="text-[11px] text-slate-500">
           Wakama prépare et documente. L&apos;assureur reste décisionnaire.
         </p>
-      </Card>
+      </DcaSectionCard>
     </div>
   );
 }
