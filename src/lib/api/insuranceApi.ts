@@ -31,6 +31,7 @@ export interface InsuranceApiResponse<T> {
 }
 
 interface RequestOptions extends Omit<RequestInit, "body"> {
+  authToken?: string | null;
   requiresAuth?: boolean;
   query?: Record<string, string | number | boolean | null | undefined>;
   body?: unknown;
@@ -85,10 +86,6 @@ function readCandidateToken(value: string | null | undefined): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   return trimmed;
-}
-
-function readAuthToken(): string | null {
-  return readCandidateToken(getBackendAuthToken());
 }
 
 function resolveStateFromPayload(payload: unknown): {
@@ -156,36 +153,36 @@ export async function request<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<InsuranceApiResponse<T>> {
-  const token = readAuthToken();
-  if (options.requiresAuth && !token) {
-    return {
-      ok: false,
-      state: "AUTH_REQUIRED",
-      status: 401,
-      source: "UNAVAILABLE",
-      disclosure: resolveDisclosure("AUTH_REQUIRED"),
-      data: null,
-      errorMessage: "Missing backend token",
-    };
-  }
-
-  const headers = new Headers(options.headers);
+  const {
+    authToken,
+    body,
+    headers: headerInit,
+    method = "GET",
+    query,
+    requiresAuth,
+    ...fetchOptions
+  } = options;
+  void requiresAuth;
+  const token = readCandidateToken(authToken) ?? readCandidateToken(getBackendAuthToken());
+  const headers = new Headers(headerInit);
   headers.set("Accept", "application/json");
-  if (token) {
+  if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const hasBody = options.body !== undefined;
+  const hasBody = body !== undefined;
   if (hasBody && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
   try {
-    const response = await fetch(buildUrl(path, options.query), {
-      method: options.method ?? "GET",
+    const response = await fetch(buildUrl(path, query), {
+      ...fetchOptions,
+      method,
       headers,
       cache: "no-store",
-      body: hasBody ? JSON.stringify(options.body) : undefined,
+      credentials: "include",
+      body: hasBody ? JSON.stringify(body) : undefined,
     });
 
     const text = await response.text();

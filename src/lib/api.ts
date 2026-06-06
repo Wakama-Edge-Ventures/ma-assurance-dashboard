@@ -21,7 +21,7 @@ export class ApiError extends Error {
 }
 
 export interface InstitutionLoginResult {
-  token: string;
+  token: string | null;
   payload: unknown;
 }
 
@@ -537,6 +537,7 @@ export async function institutionLogin(
       "Content-Type": "application/json",
     },
     cache: "no-store",
+    credentials: "include",
     body: JSON.stringify({ email, password }),
   });
 
@@ -547,7 +548,7 @@ export async function institutionLogin(
     throw new ApiError(response.status, message, payload);
   }
 
-  const token = extractJwtFromLoginPayload(payload);
+  const token = extractJwtFromLoginPayload(payload) ?? "__cookie-session__";
   if (!token) {
     throw new ApiError(
       502,
@@ -559,24 +560,29 @@ export async function institutionLogin(
   return { token, payload };
 }
 
-export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getBackendAuthToken();
-  const headers = new Headers(options.headers);
-  const method = options.method?.toUpperCase();
+export async function apiFetch<T>(
+  path: string,
+  options: RequestInit & { authToken?: string | null } = {},
+): Promise<T> {
+  const { authToken, ...requestOptions } = options;
+  const token = authToken ?? getBackendAuthToken();
+  const headers = new Headers(requestOptions.headers);
+  const method = requestOptions.method?.toUpperCase();
   const isReadOnlyGet = !method || method === "GET";
   const hasAuthorization = headers.has("Authorization");
 
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
   }
-  if (token) {
+  if (token && !hasAuthorization) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
   const requestInit: RequestInit = {
-    ...options,
+    ...requestOptions,
     headers,
     cache: "no-store",
+    credentials: "include",
   };
 
   const response = await fetch(toUrl(path), requestInit);

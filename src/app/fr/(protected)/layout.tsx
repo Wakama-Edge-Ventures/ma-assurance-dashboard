@@ -1,28 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { DashboardFooter } from "@/components/layout/dashboard-footer";
 import { Header } from "@/components/layout/header";
 import { MobileNav, Sidebar } from "@/components/layout/sidebar";
-import { isAuthenticated } from "@/lib/auth";
+import { restoreAuthSession } from "@/lib/auth";
 
 export default function ProtectedLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const router = useRouter();
-  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.replace("/fr/login");
-      return;
+    let cancelled = false;
+
+    async function bootstrapSession() {
+      const authenticated = await restoreAuthSession();
+      if (cancelled) return;
+
+      if (!authenticated) {
+        router.replace("/fr/login");
+        return;
+      }
+
+      setReady(true);
     }
-    setReady(true);
-  }, [pathname, router]);
+
+    void bootstrapSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("wakama_sidebar_collapsed");

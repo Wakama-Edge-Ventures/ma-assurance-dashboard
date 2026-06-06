@@ -10,8 +10,7 @@ import {
   clearAuth,
   consumeAuthNotice,
   establishDashboardSession,
-  isAuthenticated,
-  setBackendAuthToken,
+  restoreAuthSession,
 } from "@/lib/auth";
 import { ApiError, institutionLogin } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -28,9 +27,20 @@ export default function LoginPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      router.replace("/fr/dashboard");
+    let cancelled = false;
+
+    async function bootstrapSession() {
+      const authenticated = await restoreAuthSession();
+      if (!cancelled && authenticated) {
+        router.replace("/fr/dashboard");
+      }
     }
+
+    void bootstrapSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   useEffect(() => {
@@ -86,13 +96,19 @@ export default function LoginPage() {
 
     try {
       const result = await institutionLogin(cleanedEmail, cleanedPassword);
-      setBackendAuthToken(result.token);
-
       const identity = extractIdentity(result.payload);
       establishDashboardSession({
         email: identity.email ?? cleanedEmail,
         fullName: identity.fullName,
       });
+
+      const authenticated = await restoreAuthSession();
+      if (!authenticated) {
+        throw new ApiError(
+          502,
+          "Connexion backend incomplète: cookie de session introuvable après login.",
+        );
+      }
 
       router.replace("/fr/dashboard");
     } catch (submitError) {

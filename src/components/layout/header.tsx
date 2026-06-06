@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Activity, LogOut, Search } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { getDemoUser, signOut } from "@/lib/auth";
+import { AUTH_CHANGED_EVENT, getAuthenticatedUser, signOut } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 import { Button } from "../ui/button";
@@ -16,8 +16,17 @@ export function Header() {
   const [userName, setUserName] = useState("Utilisateur");
 
   useEffect(() => {
-    const user = getDemoUser();
-    if (user) setUserName(user.fullName);
+    const syncUser = () => {
+      const user = getAuthenticatedUser();
+      setUserName(user?.fullName ?? "Utilisateur");
+    };
+
+    syncUser();
+    window.addEventListener(AUTH_CHANGED_EVENT, syncUser);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncUser);
+    };
   }, []);
 
   const currentPage =
@@ -28,6 +37,7 @@ export function Header() {
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
+  const isApplicationsPage = pathname.startsWith("/fr/applications");
 
   return (
     <header className="sticky top-0 z-20 flex items-center gap-[18px] border-b border-slate-400/10 bg-[#070b17]/45 px-[30px] py-[18px] backdrop-blur-lg">
@@ -35,7 +45,7 @@ export function Header() {
       <div className="flex flex-col leading-[1.15]">
         <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-400">
           <Activity className="h-3 w-3" />
-          Live telemetry
+          Télémétrie en direct
         </span>
         <span className="mt-0.5 font-display text-[20px] font-semibold tracking-[-0.01em] text-white">
           {currentPage.charAt(0).toUpperCase() + currentPage.slice(1)}
@@ -49,7 +59,7 @@ export function Header() {
           placeholder="Rechercher agriculteur, parcelle, alerte…"
           className="w-full border-0 bg-transparent text-[13px] text-slate-200 outline-none placeholder:text-slate-500"
           readOnly
-          aria-label="Search"
+          aria-label="Recherche"
         />
       </div>
 
@@ -57,11 +67,16 @@ export function Header() {
       <div className="ml-auto flex items-center gap-3">
         <ThemeToggle />
 
-        {/* LIVE badge */}
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/28 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-emerald-400">
-          <span className="oracle-live-dot inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-          Live
-        </span>
+        {isApplicationsPage ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/22 bg-slate-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-slate-300">
+            Source par dossier
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/28 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-emerald-400">
+            <span className="oracle-live-dot inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            Live
+          </span>
+        )}
 
         {/* User section */}
         <div className="flex items-center gap-2.5 border-l border-slate-400/10 pl-3.5">
@@ -82,8 +97,8 @@ export function Header() {
 
         <Button
           variant="ghost"
-          onClick={() => {
-            signOut();
+          onClick={async () => {
+            await signOut();
             router.push("/fr/login");
           }}
           className="gap-1.5 whitespace-nowrap rounded-[10px] border border-slate-400/10 text-slate-400 hover:border-red-400/30 hover:text-red-400"
