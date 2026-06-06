@@ -379,6 +379,16 @@ export interface InsuranceDcaPreparedDocument {
   url?: string | null;
   createdAt?: string | null;
   source: DataSource;
+  // Phase 1.5C — document reception metadata from backend upload
+  hasUploadedFile?: boolean | null;
+  originalFilename?: string | null;
+  storedFilename?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  sha256Hash?: string | null;
+  receivedAt?: string | null;
+  storageProvider?: string | null;
+  sourceLabel?: string | null;
 }
 
 export interface InsuranceDcaApplication {

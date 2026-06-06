@@ -1185,42 +1185,117 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         )}
       </DcaSectionCard>
 
-      {/* ── 4. Documents préparés ── */}
+      {/* ── 4. Documents reçus ── */}
       <DcaSectionCard accent="slate">
         <DcaSectionHeader
           kicker="Pièces justificatives"
-          title="Documents préparés"
+          title="Documents DCA reçus"
           subtitle="Dossier structuré par Wakama pour l'assureur"
           accent="slate"
         />
+
+        <p className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-2 text-xs text-slate-400">
+          Cette section confirme uniquement la réception serveur des pièces. La revue documentaire, l&apos;OCR et l&apos;ouverture sécurisée seront traités dans une phase ultérieure.
+        </p>
+
         {application.preparedDocuments.length === 0 ? (
-          <p className="text-sm text-slate-400">Aucun document préparé disponible pour ce dossier.</p>
+          <p className="text-sm text-slate-400">Aucun document disponible pour ce dossier.</p>
         ) : (
           <div className="space-y-3">
-            {application.preparedDocuments.map((doc, index) => (
-              <div
-                key={`${doc.id ?? "doc"}-${index}`}
-                className="grid gap-3 rounded-xl border border-slate-400/10 bg-slate-900/35 p-4 md:grid-cols-3"
-              >
-                <DcaInfoTile label="Type" value={doc.type ?? "—"} />
-                <DcaInfoTile label="Libellé / Fichier" value={doc.label ?? doc.filename ?? doc.name ?? doc.type ?? "—"} />
-                <DcaInfoTile label="Statut" value={formatDocumentStatusFr(doc.status)} />
-                <DcaInfoTile label="Date" value={formatDate(doc.createdAt)} />
-                <DcaInfoTile label="Source" value={<DcaSourceBadge source={doc.source} />} />
-                {doc.url && (
-                  <div className="flex items-end">
-                    <a
-                      href={doc.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-lg border border-cyan-400/30 bg-cyan-500/8 px-3 py-1.5 text-xs text-cyan-300 hover:bg-cyan-500/15"
-                    >
-                      Ouvrir document
-                    </a>
+            {application.preparedDocuments.map((doc, index) => {
+              const received = doc.hasUploadedFile === true;
+              return (
+                <div
+                  key={`${doc.id ?? "doc"}-${index}`}
+                  className="rounded-xl border border-slate-400/10 bg-slate-900/35 p-4 space-y-3"
+                >
+                  {/* Header row: type + reception badge */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-slate-200">
+                      {doc.type ?? doc.label ?? doc.name ?? "Document"}
+                    </span>
+                    {received ? (
+                      <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-200">
+                        Reçu backend
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-slate-400/25 bg-slate-800/50 px-2.5 py-0.5 text-[11px] text-slate-400">
+                        Préparé / en attente fichier
+                      </span>
+                    )}
+                    <DcaSourceBadge source={doc.sourceLabel ?? doc.source} />
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* Metadata grid */}
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <DcaInfoTile label="Libellé" value={doc.label ?? doc.filename ?? doc.name ?? doc.type ?? "—"} />
+                    <DcaInfoTile label="Statut métier" value={formatDocumentStatusFr(doc.status)} />
+                    <DcaInfoTile label="Date préparation" value={formatDate(doc.createdAt)} />
+                    {received && (
+                      <>
+                        <DcaInfoTile label="Nom original" value={doc.originalFilename ?? doc.filename ?? "—"} mono />
+                        <DcaInfoTile label="Type MIME" value={doc.mimeType ?? "—"} mono />
+                        <DcaInfoTile
+                          label="Taille"
+                          value={
+                            doc.sizeBytes !== null && doc.sizeBytes !== undefined
+                              ? doc.sizeBytes >= 1_048_576
+                                ? `${(doc.sizeBytes / 1_048_576).toFixed(2)} Mo`
+                                : doc.sizeBytes >= 1024
+                                  ? `${(doc.sizeBytes / 1024).toFixed(1)} Ko`
+                                  : `${doc.sizeBytes} o`
+                              : "—"
+                          }
+                        />
+                        <DcaInfoTile label="Reçu le" value={formatDate(doc.receivedAt ?? doc.createdAt)} />
+                        <DcaInfoTile label="Fournisseur stockage" value={doc.storageProvider ?? "—"} />
+                        {doc.sha256Hash && (
+                          <div className="space-y-0.5 md:col-span-3">
+                            <p className="text-[10px] uppercase tracking-wide text-slate-500">Hash SHA-256</p>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs text-slate-300 break-all">
+                                {doc.sha256Hash.length > 16
+                                  ? `${doc.sha256Hash.slice(0, 8)}…${doc.sha256Hash.slice(-8)}`
+                                  : doc.sha256Hash}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => { void navigator.clipboard.writeText(doc.sha256Hash!); }}
+                                className="shrink-0 rounded border border-slate-400/20 bg-slate-800/50 px-2 py-0.5 text-[10px] text-slate-400 hover:bg-slate-700/50"
+                              >
+                                Copier
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Download button — always disabled in Phase 1.5C */}
+                  <div className="flex items-center gap-3">
+                    {doc.url && !received ? (
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg border border-slate-400/20 bg-slate-800/40 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-700/40"
+                      >
+                        Ouvrir document (lien existant)
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="cursor-not-allowed rounded-lg border border-slate-400/15 bg-slate-800/30 px-3 py-1.5 text-xs text-slate-500"
+                      >
+                        Téléchargement sécurisé non disponible en Phase 1.5C
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </DcaSectionCard>

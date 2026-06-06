@@ -343,6 +343,9 @@ function mapDcaPreparedDocuments(
     const docType = asStringLike(o?.type ?? o?.documentType) ?? null;
     const name = asStringLike(o?.name ?? o?.fileName ?? o?.label ?? docType) ?? null;
     const sourceFromPayload = o?.source ?? o?.sourceLabel ?? o?.dataSource;
+    const sizeRaw = o?.sizeBytes ?? o?.size ?? o?.fileSize;
+    const sizeBytes =
+      typeof sizeRaw === "number" && Number.isFinite(sizeRaw) ? sizeRaw : null;
     return {
       id: asStringLike(o?.id ?? o?.documentId) ?? null,
       type: docType,
@@ -353,6 +356,18 @@ function mapDcaPreparedDocuments(
       url: toSafeUrl(o?.url ?? o?.downloadUrl ?? o?.fileUrl),
       createdAt: asStringLike(o?.createdAt ?? o?.uploadedAt ?? o?.generatedAt) ?? null,
       source: asSource(sourceFromPayload, fallbackSource),
+      // Phase 1.5C — backend upload metadata
+      hasUploadedFile:
+        typeof o?.hasUploadedFile === "boolean" ? o.hasUploadedFile : null,
+      originalFilename:
+        asStringLike(o?.originalFilename ?? o?.originalFileName) ?? null,
+      storedFilename: asStringLike(o?.storedFilename ?? o?.storedFileName) ?? null,
+      mimeType: asStringLike(o?.mimeType ?? o?.contentType) ?? null,
+      sizeBytes,
+      sha256Hash: asStringLike(o?.sha256Hash ?? o?.hash ?? o?.checksum) ?? null,
+      receivedAt: asStringLike(o?.receivedAt ?? o?.uploadedAt) ?? null,
+      storageProvider: asStringLike(o?.storageProvider ?? o?.storage) ?? null,
+      sourceLabel: asStringLike(o?.sourceLabel ?? o?.dataSource) ?? null,
     };
   });
 }
