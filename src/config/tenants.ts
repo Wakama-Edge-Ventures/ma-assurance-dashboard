@@ -48,10 +48,10 @@ export const TENANT_IDS = [
 export const TENANTS: Record<TenantId, TenantConfig> = {
   "assurance-ma": {
     id: "assurance-ma",
-    displayName: "Wakama Assurance Maroc",
-    shortName: "Assurance MA",
+    displayName: "Assurance",
+    shortName: "Assurance",
     country: "MA",
-    countryLabel: "Maroc",
+    countryLabel: "",
     currency: "MAD",
     locale: "fr-MA",
     institutionType: "Assureur",
@@ -82,7 +82,7 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
       showDemoBadge: false,
     },
     demoMode: false,
-    disclaimerLabel: "Parcours Assurance Maroc",
+    disclaimerLabel: "Parcours assurance",
   },
   "bni-ci": {
     id: "bni-ci",
@@ -94,7 +94,7 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
     locale: "fr-CI",
     institutionType: "Banque",
     vertical: "Credit agricole",
-    logoPath: "fallback:wakama",
+    logoPath: "/tenants/bni-ci/logo.png",
     colors: {
       primary: "#16a34a",
       secondary: "#f59e0b",
@@ -132,7 +132,7 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
     locale: "fr-CI",
     institutionType: "Programme de developpement",
     vertical: "Programme agricole",
-    logoPath: "fallback:wakama",
+    logoPath: "/tenants/bad-program/logo.png",
     colors: {
       primary: "#2563eb",
       secondary: "#14b8a6",

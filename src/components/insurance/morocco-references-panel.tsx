@@ -137,14 +137,14 @@ export function MoroccoReferencesPanel() {
   if (loading) {
     return (
       <div className="rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4 text-xs text-slate-400">
-        Chargement des référentiels Maroc live...
+        Chargement des referentiels live...
       </div>
     );
   }
 
   if (!state) {
     return (
-      <DegradedStateCard description="Impossible de charger les référentiels géographiques et hydrographiques Maroc." />
+      <DegradedStateCard description="Impossible de charger les referentiels geographiques et hydrographiques live." />
     );
   }
 
@@ -179,7 +179,7 @@ export function MoroccoReferencesPanel() {
       <div className="rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="font-mono text-[11px] uppercase tracking-[0.12em] text-slate-300">
-            Référentiels Maroc live
+            Referentiels live
           </h3>
           <SourceBadge source={authRequired ? "UNAVAILABLE" : "LIVE"} />
           {FALLBACK_ENABLED && <SourceBadge source="SEED_DEMO" />}
@@ -190,14 +190,14 @@ export function MoroccoReferencesPanel() {
       </div>
 
       {authRequired && (
-        <AuthRequiredCard description="Les routes /v1/morocco/* sont protégées. Sans token backend, l’interface affiche un mode de repli SEED_DEMO clairement étiqueté." />
+        <AuthRequiredCard description="Les routes de referentiels live sont protegees. Sans token backend, l'interface affiche un mode de repli SEED_DEMO clairement etiquete." />
       )}
       {forbidden && (
-        <AccessDeniedCard description="Acces refuse sur les referentiels Maroc (403). Verifiez le role du JWT." />
+        <AccessDeniedCard description="Acces refuse sur les referentiels live (403). Verifiez le role du JWT." />
       )}
 
       {allRows.length === 0 && (
-        <EmptyLiveDataCard description="Aucune donnée Morocco live disponible actuellement." />
+        <EmptyLiveDataCard description="Aucune donnee live disponible actuellement." />
       )}
 
       {ouedElMakhazine ? (

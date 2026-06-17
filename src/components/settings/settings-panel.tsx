@@ -100,7 +100,7 @@ type SetFn = <K extends keyof SettingsConfig>(
 
 const DEFAULT_CONFIG: SettingsConfig = {
   companyName: "Assureur Demo SA",
-  country: "Maroc",
+  country: "Regional",
   currency: "MAD",
   insurerType: "MAMDA",
   operatingMode: "DEMO",

@@ -1,12 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 
-import logo from "@/img/wakama_logo.png";
 import { TenantBadge } from "@/components/tenant/TenantBadge";
+import { TenantLogo } from "@/components/tenant/TenantLogo";
 import { useTenant } from "@/components/tenant/useTenant";
 import {
   clearAuth,
@@ -137,12 +136,10 @@ export function LoginPageClient() {
   }
 
   const contextualLoginTitle =
-    tenant.id === "assurance-ma"
-      ? "Connexion Wakama Assurance"
-      : `Connexion ${tenant.displayName}`;
+    tenant.id === "assurance-ma" ? "Connexion Assurance" : `Connexion ${tenant.displayName}`;
   const contextualLoginDescription =
     tenant.id === "assurance-ma"
-      ? "Connexion institutionnelle au backend assurance Wakama Maroc."
+      ? "Connexion institutionnelle au dashboard assurance."
       : `Acces demo ${tenant.countryLabel} - ${tenant.vertical}. Le backend reste celui du dashboard assurance existant.`;
 
   return (
@@ -163,13 +160,19 @@ export function LoginPageClient() {
 
         <div className="mb-5 space-y-3">
           <div className="flex items-center gap-3">
-            <Image src={logo} alt={tenant.displayName} className="h-9 w-auto" priority />
+            <TenantLogo
+              alt={tenant.displayName}
+              className="h-9 w-auto object-contain"
+              width={180}
+              height={72}
+              priority
+            />
             <div className="leading-tight">
               <p className="font-display text-[15px] font-semibold text-slate-900 dark:text-slate-100">
                 {tenant.displayName}
               </p>
               <p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-brand-textMuted">
-                {tenant.countryLabel} · {tenant.institutionType}
+                {[tenant.countryLabel, tenant.institutionType].filter(Boolean).join(" · ")}
               </p>
             </div>
           </div>

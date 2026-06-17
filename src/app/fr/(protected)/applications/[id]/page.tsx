@@ -1190,7 +1190,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         </div>
         {hasCountryMismatch && (
           <div className="rounded-xl border border-amber-400/25 bg-amber-400/8 px-4 py-2.5 text-xs text-amber-200">
-            Attention : métadonnée pays parcelle incohérente avec la DCA Maroc. À vérifier côté backend.
+            Attention : metadonnee pays parcelle incoherente avec la DCA. A verifier cote backend.
           </div>
         )}
       </DcaSectionCard>

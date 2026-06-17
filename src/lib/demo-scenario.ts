@@ -47,7 +47,7 @@ export interface DemoScenario {
 
 export const DEMO_SCENARIO: DemoScenario = {
   scenarioId: DEMO_SCENARIO_ID,
-  title: "Parcours assurance agricole — Dossier céréales Maroc",
+  title: "Parcours assurance agricole — Dossier cereales",
   subtitle: "Dossier complet de bout en bout · Blé tendre Meknès · Youssef El Amrani",
   source: "SEED_DEMO",
   disclosureText:

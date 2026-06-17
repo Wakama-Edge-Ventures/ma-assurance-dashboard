@@ -23,9 +23,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wakama Assurance MA Dashboard",
+  title: "Wakama Assurance Dashboard",
   description:
-    "Dashboard B2B Wakama Morocco pour l'orchestration technique assurance agricole.",
+    "Dashboard B2B Wakama pour l'orchestration technique assurance agricole.",
 };
 
 export default function RootLayout({

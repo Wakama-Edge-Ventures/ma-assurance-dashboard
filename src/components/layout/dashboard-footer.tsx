@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
-import logo from "@/img/wakama_logo.png";
 import { TenantBadge } from "@/components/tenant/TenantBadge";
+import { TenantLogo } from "@/components/tenant/TenantLogo";
 import { useTenant } from "@/components/tenant/useTenant";
 
 const FOOTER_LINKS = [
@@ -26,11 +25,16 @@ export function DashboardFooter() {
     <footer className="w-full border-t border-slate-400/10 bg-[#070b17]/60">
       <div className="flex flex-wrap items-center gap-4 border-b border-slate-400/6 px-8 py-4">
         <div className="flex items-center gap-2.5">
-          <Image src={logo} alt={tenant.displayName} className="h-6 w-auto flex-none object-contain" />
+          <TenantLogo
+            alt={tenant.displayName}
+            className="h-6 w-auto flex-none object-contain"
+            width={144}
+            height={48}
+          />
           <div className="flex flex-col">
             <span className="text-[12.5px] font-medium text-slate-400">{tenant.displayName}</span>
             <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-slate-500">
-              {tenant.countryLabel} · {tenant.vertical}
+              {[tenant.countryLabel, tenant.vertical].filter(Boolean).join(" · ")}
             </span>
           </div>
         </div>

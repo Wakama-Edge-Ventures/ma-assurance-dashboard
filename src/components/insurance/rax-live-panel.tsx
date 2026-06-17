@@ -1113,7 +1113,7 @@ export function RaxLivePanel() {
         <SourceBadge source={authRequired ? "UNAVAILABLE" : "LIVE"} />
       </div>
       <p className="text-xs text-slate-300">
-        Pre-dossier technique Maroc (phase 28/29): ce parcours prepare un score technique RAX/WRS.
+        Pre-dossier technique (phase 28/29): ce parcours prepare un score technique RAX/WRS.
         Ce n&apos;est pas un onboarding farmer/cooperative/parcelle ni une decision assureur.
       </p>
 
@@ -1152,7 +1152,7 @@ export function RaxLivePanel() {
         <div className="md:col-span-3 rounded-lg border border-cyan-400/20 bg-cyan-400/6 px-3 py-2 text-xs text-slate-200">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-cyan-200">
-              Pre-dossier technique Maroc
+            Pre-dossier technique
             </p>
             <SourceBadge source={form.preDossierSource} />
             {technicalPreDossier ? (

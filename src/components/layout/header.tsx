@@ -43,6 +43,7 @@ export function Header() {
     .join("");
   const isApplicationsPage = pathname.startsWith("/fr/applications");
   const titlePrefix = tenant.id === "assurance-ma" ? "Telemetrie en direct" : tenant.shortName;
+  const tenantScopeLabel = [tenant.countryLabel, tenant.institutionType].filter(Boolean).join(" · ");
   const searchPlaceholder =
     tenant.id === "assurance-ma"
       ? "Rechercher agriculteur, parcelle, alerte..."
@@ -82,7 +83,7 @@ export function Header() {
             color: tenant.colors.primary,
           }}
         >
-          {tenant.countryLabel} · {tenant.institutionType}
+          {tenantScopeLabel}
         </span>
 
         <TenantBadge className="hidden md:inline-flex" />

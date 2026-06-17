@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ComponentType } from "react";
@@ -24,8 +23,8 @@ import {
   Users,
 } from "lucide-react";
 
-import logo from "@/img/wakama_logo.png";
 import { TenantBadge } from "@/components/tenant/TenantBadge";
+import { TenantLogo } from "@/components/tenant/TenantLogo";
 import { useTenant } from "@/components/tenant/useTenant";
 import { withAlpha } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
@@ -53,10 +52,10 @@ const BASE_NAV_GROUPS: NavGroup[] = [
     items: [{ key: "dashboard", href: "/fr/dashboard", label: "Tableau de bord", icon: Home }],
   },
   {
-    label: "Données",
+    label: "Donnees",
     items: [
       { key: "farmers", href: "/fr/farmers", label: "Agriculteurs", icon: Tractor },
-      { key: "cooperatives", href: "/fr/cooperatives", label: "Coopératives", icon: Users },
+      { key: "cooperatives", href: "/fr/cooperatives", label: "Cooperatives", icon: Users },
       { key: "alerts", href: "/fr/alerts", label: "Alertes Wakama", icon: Bell },
     ],
   },
@@ -78,7 +77,7 @@ const BASE_NAV_GROUPS: NavGroup[] = [
       { key: "claims", href: "/fr/claims", label: "Sinistres", icon: Handshake },
       { key: "analytics", href: "/fr/analytics", label: "Analytics", icon: BarChart3 },
       { key: "reports", href: "/fr/reports", label: "Rapports", icon: FileChartColumnIncreasing },
-      { key: "settings", href: "/fr/settings", label: "Paramètres", icon: Settings },
+      { key: "settings", href: "/fr/settings", label: "Parametres", icon: Settings },
     ],
   },
 ];
@@ -90,10 +89,10 @@ function getTenantNavGroups(tenant: ReturnType<typeof useTenant>["tenant"]): Nav
 
   return BASE_NAV_GROUPS.map((group) => {
     const nextLabel =
-      group.label === "Données"
+      group.label === "Donnees"
         ? tenant.id === "assurance-ma"
-          ? "Données Wakama"
-          : "Données partagées"
+          ? "Donnees Wakama"
+          : "Donnees partagees"
         : group.label === "Parcours"
           ? groupLabel
           : group.label;
@@ -171,7 +170,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       )}
     >
       <div className={cn("mb-5 flex items-center", collapsed ? "justify-center" : "gap-3 px-1.5")}>
-        <Image src={logo} alt={tenant.displayName} className="h-8 w-auto flex-none object-contain" priority />
+        <TenantLogo
+          alt={tenant.displayName}
+          className="h-8 w-auto flex-none object-contain"
+          width={160}
+          height={64}
+          priority
+        />
         {!collapsed && (
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="truncate font-display text-[15px] font-semibold tracking-[-0.01em] text-white">

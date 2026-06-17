@@ -142,14 +142,14 @@ export default async function FarmersPage() {
 
       {showDemoWarningBanner ? (
         <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          Les agriculteurs affichés ci-dessous sont des exemples SEED_DEMO. Aucun agriculteur LIVE n’est encore enregistré dans le backend Maroc.
+          Les agriculteurs affiches ci-dessous sont des exemples SEED_DEMO. Aucun agriculteur LIVE n&apos;est encore enregistre dans le backend assurance.
         </div>
       ) : null}
 
       {showLiveEmptyState ? (
         <EmptyLiveDataCard
           title="Aucun agriculteur LIVE"
-          description="Le backend Maroc est prêt, mais les vrais agriculteurs seront créés via le tunnel Farmer/Agent."
+          description="Le backend assurance est pret, mais les vrais agriculteurs seront crees via le tunnel Farmer/Agent."
         />
       ) : null}
 
