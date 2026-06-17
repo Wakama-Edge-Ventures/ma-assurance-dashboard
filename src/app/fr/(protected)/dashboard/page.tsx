@@ -1,9 +1,11 @@
+import { cookies, headers } from "next/headers";
 import { type ReactNode } from "react";
 import { type LucideIcon, AlertTriangle, Bell, Cpu, FileText, MapPin, Shield, Users } from "lucide-react";
 
 import { DashboardDemoSection } from "@/components/demo/dashboard-demo-section";
 import { LiveHealthPanel } from "@/components/insurance/live-health-panel";
 import { WakamaAlertSeverityBadge } from "@/components/shared/wakama-alert-severity-badge";
+import { TenantDashboardLanding } from "@/components/tenant/TenantDashboardLanding";
 import { Badge } from "@/components/ui/badge";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
@@ -14,6 +16,7 @@ import {
   getRaxEvaluations,
   getSharedWakamaDataOverview,
 } from "@/lib/insurance-service";
+import { resolveTenantId, TENANT_COOKIE_NAME } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/workflow";
 
@@ -91,6 +94,16 @@ function SectionHeader({ label, badge, children }: { label: string; badge?: Reac
 }
 
 export default async function DashboardPage() {
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+  const tenantId = resolveTenantId(
+    headerStore.get("x-wakama-tenant") ?? cookieStore.get(TENANT_COOKIE_NAME)?.value,
+  );
+
+  if (tenantId !== "assurance-ma") {
+    return <TenantDashboardLanding />;
+  }
+
   const [applications, policies, claims, raxEvaluations, sharedOverview] = await Promise.all([
     getInsuranceApplications(),
     getInsurancePolicies(),
