@@ -1,12 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 
 import { TenantBadge } from "@/components/tenant/TenantBadge";
 import { TenantLogo } from "@/components/tenant/TenantLogo";
-import { useTenant } from "@/components/tenant/useTenant";
 import {
   clearAuth,
   consumeAuthNotice,
@@ -14,21 +13,51 @@ import {
   restoreAuthSession,
 } from "@/lib/auth";
 import { ApiError, institutionLogin } from "@/lib/api";
-import { getTenantPostLoginPath, withAlpha } from "@/lib/tenant";
+import {
+  getTenantById,
+  getTenantPostLoginPath,
+  isTenantId,
+  resolveTenantId,
+  TENANT_COOKIE_NAME,
+  withAlpha,
+} from "@/lib/tenant";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
+function readTenantIdFromCookie() {
+  if (typeof document === "undefined") return null;
+
+  const cookiePrefix = `${TENANT_COOKIE_NAME}=`;
+  const cookieValue = document.cookie
+    .split(";")
+    .map((chunk) => chunk.trim())
+    .find((chunk) => chunk.startsWith(cookiePrefix))
+    ?.slice(cookiePrefix.length);
+
+  return isTenantId(cookieValue) ? cookieValue : null;
+}
+
 export function LoginPageClient() {
   const router = useRouter();
-  const { tenant } = useTenant();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const postLoginPath = getTenantPostLoginPath(tenant.id);
+
+  const tenantId = useMemo(() => {
+    const tenantFromQuery = searchParams.get("tenant");
+    if (isTenantId(tenantFromQuery)) {
+      return tenantFromQuery;
+    }
+
+    return resolveTenantId(readTenantIdFromCookie());
+  }, [searchParams]);
+  const tenant = getTenantById(tenantId);
+  const postLoginPath = getTenantPostLoginPath(tenantId);
 
   useEffect(() => {
     let cancelled = false;
