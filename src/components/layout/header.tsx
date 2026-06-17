@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Activity, LogOut, Search } from "lucide-react";
 
 import { TenantBadge } from "@/components/tenant/TenantBadge";
+import { TenantDemoSwitcher } from "@/components/tenant/TenantDemoSwitcher";
 import { useTenant } from "@/components/tenant/useTenant";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { AUTH_CHANGED_EVENT, getAuthenticatedUser, signOut } from "@/lib/auth";
@@ -86,6 +87,7 @@ export function Header() {
           {tenantScopeLabel}
         </span>
 
+        <TenantDemoSwitcher />
         <TenantBadge className="hidden md:inline-flex" />
         <ThemeToggle />
 
