@@ -14,7 +14,7 @@ import {
   restoreAuthSession,
 } from "@/lib/auth";
 import { ApiError, institutionLogin } from "@/lib/api";
-import { withAlpha } from "@/lib/tenant";
+import { getTenantPostLoginPath, withAlpha } from "@/lib/tenant";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
@@ -28,6 +28,7 @@ export function LoginPageClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const postLoginPath = getTenantPostLoginPath(tenant.id);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +36,7 @@ export function LoginPageClient() {
     async function bootstrapSession() {
       const authenticated = await restoreAuthSession();
       if (!cancelled && authenticated) {
-        router.replace("/fr/dashboard");
+        router.replace(postLoginPath);
       }
     }
 
@@ -44,7 +45,7 @@ export function LoginPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [postLoginPath, router]);
 
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get("reason");
@@ -113,7 +114,7 @@ export function LoginPageClient() {
         );
       }
 
-      router.replace("/fr/dashboard");
+      router.replace(postLoginPath);
     } catch (submitError) {
       clearAuth();
 

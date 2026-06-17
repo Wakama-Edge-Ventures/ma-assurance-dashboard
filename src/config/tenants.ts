@@ -4,6 +4,7 @@ export interface TenantConfig {
   id: TenantId;
   displayName: string;
   shortName: string;
+  postLoginPath: string;
   country: string;
   countryLabel: string;
   currency: string;
@@ -50,6 +51,7 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
     id: "assurance-ma",
     displayName: "Assurance",
     shortName: "Assurance",
+    postLoginPath: "/fr/applications",
     country: "MA",
     countryLabel: "",
     currency: "MAD",
@@ -88,6 +90,7 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
     id: "bni-ci",
     displayName: "BNI Cote d'Ivoire",
     shortName: "BNI CI",
+    postLoginPath: "/fr/dashboard",
     country: "CI",
     countryLabel: "Cote d'Ivoire",
     currency: "XOF",
@@ -126,6 +129,7 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
     id: "bad-program",
     displayName: "BAD Programme Agricole",
     shortName: "BAD Programme",
+    postLoginPath: "/fr/dashboard",
     country: "CI-PANAF",
     countryLabel: "Panafricain / Cote d'Ivoire",
     currency: "XOF",
@@ -164,6 +168,7 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
     id: "wakama",
     displayName: "Wakama Demo Workspace",
     shortName: "Wakama",
+    postLoginPath: "/fr/dashboard",
     country: "PANAF",
     countryLabel: "Panafricain",
     currency: "XOF",
