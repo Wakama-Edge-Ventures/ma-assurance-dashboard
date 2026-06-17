@@ -33,6 +33,18 @@ export function getTenantPostLoginPath(tenantId?: string | null): string {
   return DEFAULT_POST_LOGIN_PATH;
 }
 
+export function getTenantPostLoginUrl(tenantId?: string | null): string {
+  const resolvedTenantId = resolveTenantId(tenantId);
+  const postLoginPath = getTenantPostLoginPath(resolvedTenantId);
+
+  if (!postLoginPath.startsWith("/fr/")) {
+    return `${DEFAULT_POST_LOGIN_PATH}?tenant=${DEFAULT_TENANT_ID}`;
+  }
+
+  const separator = postLoginPath.includes("?") ? "&" : "?";
+  return `${postLoginPath}${separator}tenant=${resolvedTenantId}`;
+}
+
 export function withAlpha(color: string, alphaHex: string): string {
   if (/^#[\da-f]{6}$/i.test(color)) {
     return `${color}${alphaHex}`;

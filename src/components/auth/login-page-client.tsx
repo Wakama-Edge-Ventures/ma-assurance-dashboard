@@ -15,7 +15,7 @@ import {
 import { ApiError, institutionLogin } from "@/lib/api";
 import {
   getTenantById,
-  getTenantPostLoginPath,
+  getTenantPostLoginUrl,
   isTenantId,
   resolveTenantId,
   TENANT_COOKIE_NAME,
@@ -57,7 +57,7 @@ export function LoginPageClient() {
     return resolveTenantId(readTenantIdFromCookie());
   }, [searchParams]);
   const tenant = getTenantById(tenantId);
-  const postLoginPath = getTenantPostLoginPath(tenantId);
+  const postLoginUrl = getTenantPostLoginUrl(tenantId);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,7 +65,7 @@ export function LoginPageClient() {
     async function bootstrapSession() {
       const authenticated = await restoreAuthSession();
       if (!cancelled && authenticated) {
-        router.replace(postLoginPath);
+        router.replace(postLoginUrl);
       }
     }
 
@@ -74,7 +74,7 @@ export function LoginPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [postLoginPath, router]);
+  }, [postLoginUrl, router]);
 
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get("reason");
@@ -143,7 +143,7 @@ export function LoginPageClient() {
         );
       }
 
-      router.replace(postLoginPath);
+      router.replace(postLoginUrl);
     } catch (submitError) {
       clearAuth();
 
