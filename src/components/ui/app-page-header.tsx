@@ -1,5 +1,10 @@
+"use client";
+
 import { ReactNode } from "react";
 
+import { TenantBadge } from "@/components/tenant/TenantBadge";
+import { useTenant } from "@/components/tenant/useTenant";
+import { withAlpha } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
 
 interface AppPageHeaderProps {
@@ -10,24 +15,32 @@ interface AppPageHeaderProps {
 }
 
 export function AppPageHeader({ title, description, note, action }: AppPageHeaderProps) {
+  const { tenant } = useTenant();
   const sharedLive = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
   const insuranceLive = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
+  const kicker =
+    tenant.id === "assurance-ma"
+      ? "Assurance Command Center"
+      : `${tenant.shortName} · ${tenant.vertical}`;
 
   return (
     <div
-      className="relative mb-4 overflow-hidden rounded-[26px] border border-cyan-400/14 p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(248,250,252,0.04)] md:p-8"
+      className="relative mb-4 overflow-hidden rounded-[26px] p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(248,250,252,0.04)] md:p-8"
       style={{
+        border: `1px solid ${withAlpha(tenant.colors.primary, "24")}`,
         background:
           "radial-gradient(560px 320px at 8% 0%, rgba(34,211,238,0.14), transparent 62%), radial-gradient(620px 420px at 100% 120%, rgba(139,92,246,0.16), transparent 60%), linear-gradient(135deg, rgba(16,23,38,0.96), rgba(11,16,30,0.92))",
       }}
     >
-      {/* emerald top-right accent */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(420px_200px_at_92%_-10%,rgba(52,211,153,0.12),transparent_70%)]" />
 
       <div className="relative flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-400">
-            Assurance Command Center
+          <p
+            className="font-mono text-[10px] uppercase tracking-[0.18em]"
+            style={{ color: tenant.colors.primary }}
+          >
+            {kicker}
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-[-0.01em] text-white md:text-3xl">
             {title}
@@ -36,11 +49,22 @@ export function AppPageHeader({ title, description, note, action }: AppPageHeade
             <p className="max-w-2xl text-[14px] leading-relaxed text-slate-400">{description}</p>
           ) : null}
           {note ? (
-            <p className="max-w-2xl border-l-2 border-emerald-400/22 pl-3 text-[12px] text-[#5B6B86]">
+            <p className="max-w-2xl border-l-2 pl-3 text-[12px] text-[#5B6B86]" style={{ borderColor: withAlpha(tenant.colors.secondary, "45") }}>
               {note}
             </p>
           ) : null}
           <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span
+              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase"
+              style={{
+                borderColor: withAlpha(tenant.colors.primary, "45"),
+                backgroundColor: withAlpha(tenant.colors.primary, "12"),
+                color: tenant.colors.primary,
+              }}
+            >
+              {tenant.countryLabel} · {tenant.institutionType}
+            </span>
+            <TenantBadge />
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase",

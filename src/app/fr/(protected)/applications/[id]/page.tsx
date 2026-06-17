@@ -33,6 +33,7 @@ import {
   formatSourceOfTruthFr,
 } from "@/lib/dto-mappers";
 import { InsuranceDcaApplication } from "@/types";
+import { useTenant } from "@/components/tenant/useTenant";
 import { PageTitle } from "@/components/ui/page-title";
 
 interface ApplicationDetailPageProps {
@@ -576,8 +577,17 @@ function hasMissionDispatchForbiddenSideEffects(
 }
 
 export default function ApplicationDetailPage({ params }: ApplicationDetailPageProps) {
+  const { tenant } = useTenant();
   const resolvedParams = use(params);
   const applicationId = resolvedParams.id;
+  const isAssuranceTenant = tenant.id === "assurance-ma";
+  const detailSectionSubtitle = isAssuranceTenant
+    ? "Lecture seule du dossier assurance."
+    : "Lecture seule du dossier institutionnel.";
+  const detailPageTitlePrefix = isAssuranceTenant ? "Dossier DCA" : "Dossier";
+  const detailPageDescription = isAssuranceTenant
+    ? "Lecture seule du détail d'une demande assurance farmer."
+    : "Lecture seule du dossier institutionnel. Les donnees et decisions restent sous controle de l'institution.";
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<InsuranceApplicationByIdResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1027,7 +1037,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         <DcaSectionHeader
           kicker="Détail DCA"
           title={`Dossier ${applicationId}`}
-          subtitle="Lecture seule du dossier assurance."
+          subtitle={detailSectionSubtitle}
           accent="rose"
         />
         <p className="rounded-xl border border-rose-400/20 bg-rose-400/8 px-4 py-3 text-sm text-rose-200">
@@ -1043,7 +1053,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         <DcaSectionHeader
           kicker="Détail DCA"
           title={`Dossier ${applicationId}`}
-          subtitle="Lecture seule du dossier assurance."
+          subtitle={detailSectionSubtitle}
           accent="slate"
         />
         <p className="text-sm text-slate-400">
@@ -1070,8 +1080,8 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
   return (
     <div className="space-y-5">
       <PageTitle
-        title={`Dossier DCA ${application.reference ?? application.dcaNumber ?? application.id}`}
-        description="Lecture seule du détail d'une demande assurance farmer."
+        title={`${detailPageTitlePrefix} ${application.reference ?? application.dcaNumber ?? application.id}`}
+        description={detailPageDescription}
       />
 
       {result?.detailNote ? <p className="text-xs text-slate-400">{result.detailNote}</p> : null}
