@@ -43,7 +43,12 @@ export function Header() {
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
   const isApplicationsPage = pathname.startsWith("/fr/applications");
-  const titlePrefix = tenant.id === "assurance-ma" ? "Telemetrie en direct" : tenant.shortName;
+  const isIdjorPage = pathname.startsWith("/fr/idjor");
+  const titlePrefix = isIdjorPage
+    ? "Socle IDJOR read-only"
+    : tenant.id === "assurance-ma"
+      ? "Telemetrie en direct"
+      : tenant.shortName;
   const tenantScopeLabel = [tenant.countryLabel, tenant.institutionType].filter(Boolean).join(" · ");
   const searchPlaceholder =
     tenant.id === "assurance-ma"
@@ -94,6 +99,10 @@ export function Header() {
         {isApplicationsPage ? (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/22 bg-slate-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-slate-300">
             Source par dossier
+          </span>
+        ) : isIdjorPage ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/28 bg-amber-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-amber-300">
+            Socle read-only
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/28 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-emerald-400">

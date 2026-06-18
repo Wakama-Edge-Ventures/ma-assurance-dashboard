@@ -8,6 +8,7 @@ import {
   Bell,
   BriefcaseBusiness,
   ClipboardCheck,
+  Cpu,
   FileChartColumnIncreasing,
   FileCheck2,
   FileWarning,
@@ -49,7 +50,10 @@ interface SidebarProps {
 const BASE_NAV_GROUPS: NavGroup[] = [
   {
     label: "Overview",
-    items: [{ key: "dashboard", href: "/fr/dashboard", label: "Tableau de bord", icon: Home }],
+    items: [
+      { key: "dashboard", href: "/fr/dashboard", label: "Tableau de bord", icon: Home },
+      { key: "idjor", href: "/fr/idjor", label: "Socle IDJOR", icon: Cpu },
+    ],
   },
   {
     label: "Donnees",

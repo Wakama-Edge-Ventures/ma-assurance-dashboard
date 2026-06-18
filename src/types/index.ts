@@ -7,6 +7,110 @@ export type DataSource =
   | "DEGRADED"
   | "MANUAL_ENTRY";
 
+export interface IdjorFoundationTenant {
+  tenantKey: string;
+  institutionId: string | null;
+  country: string;
+  vertical: string;
+}
+
+export interface IdjorFoundationCounts {
+  agents: number;
+  engines: number;
+  tools: number;
+  providers: number;
+  models: number;
+  featureFlags: number;
+}
+
+export interface IdjorFoundationSecuritySummary {
+  llmEnabled: boolean;
+  vectorStoreEnabled: boolean;
+  decisioningEnabled: boolean;
+  sourceLabels: string[];
+  readOnly: boolean;
+}
+
+export interface IdjorFoundationHealth {
+  tenant: IdjorFoundationTenant;
+  counts: IdjorFoundationCounts;
+  allFeatureFlagsOff: boolean;
+  allProvidersDisabled: boolean;
+  allModelsDisabled: boolean;
+  allToolsReadOnly: boolean;
+  securitySummary: IdjorFoundationSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+interface IdjorRegistryBaseEntry {
+  id: string;
+  displayName: string;
+  isEnabled: boolean;
+  source: DataSource;
+  description: string | null;
+}
+
+export interface IdjorRegistryAgent extends IdjorRegistryBaseEntry {
+  agentKey: string;
+  layer: string;
+  registryStatus: string;
+  isReadOnly: boolean;
+}
+
+export interface IdjorRegistryEngine extends IdjorRegistryBaseEntry {
+  engineKey: string;
+  agentId: string | null;
+  registryStatus: string;
+  isReadOnly: boolean;
+}
+
+export interface IdjorRegistryTool extends IdjorRegistryBaseEntry {
+  toolKey: string;
+  engineId: string | null;
+  accessMode: string;
+  isReadOnly: boolean;
+  allowedRoles: string[];
+}
+
+export interface IdjorFeatureFlag {
+  id: string;
+  targetType: string;
+  targetKey: string;
+  enabled: boolean;
+  rolloutState: string;
+  source: DataSource;
+  notes: string | null;
+}
+
+export interface IdjorProviderCatalog extends IdjorRegistryBaseEntry {
+  providerKey: string;
+  providerType: string;
+  baseUrl: string | null;
+  registryStatus: string;
+}
+
+export interface IdjorModelCatalog extends IdjorRegistryBaseEntry {
+  modelKey: string;
+  providerCatalogId: string | null;
+  modelFamily: string;
+  isDefault: boolean;
+  registryStatus: string;
+}
+
+export interface IdjorFoundationRegistry {
+  tenant: IdjorFoundationTenant;
+  agents: IdjorRegistryAgent[];
+  engines: IdjorRegistryEngine[];
+  tools: IdjorRegistryTool[];
+  featureFlags: IdjorFeatureFlag[];
+  providers: IdjorProviderCatalog[];
+  models: IdjorModelCatalog[];
+  securitySummary: IdjorFoundationSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"

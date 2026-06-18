@@ -3,7 +3,22 @@ import {
   extractArrayFromApiResponse,
   mapInsuranceDcaApplication,
 } from "@/lib/dto-mappers";
-import { InsuranceDcaApplication, InsuranceDcaSideEffects, InsuranceFieldAudit } from "@/types";
+import { normalizeSource } from "@/lib/data-source";
+import {
+  IdjorFeatureFlag,
+  IdjorFoundationHealth,
+  IdjorFoundationRegistry,
+  IdjorFoundationSecuritySummary,
+  IdjorFoundationTenant,
+  IdjorModelCatalog,
+  IdjorProviderCatalog,
+  IdjorRegistryAgent,
+  IdjorRegistryEngine,
+  IdjorRegistryTool,
+  InsuranceDcaApplication,
+  InsuranceDcaSideEffects,
+  InsuranceFieldAudit,
+} from "@/types";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.wakama.farm";
@@ -156,6 +171,21 @@ function toUrl(path: string) {
   return `${base}${safePath}`;
 }
 
+function withQuery(
+  path: string,
+  query: Record<string, string | null | undefined>,
+) {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(query)) {
+    if (!value?.trim()) continue;
+    params.set(key, value.trim());
+  }
+
+  const search = params.toString();
+  return search ? `${path}?${search}` : path;
+}
+
 async function parseJsonSafe(response: Response) {
   const text = await response.text();
   if (!text) return null;
@@ -227,6 +257,255 @@ function readStringArray(record: unknown, key: string): string[] {
   const value = (record as Record<string, unknown>)[key];
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()));
+}
+
+function readArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function mapIdjorTenant(value: unknown): IdjorFoundationTenant | null {
+  const tenant = asObject(value);
+  const tenantKey = readString(tenant, "tenantKey");
+  const country = readString(tenant, "country");
+  const vertical = readString(tenant, "vertical");
+
+  if (!tenantKey || !country || !vertical) {
+    return null;
+  }
+
+  return {
+    tenantKey,
+    institutionId: readString(tenant, "institutionId"),
+    country,
+    vertical,
+  };
+}
+
+function mapIdjorSecuritySummary(value: unknown): IdjorFoundationSecuritySummary {
+  return {
+    llmEnabled: readBooleanLike(value, "llmEnabled") ?? false,
+    vectorStoreEnabled: readBooleanLike(value, "vectorStoreEnabled") ?? false,
+    decisioningEnabled: readBooleanLike(value, "decisioningEnabled") ?? false,
+    sourceLabels: readStringArray(value, "sourceLabels"),
+    readOnly: readBooleanLike(value, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRegistryAgent(value: unknown): IdjorRegistryAgent | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const agentKey = readString(record, "agentKey");
+  const displayName = readString(record, "displayName");
+  const layer = readString(record, "layer");
+
+  if (!id || !agentKey || !displayName || !layer) {
+    return null;
+  }
+
+  return {
+    id,
+    agentKey,
+    displayName,
+    layer,
+    registryStatus: readString(record, "registryStatus") ?? "UNKNOWN",
+    isEnabled: readBooleanLike(record, "isEnabled") ?? false,
+    isReadOnly: readBooleanLike(record, "isReadOnly") ?? true,
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    description: readString(record, "description"),
+  };
+}
+
+function mapIdjorRegistryEngine(value: unknown): IdjorRegistryEngine | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const engineKey = readString(record, "engineKey");
+  const displayName = readString(record, "displayName");
+
+  if (!id || !engineKey || !displayName) {
+    return null;
+  }
+
+  return {
+    id,
+    engineKey,
+    agentId: readString(record, "agentId"),
+    displayName,
+    registryStatus: readString(record, "registryStatus") ?? "UNKNOWN",
+    isEnabled: readBooleanLike(record, "isEnabled") ?? false,
+    isReadOnly: readBooleanLike(record, "isReadOnly") ?? true,
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    description: readString(record, "description"),
+  };
+}
+
+function mapIdjorRegistryTool(value: unknown): IdjorRegistryTool | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const toolKey = readString(record, "toolKey");
+  const displayName = readString(record, "displayName");
+  const accessMode = readString(record, "accessMode");
+
+  if (!id || !toolKey || !displayName || !accessMode) {
+    return null;
+  }
+
+  const allowedRoles = readArray(record?.allowedRolesJson).filter(
+    (item): item is string => typeof item === "string" && Boolean(item.trim()),
+  );
+
+  return {
+    id,
+    toolKey,
+    engineId: readString(record, "engineId"),
+    displayName,
+    accessMode,
+    isEnabled: readBooleanLike(record, "isEnabled") ?? false,
+    isReadOnly: readBooleanLike(record, "isReadOnly") ?? true,
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    description: readString(record, "description"),
+    allowedRoles,
+  };
+}
+
+function mapIdjorFeatureFlag(value: unknown): IdjorFeatureFlag | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const targetType = readString(record, "targetType");
+  const targetKey = readString(record, "targetKey");
+
+  if (!id || !targetType || !targetKey) {
+    return null;
+  }
+
+  return {
+    id,
+    targetType,
+    targetKey,
+    enabled: readBooleanLike(record, "enabled") ?? false,
+    rolloutState: readString(record, "rolloutState") ?? "OFF",
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    notes: readString(record, "notes"),
+  };
+}
+
+function mapIdjorProviderCatalog(value: unknown): IdjorProviderCatalog | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const providerKey = readString(record, "providerKey");
+  const displayName = readString(record, "displayName");
+  const providerType = readString(record, "providerType");
+
+  if (!id || !providerKey || !displayName || !providerType) {
+    return null;
+  }
+
+  return {
+    id,
+    providerKey,
+    displayName,
+    providerType,
+    baseUrl: readString(record, "baseUrl"),
+    isEnabled: readBooleanLike(record, "isEnabled") ?? false,
+    registryStatus: readString(record, "registryStatus") ?? "DISABLED",
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    description: readString(record, "description"),
+  };
+}
+
+function mapIdjorModelCatalog(value: unknown): IdjorModelCatalog | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const modelKey = readString(record, "modelKey");
+  const displayName = readString(record, "displayName");
+  const modelFamily = readString(record, "modelFamily");
+
+  if (!id || !modelKey || !displayName || !modelFamily) {
+    return null;
+  }
+
+  return {
+    id,
+    modelKey,
+    providerCatalogId: readString(record, "providerCatalogId"),
+    displayName,
+    modelFamily,
+    isDefault: readBooleanLike(record, "isDefault") ?? false,
+    isEnabled: readBooleanLike(record, "isEnabled") ?? false,
+    registryStatus: readString(record, "registryStatus") ?? "DISABLED",
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    description: readString(record, "description"),
+  };
+}
+
+function mapIdjorFoundationHealth(payload: unknown): IdjorFoundationHealth {
+  const root = asObject(payload);
+  const tenant = mapIdjorTenant(root?.tenant);
+  const counts = asObject(root?.counts);
+
+  if (!root || !tenant || !counts) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: snapshot IDJOR foundation health incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    tenant,
+    counts: {
+      agents: readNumberLike(counts, "agents") ?? 0,
+      engines: readNumberLike(counts, "engines") ?? 0,
+      tools: readNumberLike(counts, "tools") ?? 0,
+      providers: readNumberLike(counts, "providers") ?? 0,
+      models: readNumberLike(counts, "models") ?? 0,
+      featureFlags: readNumberLike(counts, "featureFlags") ?? 0,
+    },
+    allFeatureFlagsOff: readBooleanLike(root, "allFeatureFlagsOff") ?? false,
+    allProvidersDisabled: readBooleanLike(root, "allProvidersDisabled") ?? false,
+    allModelsDisabled: readBooleanLike(root, "allModelsDisabled") ?? false,
+    allToolsReadOnly: readBooleanLike(root, "allToolsReadOnly") ?? false,
+    securitySummary: mapIdjorSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? false,
+  };
+}
+
+function mapIdjorFoundationRegistry(payload: unknown): IdjorFoundationRegistry {
+  const root = asObject(payload);
+  const tenant = mapIdjorTenant(root?.tenant);
+
+  if (!root || !tenant) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: snapshot IDJOR foundation registry incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    tenant,
+    agents: readArray(root.agents)
+      .map((entry) => mapIdjorRegistryAgent(entry))
+      .filter((entry): entry is IdjorRegistryAgent => entry !== null),
+    engines: readArray(root.engines)
+      .map((entry) => mapIdjorRegistryEngine(entry))
+      .filter((entry): entry is IdjorRegistryEngine => entry !== null),
+    tools: readArray(root.tools)
+      .map((entry) => mapIdjorRegistryTool(entry))
+      .filter((entry): entry is IdjorRegistryTool => entry !== null),
+    featureFlags: readArray(root.featureFlags)
+      .map((entry) => mapIdjorFeatureFlag(entry))
+      .filter((entry): entry is IdjorFeatureFlag => entry !== null),
+    providers: readArray(root.providers)
+      .map((entry) => mapIdjorProviderCatalog(entry))
+      .filter((entry): entry is IdjorProviderCatalog => entry !== null),
+    models: readArray(root.models)
+      .map((entry) => mapIdjorModelCatalog(entry))
+      .filter((entry): entry is IdjorModelCatalog => entry !== null),
+    securitySummary: mapIdjorSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? false,
+  };
 }
 
 function emptyRiskReviewSideEffects(): RiskReviewSideEffects {
@@ -628,6 +907,30 @@ export async function apiFetch<T>(
 
 export async function getInsuranceApplications(): Promise<unknown> {
   return apiFetch<unknown>("/v1/insurance/applications");
+}
+
+export async function getIdjorFoundationHealth(
+  options: { tenantKey?: string | null } = {},
+): Promise<IdjorFoundationHealth> {
+  const payload = await apiFetch<unknown>(
+    withQuery("/v1/idjor/foundation/health", {
+      tenantKey: options.tenantKey ?? null,
+    }),
+  );
+
+  return mapIdjorFoundationHealth(payload);
+}
+
+export async function getIdjorFoundationRegistry(
+  options: { tenantKey?: string | null } = {},
+): Promise<IdjorFoundationRegistry> {
+  const payload = await apiFetch<unknown>(
+    withQuery("/v1/idjor/foundation/registry", {
+      tenantKey: options.tenantKey ?? null,
+    }),
+  );
+
+  return mapIdjorFoundationRegistry(payload);
 }
 
 export interface InsuranceApplicationByIdResult {
