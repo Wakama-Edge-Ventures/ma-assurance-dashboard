@@ -15,6 +15,7 @@ import {
   ScrollText,
   ShieldCheck,
   Sparkles,
+  Upload,
   Wrench,
 } from "lucide-react";
 
@@ -38,8 +39,10 @@ import {
   getIdjorRagDocumentAuditEvents,
   getIdjorRagDocumentIngestionPreview,
   getIdjorRagDocuments,
+  getIdjorRagDocumentUploads,
   getIdjorRagHealth,
   registerIdjorRagDocumentMetadata,
+  uploadIdjorRagDocumentIntake,
 } from "@/lib/api";
 import { withAlpha } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
@@ -53,9 +56,11 @@ import type {
   IdjorRagDocumentAuditEventsPage,
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
+  IdjorRagDocumentUploadsPage,
   IdjorRagHealth,
   IdjorRagIngestionPreview,
   IdjorRagMetadataRegistrationStatus,
+  IdjorRagUploadIntakeResponse,
   IdjorRegisterRagDocumentMetadataResult,
 } from "@/types";
 
@@ -206,6 +211,39 @@ type RagDocumentAuditState =
   | { status: "loading"; documentId: string }
   | { status: "success"; documentId: string; page: IdjorRagDocumentAuditEventsPage }
   | { status: "error"; documentId: string; message: string };
+
+type RagUploadIntakeState =
+  | { status: "idle" }
+  | { status: "uploading"; documentId: string }
+  | { status: "success"; documentId: string; result: IdjorRagUploadIntakeResponse }
+  | { status: "error"; documentId: string; message: string };
+
+type RagUploadsListState =
+  | { status: "idle" }
+  | { status: "loading"; documentId: string }
+  | { status: "success"; documentId: string; page: IdjorRagDocumentUploadsPage }
+  | { status: "error"; documentId: string; message: string };
+
+const RAG_UPLOAD_INTAKE_MAX_BYTES = 10 * 1024 * 1024;
+
+const RAG_UPLOAD_INTAKE_ALLOWED_MIME_TYPES = new Set<string>([
+  "application/pdf",
+  "text/plain",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+function validateRagUploadIntakeFile(file: File): string | null {
+  if (file.size <= 0) {
+    return "Le fichier selectionne est vide.";
+  }
+  if (file.size > RAG_UPLOAD_INTAKE_MAX_BYTES) {
+    return "Le fichier depasse la taille maximale autorisee de 10 Mo.";
+  }
+  if (!RAG_UPLOAD_INTAKE_ALLOWED_MIME_TYPES.has(file.type)) {
+    return "Type de fichier non autorise. Formats acceptes: PDF, TXT, DOCX.";
+  }
+  return null;
+}
 
 const DEFAULT_RAG_REGISTRATION_FORM: RagRegistrationFormState = {
   documentKey: "",
@@ -540,6 +578,15 @@ export function IdjorFoundationPanel() {
   const [ragDocumentAuditState, setRagDocumentAuditState] = useState<RagDocumentAuditState>({
     status: "idle",
   });
+  const [uploadPanelDocumentId, setUploadPanelDocumentId] = useState<string | null>(null);
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
+  const [uploadFileError, setUploadFileError] = useState<string | null>(null);
+  const [ragUploadIntakeState, setRagUploadIntakeState] = useState<RagUploadIntakeState>({
+    status: "idle",
+  });
+  const [ragUploadsListState, setRagUploadsListState] = useState<RagUploadsListState>({
+    status: "idle",
+  });
   const [state, setState] = useState<FoundationState>({
     status: "loading",
     tenantKey: explicitTenantKey,
@@ -782,6 +829,84 @@ export function IdjorFoundationPanel() {
             : "Impossible de charger le journal d'audit RAG pour ce document.";
 
       setRagDocumentAuditState({ status: "error", documentId, message });
+    }
+  };
+
+  const handleLoadDocumentUploads = async (documentId: string) => {
+    setRagUploadsListState({ status: "loading", documentId });
+
+    try {
+      const page = await getIdjorRagDocumentUploads(documentId);
+      setRagUploadsListState({ status: "success", documentId, page });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de charger les fichiers en quarantaine pour ce document.";
+
+      setRagUploadsListState({ status: "error", documentId, message });
+    }
+  };
+
+  const handleToggleUploadPanel = (documentId: string) => {
+    const next = uploadPanelDocumentId === documentId ? null : documentId;
+    setUploadPanelDocumentId(next);
+    setSelectedUploadFile(null);
+    setUploadFileError(null);
+    setRagUploadIntakeState({ status: "idle" });
+
+    if (next) {
+      void handleLoadDocumentUploads(next);
+    }
+  };
+
+  const handleUploadFileChange = (file: File | null) => {
+    setSelectedUploadFile(file);
+    setUploadFileError(file ? validateRagUploadIntakeFile(file) : null);
+  };
+
+  const handleSubmitUploadIntake = async (documentId: string) => {
+    if (!selectedUploadFile) {
+      setUploadFileError("Selectionnez un fichier a mettre en quarantaine.");
+      return;
+    }
+
+    const validationError = validateRagUploadIntakeFile(selectedUploadFile);
+    if (validationError) {
+      setUploadFileError(validationError);
+      return;
+    }
+
+    setRagUploadIntakeState({ status: "uploading", documentId });
+
+    try {
+      const result = await uploadIdjorRagDocumentIntake(documentId, selectedUploadFile);
+      setRagUploadIntakeState({ status: "success", documentId, result });
+      setSelectedUploadFile(null);
+      setUploadFileError(null);
+
+      await handleLoadDocumentUploads(documentId);
+
+      if (state.status === "ready") {
+        await refreshRagSection(state.ragHealth.scope.tenantKey);
+      }
+      if (
+        ragDocumentAuditState.status !== "idle" &&
+        ragDocumentAuditState.documentId === documentId
+      ) {
+        await handleViewDocumentAudit(documentId);
+      }
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible d'envoyer le fichier en quarantaine.";
+
+      setRagUploadIntakeState({ status: "error", documentId, message });
     }
   };
 
@@ -1411,6 +1536,22 @@ export function IdjorFoundationPanel() {
                         },
                       ]),
                   {
+                    key: "upload",
+                    header: "Quarantaine",
+                    render: (document) => (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleUploadPanel(document.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200"
+                      >
+                        <Upload className="h-3 w-3" />
+                        {uploadPanelDocumentId === document.id
+                          ? "Fermer"
+                          : "Joindre fichier controle"}
+                      </button>
+                    ),
+                  },
+                  {
                     key: "audit",
                     header: "Audit",
                     render: (document) => (
@@ -1433,6 +1574,139 @@ export function IdjorFoundationPanel() {
                   },
                 ]}
               />
+
+              {uploadPanelDocumentId ? (
+                <div className="space-y-4 rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                  <div className="flex items-center gap-2">
+                    <Upload className="h-4 w-4 text-cyan-300" />
+                    <h3 className="font-medium text-white">Quarantaine documentaire</h3>
+                  </div>
+
+                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                    Quarantaine documentaire uniquement. Aucun contenu n&apos;est lu, extrait,
+                    decoupe, vectorise ou analyse par IA.
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      type="file"
+                      accept=".pdf,.txt,.docx,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      onChange={(event) =>
+                        handleUploadFileChange(event.target.files?.[0] ?? null)
+                      }
+                      className="text-xs text-slate-300"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => handleSubmitUploadIntake(uploadPanelDocumentId)}
+                      disabled={
+                        !selectedUploadFile ||
+                        Boolean(uploadFileError) ||
+                        (ragUploadIntakeState.status === "uploading" &&
+                          ragUploadIntakeState.documentId === uploadPanelDocumentId)
+                      }
+                      className="min-w-[180px]"
+                    >
+                      {ragUploadIntakeState.status === "uploading" &&
+                      ragUploadIntakeState.documentId === uploadPanelDocumentId
+                        ? "Envoi..."
+                        : "Envoyer en quarantaine"}
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-slate-400">
+                    Taille maximale 10 Mo. Formats acceptes: PDF, TXT, DOCX.
+                  </p>
+
+                  {uploadFileError ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                      {uploadFileError}
+                    </div>
+                  ) : null}
+
+                  {ragUploadIntakeState.status === "error" &&
+                  ragUploadIntakeState.documentId === uploadPanelDocumentId ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                      {ragUploadIntakeState.message}
+                    </div>
+                  ) : null}
+
+                  {ragUploadIntakeState.status === "success" &&
+                  ragUploadIntakeState.documentId === uploadPanelDocumentId ? (
+                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
+                      Fichier mis en quarantaine.{" "}
+                      <span className="font-mono break-all">
+                        {ragUploadIntakeState.result.upload.sha256Hash}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      Fichiers en quarantaine pour ce document
+                    </p>
+
+                    {ragUploadsListState.status === "loading" &&
+                    ragUploadsListState.documentId === uploadPanelDocumentId ? (
+                      <p className="text-sm text-slate-300">Chargement...</p>
+                    ) : null}
+
+                    {ragUploadsListState.status === "error" &&
+                    ragUploadsListState.documentId === uploadPanelDocumentId ? (
+                      <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                        {ragUploadsListState.message}
+                      </div>
+                    ) : null}
+
+                    {ragUploadsListState.status === "success" &&
+                    ragUploadsListState.documentId === uploadPanelDocumentId ? (
+                      <RegistryTable
+                        rows={ragUploadsListState.page.uploads}
+                        emptyLabel="Aucun fichier en quarantaine pour ce document."
+                        maxHeightClass={tableHeightClass}
+                        columns={[
+                          {
+                            key: "filename",
+                            header: "Fichier",
+                            render: (upload) => (
+                              <div className="space-y-1">
+                                <p className="font-medium text-white">
+                                  {upload.originalFilename}
+                                </p>
+                                <p className="text-xs text-slate-500">{upload.mimeType}</p>
+                              </div>
+                            ),
+                          },
+                          {
+                            key: "size",
+                            header: "Taille",
+                            render: (upload) => `${Math.ceil(upload.sizeBytes / 1024)} Ko`,
+                          },
+                          {
+                            key: "hash",
+                            header: "Hash sha256",
+                            render: (upload) => (
+                              <p className="max-w-[220px] break-all font-mono text-[11px] text-slate-400">
+                                {upload.sha256Hash}
+                              </p>
+                            ),
+                          },
+                          {
+                            key: "status",
+                            header: "Statut",
+                            render: (upload) => upload.quarantineStatus,
+                          },
+                          {
+                            key: "createdAt",
+                            header: "Recu le",
+                            render: (upload) => upload.createdAt,
+                          },
+                        ]}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               {!demoSafeMode && ragIngestionPreviewState.status !== "idle" ? (
                 <div className="rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">

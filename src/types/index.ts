@@ -317,6 +317,44 @@ export interface IdjorRagDocumentAuditEventsPage extends IdjorRagAuditEventsPage
   documentId: string;
 }
 
+export interface IdjorRagDocumentUpload {
+  id: string;
+  tenantId: string;
+  institutionId: string | null;
+  country: string;
+  vertical: string;
+  documentId: string;
+  originalFilename: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256Hash: string;
+  quarantineStatus: string;
+  storageProvider: string;
+  source: DataSource;
+  uploadedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IdjorRagDocumentUploadsPage {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  uploads: IdjorRagDocumentUpload[];
+  securitySummary: IdjorRagSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export interface IdjorRagUploadIntakeResponse {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  upload: IdjorRagDocumentUpload;
+  linkedAssetCounts: IdjorRagLinkedAssetCounts;
+  quarantineStorage: "LOCAL_PRIVATE";
+  publicDownloadEnabled: false;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"

@@ -23,6 +23,8 @@ import {
   IdjorRagDocumentAuditEventsPage,
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
+  IdjorRagDocumentUpload,
+  IdjorRagDocumentUploadsPage,
   IdjorRagHealth,
   IdjorRagIngestionMissingField,
   IdjorRagIngestionPreview,
@@ -31,6 +33,7 @@ import {
   IdjorRagMetadataRegistrationStatus,
   IdjorRagResponseScope,
   IdjorRagSecuritySummary,
+  IdjorRagUploadIntakeResponse,
   IdjorModelCatalog,
   IdjorProviderCatalog,
   IdjorRegistryAgent,
@@ -660,6 +663,111 @@ function mapIdjorRagDocumentAuditEventsPage(
   }
 
   return { ...page, documentId };
+}
+
+function mapIdjorRagDocumentUpload(value: unknown): IdjorRagDocumentUpload | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const tenantId = readString(record, "tenantId");
+  const country = readString(record, "country");
+  const vertical = readString(record, "vertical");
+  const documentId = readString(record, "documentId");
+  const originalFilename = readString(record, "originalFilename");
+  const mimeType = readString(record, "mimeType");
+  const sha256Hash = readString(record, "sha256Hash");
+  const quarantineStatus = readString(record, "quarantineStatus");
+  const storageProvider = readString(record, "storageProvider");
+  const createdAt = readString(record, "createdAt");
+  const updatedAt = readString(record, "updatedAt");
+  const sizeBytes = readNumberLike(record, "sizeBytes");
+
+  if (
+    !id ||
+    !tenantId ||
+    !country ||
+    !vertical ||
+    !documentId ||
+    !originalFilename ||
+    !mimeType ||
+    !sha256Hash ||
+    !quarantineStatus ||
+    !storageProvider ||
+    !createdAt ||
+    !updatedAt ||
+    sizeBytes === null
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    tenantId,
+    institutionId: readString(record, "institutionId"),
+    country,
+    vertical,
+    documentId,
+    originalFilename,
+    mimeType,
+    sizeBytes,
+    sha256Hash,
+    quarantineStatus,
+    storageProvider,
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    uploadedByUserId: readString(record, "uploadedByUserId"),
+    createdAt,
+    updatedAt,
+  };
+}
+
+function mapIdjorRagDocumentUploadsPage(payload: unknown): IdjorRagDocumentUploadsPage {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+
+  if (!root || !scope || !documentId) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: liste des uploads RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    uploads: readArray(root.uploads)
+      .map((entry) => mapIdjorRagDocumentUpload(entry))
+      .filter((entry): entry is IdjorRagDocumentUpload => entry !== null),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagUploadIntakeResponse(payload: unknown): IdjorRagUploadIntakeResponse {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+  const upload = mapIdjorRagDocumentUpload(root?.upload);
+
+  if (!root || !scope || !documentId || !documentKey || !upload) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: resultat d'upload en quarantaine RAG incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    upload,
+    linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
+    quarantineStorage: "LOCAL_PRIVATE",
+    publicDownloadEnabled: false,
+  };
 }
 
 function mapIdjorRegistryAgent(value: unknown): IdjorRegistryAgent | null {
@@ -1525,6 +1633,36 @@ export async function getIdjorRagDocumentAuditEvents(
   );
 
   return mapIdjorRagDocumentAuditEventsPage(payload);
+}
+
+export async function uploadIdjorRagDocumentIntake(
+  documentId: string,
+  file: File,
+): Promise<IdjorRagUploadIntakeResponse> {
+  const safeId = encodeURIComponent(documentId);
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/documents/${safeId}/upload-intake`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+
+  return mapIdjorRagUploadIntakeResponse(payload);
+}
+
+export async function getIdjorRagDocumentUploads(
+  documentId: string,
+): Promise<IdjorRagDocumentUploadsPage> {
+  const safeId = encodeURIComponent(documentId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/documents/${safeId}/uploads`,
+  );
+
+  return mapIdjorRagDocumentUploadsPage(payload);
 }
 
 export interface InsuranceApplicationByIdResult {
