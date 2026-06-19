@@ -12,6 +12,7 @@ import {
   Layers3,
   Network,
   ScanSearch,
+  ScrollText,
   ShieldCheck,
   Sparkles,
   Wrench,
@@ -31,8 +32,10 @@ import {
   ApiError,
   getIdjorFoundationHealth,
   getIdjorFoundationRegistry,
+  getIdjorRagAuditEvents,
   getIdjorRagChunks,
   getIdjorRagCitations,
+  getIdjorRagDocumentAuditEvents,
   getIdjorRagDocumentIngestionPreview,
   getIdjorRagDocuments,
   getIdjorRagHealth,
@@ -43,8 +46,11 @@ import { cn } from "@/lib/utils";
 import type {
   IdjorFoundationHealth,
   IdjorFoundationRegistry,
+  IdjorRagAuditEvent,
+  IdjorRagAuditEventsPage,
   IdjorRagChunksSnapshot,
   IdjorRagCitationsSnapshot,
+  IdjorRagDocumentAuditEventsPage,
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
   IdjorRagHealth,
@@ -67,6 +73,7 @@ type FoundationState =
       ragDocuments: IdjorRagDocumentsSnapshot;
       ragChunks: IdjorRagChunksSnapshot;
       ragCitations: IdjorRagCitationsSnapshot;
+      ragAuditEvents: IdjorRagAuditEventsPage;
     }
   | {
       status: "error";
@@ -85,6 +92,7 @@ type SectionKey =
   | "flags"
   | "providersModels"
   | "rag"
+  | "ragAudit"
   | "security";
 
 type SectionState = Record<SectionKey, boolean>;
@@ -97,6 +105,7 @@ const COMPACT_SECTION_STATE: SectionState = {
   flags: false,
   providersModels: false,
   rag: true,
+  ragAudit: false,
   security: true,
 };
 
@@ -108,6 +117,7 @@ const FULL_SECTION_STATE: SectionState = {
   flags: true,
   providersModels: true,
   rag: true,
+  ragAudit: true,
   security: true,
 };
 
@@ -165,6 +175,12 @@ type RagIngestionPreviewState =
   | { status: "idle" }
   | { status: "loading"; documentId: string }
   | { status: "success"; documentId: string; preview: IdjorRagIngestionPreview }
+  | { status: "error"; documentId: string; message: string };
+
+type RagDocumentAuditState =
+  | { status: "idle" }
+  | { status: "loading"; documentId: string }
+  | { status: "success"; documentId: string; page: IdjorRagDocumentAuditEventsPage }
   | { status: "error"; documentId: string; message: string };
 
 const DEFAULT_RAG_REGISTRATION_FORM: RagRegistrationFormState = {
@@ -356,6 +372,85 @@ function RegistryTable<T extends { id: string }>({
   );
 }
 
+function formatAuditEventSummary(event: IdjorRagAuditEvent): string {
+  const parts: string[] = [];
+
+  if (event.operation) {
+    parts.push(event.operation);
+  }
+
+  if (event.documentKey) {
+    parts.push(event.documentKey);
+  }
+
+  if (event.ingestionStatus) {
+    parts.push(`ingestionStatus=${event.ingestionStatus}`);
+  }
+
+  return parts.length > 0 ? parts.join(" - ") : "Aucun resume supplementaire.";
+}
+
+function AuditEventList({
+  events,
+  emptyLabel,
+  maxHeightClass,
+}: {
+  events: IdjorRagAuditEvent[];
+  emptyLabel: string;
+  maxHeightClass?: string;
+}) {
+  if (events.length === 0) {
+    return (
+      <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+        <p className="text-sm text-slate-400">{emptyLabel}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "space-y-2 overflow-auto rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3",
+        maxHeightClass,
+      )}
+    >
+      {events.map((event) => (
+        <div
+          key={event.id}
+          className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-cyan-400/24 bg-cyan-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-200">
+              {event.eventType}
+            </span>
+            {event.documentKey ? (
+              <span className="font-mono text-[11px] text-slate-400">{event.documentKey}</span>
+            ) : null}
+            <span className="ml-auto font-mono text-[10px] text-slate-500">
+              {event.createdAt}
+            </span>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-slate-300">
+            {formatAuditEventSummary(event)}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+            <span>
+              source: <span className="text-slate-300">{event.source}</span>
+            </span>
+            <span>
+              actorRole: <span className="text-slate-300">{event.actorRole ?? "Systeme"}</span>
+            </span>
+            <span>
+              actorUserId:{" "}
+              <span className="text-slate-300">{event.actorUserId ?? "Systeme"}</span>
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function buildSectionState(compactMode: boolean): SectionState {
   return compactMode ? { ...COMPACT_SECTION_STATE } : { ...FULL_SECTION_STATE };
 }
@@ -410,6 +505,9 @@ export function IdjorFoundationPanel() {
   });
   const [ragIngestionPreviewState, setRagIngestionPreviewState] =
     useState<RagIngestionPreviewState>({ status: "idle" });
+  const [ragDocumentAuditState, setRagDocumentAuditState] = useState<RagDocumentAuditState>({
+    status: "idle",
+  });
   const [state, setState] = useState<FoundationState>({
     status: "loading",
     tenantKey: explicitTenantKey,
@@ -419,14 +517,16 @@ export function IdjorFoundationPanel() {
     let cancelled = false;
 
     async function refreshRagSnapshots(tenantKey: string | null) {
-      const [ragHealth, ragDocuments, ragChunks, ragCitations] = await Promise.all([
-        getIdjorRagHealth({ tenantKey }),
-        getIdjorRagDocuments({ tenantKey }),
-        getIdjorRagChunks({ tenantKey }),
-        getIdjorRagCitations({ tenantKey }),
-      ]);
+      const [ragHealth, ragDocuments, ragChunks, ragCitations, ragAuditEvents] =
+        await Promise.all([
+          getIdjorRagHealth({ tenantKey }),
+          getIdjorRagDocuments({ tenantKey }),
+          getIdjorRagChunks({ tenantKey }),
+          getIdjorRagCitations({ tenantKey }),
+          getIdjorRagAuditEvents({ tenantKey }),
+        ]);
 
-      return { ragHealth, ragDocuments, ragChunks, ragCitations };
+      return { ragHealth, ragDocuments, ragChunks, ragCitations, ragAuditEvents };
     }
 
     async function load() {
@@ -525,11 +625,12 @@ export function IdjorFoundationPanel() {
   };
 
   const refreshRagSection = async (tenantKey: string | null) => {
-    const [ragHealth, ragDocuments, ragChunks, ragCitations] = await Promise.all([
+    const [ragHealth, ragDocuments, ragChunks, ragCitations, ragAuditEvents] = await Promise.all([
       getIdjorRagHealth({ tenantKey }),
       getIdjorRagDocuments({ tenantKey }),
       getIdjorRagChunks({ tenantKey }),
       getIdjorRagCitations({ tenantKey }),
+      getIdjorRagAuditEvents({ tenantKey }),
     ]);
 
     setState((current) => {
@@ -541,6 +642,7 @@ export function IdjorFoundationPanel() {
         ragDocuments,
         ragChunks,
         ragCitations,
+        ragAuditEvents,
       };
     });
   };
@@ -630,6 +732,24 @@ export function IdjorFoundationPanel() {
             : "Impossible de charger la previsualisation de preparation.";
 
       setRagIngestionPreviewState({ status: "error", documentId, message });
+    }
+  };
+
+  const handleViewDocumentAudit = async (documentId: string) => {
+    setRagDocumentAuditState({ status: "loading", documentId });
+
+    try {
+      const page = await getIdjorRagDocumentAuditEvents(documentId);
+      setRagDocumentAuditState({ status: "success", documentId, page });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de charger le journal d'audit RAG pour ce document.";
+
+      setRagDocumentAuditState({ status: "error", documentId, message });
     }
   };
 
@@ -1196,6 +1316,27 @@ export function IdjorFoundationPanel() {
                       </button>
                     ),
                   },
+                  {
+                    key: "audit",
+                    header: "Audit",
+                    render: (document) => (
+                      <button
+                        type="button"
+                        onClick={() => handleViewDocumentAudit(document.id)}
+                        disabled={
+                          ragDocumentAuditState.status === "loading" &&
+                          ragDocumentAuditState.documentId === document.id
+                        }
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
+                      >
+                        <ScrollText className="h-3 w-3" />
+                        {ragDocumentAuditState.status === "loading" &&
+                        ragDocumentAuditState.documentId === document.id
+                          ? "Chargement..."
+                          : "Voir audit"}
+                      </button>
+                    ),
+                  },
                 ]}
               />
 
@@ -1326,6 +1467,40 @@ export function IdjorFoundationPanel() {
                 </div>
               ) : null}
 
+              {ragDocumentAuditState.status !== "idle" ? (
+                <div className="rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <ScrollText className="h-4 w-4 text-cyan-300" />
+                    <h3 className="font-medium text-white">Audit du document</h3>
+                  </div>
+
+                  <p className="mb-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                    Journal append-only. Lecture seule. Aucun evenement n&apos;est modifie depuis
+                    le dashboard.
+                  </p>
+
+                  {ragDocumentAuditState.status === "loading" ? (
+                    <p className="text-sm text-slate-300">
+                      Chargement du journal d&apos;audit du document...
+                    </p>
+                  ) : null}
+
+                  {ragDocumentAuditState.status === "error" ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                      {ragDocumentAuditState.message}
+                    </div>
+                  ) : null}
+
+                  {ragDocumentAuditState.status === "success" ? (
+                    <AuditEventList
+                      events={ragDocumentAuditState.page.events}
+                      emptyLabel="Aucun evenement d'audit enregistre pour ce document."
+                      maxHeightClass={tableHeightClass}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="grid gap-4 xl:grid-cols-2">
                 <RegistryTable
                   rows={state.ragChunks.chunks}
@@ -1396,6 +1571,28 @@ export function IdjorFoundationPanel() {
                   ]}
                 />
               </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            icon={<ScrollText className="h-4 w-4" />}
+            title="Journal d'audit RAG"
+            subtitle="Trace append-only des enregistrements metadata-only et des previsualisations de preparation."
+            countLabel={`${state.ragAuditEvents.events.length} evenements`}
+            open={sections.ragAudit}
+            onToggle={() => toggleSection("ragAudit")}
+          >
+            <div className="space-y-4">
+              <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                Journal append-only. Lecture seule. Aucun evenement n&apos;est modifie depuis le
+                dashboard.
+              </p>
+
+              <AuditEventList
+                events={state.ragAuditEvents.events}
+                emptyLabel="Aucun evenement d'audit RAG enregistre pour ce tenant."
+                maxHeightClass={tableHeightClass}
+              />
             </div>
           </SectionCard>
 

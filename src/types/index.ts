@@ -281,6 +281,42 @@ export interface IdjorRagIngestionPreview {
   readOnly: boolean;
 }
 
+export type IdjorRagAuditEventType =
+  | "RAG_DOCUMENT_METADATA_REGISTERED"
+  | "RAG_DOCUMENT_METADATA_DEGRADED_REGISTERED"
+  | "RAG_INGESTION_PREVIEW_VIEWED"
+  | "RAG_INGESTION_PREVIEW_BLOCKED";
+
+export interface IdjorRagAuditEvent {
+  id: string;
+  tenantId: string;
+  institutionId: string | null;
+  country: string;
+  vertical: string;
+  eventType: string;
+  documentId: string | null;
+  documentKey: string | null;
+  source: DataSource;
+  ingestionStatus: string | null;
+  operation: string | null;
+  actorUserId: string | null;
+  actorRole: string | null;
+  createdAt: string;
+}
+
+export interface IdjorRagAuditEventsPage {
+  scope: IdjorRagResponseScope;
+  events: IdjorRagAuditEvent[];
+  nextCursor: string | null;
+  securitySummary: IdjorRagSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export interface IdjorRagDocumentAuditEventsPage extends IdjorRagAuditEventsPage {
+  documentId: string;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"

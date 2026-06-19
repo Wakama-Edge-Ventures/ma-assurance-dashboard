@@ -7,5 +7,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/005-idjor-rag-ingestion-preview/plan.md`
+`specs/006-idjor-rag-audit-trail/plan.md`
 <!-- SPECKIT END -->

@@ -13,11 +13,14 @@ import {
   IdjorRegisterRagDocumentMetadataResult,
   IdjorFoundationTenant,
   IdjorRagAssetCounts,
+  IdjorRagAuditEvent,
+  IdjorRagAuditEventsPage,
   IdjorRagChunk,
   IdjorRagChunksSnapshot,
   IdjorRagCitation,
   IdjorRagCitationsSnapshot,
   IdjorRagDocument,
+  IdjorRagDocumentAuditEventsPage,
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
   IdjorRagHealth,
@@ -584,6 +587,79 @@ function mapIdjorRagIngestionPreview(payload: unknown): IdjorRagIngestionPreview
     resolutionMode: readString(root, "resolutionMode"),
     readOnly: readBooleanLike(root, "readOnly") ?? true,
   };
+}
+
+function mapIdjorRagAuditEvent(value: unknown): IdjorRagAuditEvent | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const tenantId = readString(record, "tenantId");
+  const country = readString(record, "country");
+  const vertical = readString(record, "vertical");
+  const eventType = readString(record, "eventType");
+  const createdAt = readString(record, "createdAt");
+
+  if (!id || !tenantId || !country || !vertical || !eventType || !createdAt) {
+    return null;
+  }
+
+  return {
+    id,
+    tenantId,
+    institutionId: readString(record, "institutionId"),
+    country,
+    vertical,
+    eventType,
+    documentId: readString(record, "documentId"),
+    documentKey: readString(record, "documentKey"),
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    ingestionStatus: readString(record, "ingestionStatus"),
+    operation: readString(record, "operation"),
+    actorUserId: readString(record, "actorUserId"),
+    actorRole: readString(record, "role"),
+    createdAt,
+  };
+}
+
+function mapIdjorRagAuditEventsPage(payload: unknown): IdjorRagAuditEventsPage {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+
+  if (!root || !scope) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: journal d'audit RAG incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    events: readArray(root.events)
+      .map((entry) => mapIdjorRagAuditEvent(entry))
+      .filter((entry): entry is IdjorRagAuditEvent => entry !== null),
+    nextCursor: readString(root, "nextCursor"),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagDocumentAuditEventsPage(
+  payload: unknown,
+): IdjorRagDocumentAuditEventsPage {
+  const page = mapIdjorRagAuditEventsPage(payload);
+  const root = asObject(payload);
+  const documentId = readString(root, "documentId");
+
+  if (!documentId) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: journal d'audit RAG documentaire incomplet.",
+      payload,
+    );
+  }
+
+  return { ...page, documentId };
 }
 
 function mapIdjorRegistryAgent(value: unknown): IdjorRegistryAgent | null {
@@ -1411,6 +1487,44 @@ export async function getIdjorRagDocumentIngestionPreview(
   );
 
   return mapIdjorRagIngestionPreview(payload);
+}
+
+export async function getIdjorRagAuditEvents(
+  options: {
+    tenantKey?: string | null;
+    documentId?: string | null;
+    eventType?: string | null;
+    limit?: number | null;
+    cursor?: string | null;
+  } = {},
+): Promise<IdjorRagAuditEventsPage> {
+  const payload = await apiFetch<unknown>(
+    withQuery("/v1/idjor/rag/audit/events", {
+      tenantKey: options.tenantKey ?? null,
+      documentId: options.documentId ?? null,
+      eventType: options.eventType ?? null,
+      limit: options.limit != null ? String(options.limit) : null,
+      cursor: options.cursor ?? null,
+    }),
+  );
+
+  return mapIdjorRagAuditEventsPage(payload);
+}
+
+export async function getIdjorRagDocumentAuditEvents(
+  documentId: string,
+  options: { eventType?: string | null; limit?: number | null; cursor?: string | null } = {},
+): Promise<IdjorRagDocumentAuditEventsPage> {
+  const safeId = encodeURIComponent(documentId);
+  const payload = await apiFetch<unknown>(
+    withQuery(`/v1/idjor/rag/documents/${safeId}/audit/events`, {
+      eventType: options.eventType ?? null,
+      limit: options.limit != null ? String(options.limit) : null,
+      cursor: options.cursor ?? null,
+    }),
+  );
+
+  return mapIdjorRagDocumentAuditEventsPage(payload);
 }
 
 export interface InsuranceApplicationByIdResult {
