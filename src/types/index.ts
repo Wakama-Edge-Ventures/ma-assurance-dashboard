@@ -220,6 +220,44 @@ export interface IdjorRagCitationsSnapshot {
   readOnly: boolean;
 }
 
+export type IdjorRagDocumentRegistrationSource =
+  | "LIVE"
+  | "SEED_DEMO"
+  | "MANUAL_ESTIMATE"
+  | "DEGRADED"
+  | "UNAVAILABLE";
+
+export type IdjorRagMetadataRegistrationStatus = "REGISTERED" | "DEGRADED";
+
+export interface IdjorRegisterRagDocumentMetadataInput {
+  tenantKey?: string | null;
+  tenantId?: string | null;
+  documentKey: string;
+  title: string;
+  source: IdjorRagDocumentRegistrationSource;
+  ingestionStatus: IdjorRagMetadataRegistrationStatus;
+  externalReference?: string | null;
+  metadataJson?: Record<string, unknown> | null;
+}
+
+export interface IdjorRegisterRagDocumentMetadataDocument extends IdjorRagDocument {
+  metadataJson: Record<string, unknown> | null;
+}
+
+export interface IdjorRagLinkedAssetCounts {
+  chunks: number;
+  embeddings: number;
+  citations: number;
+}
+
+export interface IdjorRegisterRagDocumentMetadataResult {
+  scope: IdjorRagResponseScope;
+  operation: "CREATED" | "UPDATED";
+  document: IdjorRegisterRagDocumentMetadataDocument;
+  linkedAssetCounts: IdjorRagLinkedAssetCounts;
+  metadataOnly: boolean;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"

@@ -20,6 +20,7 @@ import { useTenant } from "@/components/tenant/useTenant";
 import { AccessDeniedCard } from "@/components/ui/access-denied-card";
 import { AppCard } from "@/components/ui/app-card";
 import { AuthRequiredCard } from "@/components/ui/auth-required-card";
+import { Button } from "@/components/ui/button";
 import { DegradedStateCard } from "@/components/ui/degraded-state-card";
 import { DisclosureNote } from "@/components/ui/disclosure-note";
 import { PageTitle } from "@/components/ui/page-title";
@@ -33,6 +34,7 @@ import {
   getIdjorRagCitations,
   getIdjorRagDocuments,
   getIdjorRagHealth,
+  registerIdjorRagDocumentMetadata,
 } from "@/lib/api";
 import { withAlpha } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
@@ -41,8 +43,11 @@ import type {
   IdjorFoundationRegistry,
   IdjorRagChunksSnapshot,
   IdjorRagCitationsSnapshot,
+  IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
   IdjorRagHealth,
+  IdjorRagMetadataRegistrationStatus,
+  IdjorRegisterRagDocumentMetadataResult,
 } from "@/types";
 
 type FoundationState =
@@ -132,6 +137,43 @@ interface SectionCardProps {
   children: ReactNode;
 }
 
+interface RagRegistrationFormState {
+  documentKey: string;
+  title: string;
+  source: IdjorRagDocumentRegistrationSource;
+  ingestionStatus: IdjorRagMetadataRegistrationStatus;
+  externalReference: string;
+  metadataJson: string;
+}
+
+type RagRegistrationState =
+  | { status: "idle" }
+  | { status: "submitting" }
+  | {
+      status: "success";
+      result: IdjorRegisterRagDocumentMetadataResult;
+    }
+  | {
+      status: "error";
+      message: string;
+    };
+
+const DEFAULT_RAG_REGISTRATION_FORM: RagRegistrationFormState = {
+  documentKey: "",
+  title: "",
+  source: "SEED_DEMO",
+  ingestionStatus: "REGISTERED",
+  externalReference: "",
+  metadataJson: "",
+};
+
+const METADATA_REGISTRATION_SOURCE_OPTIONS: IdjorRagDocumentRegistrationSource[] = [
+  "SEED_DEMO",
+  "MANUAL_ESTIMATE",
+  "DEGRADED",
+  "UNAVAILABLE",
+];
+
 function SummaryMetric({ label, value, hint }: SummaryMetricProps) {
   return (
     <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
@@ -144,6 +186,46 @@ function SummaryMetric({ label, value, hint }: SummaryMetricProps) {
       <p className="mt-1 text-xs text-slate-400">{hint}</p>
     </div>
   );
+}
+
+function buildRegistrationSourceOptions(sourceLabels: string[]) {
+  const options = [...METADATA_REGISTRATION_SOURCE_OPTIONS];
+
+  if (sourceLabels.includes("LIVE")) {
+    options.push("LIVE");
+  }
+
+  return options;
+}
+
+function parseMetadataJsonInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return {
+      metadataJson: null,
+      error: null,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {
+        metadataJson: null,
+        error: "Le JSON metadata doit etre un objet.",
+      };
+    }
+
+    return {
+      metadataJson: parsed as Record<string, unknown>,
+      error: null,
+    };
+  } catch {
+    return {
+      metadataJson: null,
+      error: "Le JSON metadata est invalide.",
+    };
+  }
 }
 
 function ExecutiveStatus({
@@ -311,6 +393,12 @@ export function IdjorFoundationPanel() {
   const explicitTenantKey = searchParams.get("tenantKey")?.trim() || null;
   const [compactMode, setCompactMode] = useState(true);
   const [sections, setSections] = useState<SectionState>(() => buildSectionState(true));
+  const [ragRegistrationForm, setRagRegistrationForm] = useState<RagRegistrationFormState>(
+    DEFAULT_RAG_REGISTRATION_FORM,
+  );
+  const [ragRegistrationState, setRagRegistrationState] = useState<RagRegistrationState>({
+    status: "idle",
+  });
   const [state, setState] = useState<FoundationState>({
     status: "loading",
     tenantKey: explicitTenantKey,
@@ -319,19 +407,26 @@ export function IdjorFoundationPanel() {
   useEffect(() => {
     let cancelled = false;
 
+    async function refreshRagSnapshots(tenantKey: string | null) {
+      const [ragHealth, ragDocuments, ragChunks, ragCitations] = await Promise.all([
+        getIdjorRagHealth({ tenantKey }),
+        getIdjorRagDocuments({ tenantKey }),
+        getIdjorRagChunks({ tenantKey }),
+        getIdjorRagCitations({ tenantKey }),
+      ]);
+
+      return { ragHealth, ragDocuments, ragChunks, ragCitations };
+    }
+
     async function load() {
       setState({ status: "loading", tenantKey: explicitTenantKey });
 
       try {
-        const [health, registry, ragHealth, ragDocuments, ragChunks, ragCitations] =
-          await Promise.all([
-            getIdjorFoundationHealth({ tenantKey: explicitTenantKey }),
-            getIdjorFoundationRegistry({ tenantKey: explicitTenantKey }),
-            getIdjorRagHealth({ tenantKey: explicitTenantKey }),
-            getIdjorRagDocuments({ tenantKey: explicitTenantKey }),
-            getIdjorRagChunks({ tenantKey: explicitTenantKey }),
-            getIdjorRagCitations({ tenantKey: explicitTenantKey }),
-          ]);
+        const [health, registry, ragSnapshots] = await Promise.all([
+          getIdjorFoundationHealth({ tenantKey: explicitTenantKey }),
+          getIdjorFoundationRegistry({ tenantKey: explicitTenantKey }),
+          refreshRagSnapshots(explicitTenantKey),
+        ]);
 
         if (cancelled) return;
 
@@ -340,10 +435,7 @@ export function IdjorFoundationPanel() {
           tenantKey: explicitTenantKey,
           health,
           registry,
-          ragHealth,
-          ragDocuments,
-          ragChunks,
-          ragCitations,
+          ...ragSnapshots,
         });
       } catch (error) {
         if (cancelled) return;
@@ -405,6 +497,112 @@ export function IdjorFoundationPanel() {
     !state.health.securitySummary.llmEnabled &&
     !state.health.securitySummary.vectorStoreEnabled &&
     !state.health.securitySummary.decisioningEnabled;
+
+  const registrationSourceOptions =
+    state.status === "ready"
+      ? buildRegistrationSourceOptions(state.ragHealth.securitySummary.sourceLabels)
+      : METADATA_REGISTRATION_SOURCE_OPTIONS;
+
+  const updateRagRegistrationField = <K extends keyof RagRegistrationFormState>(
+    key: K,
+    value: RagRegistrationFormState[K],
+  ) => {
+    setRagRegistrationForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  };
+
+  const refreshRagSection = async (tenantKey: string | null) => {
+    const [ragHealth, ragDocuments, ragChunks, ragCitations] = await Promise.all([
+      getIdjorRagHealth({ tenantKey }),
+      getIdjorRagDocuments({ tenantKey }),
+      getIdjorRagChunks({ tenantKey }),
+      getIdjorRagCitations({ tenantKey }),
+    ]);
+
+    setState((current) => {
+      if (current.status !== "ready") return current;
+
+      return {
+        ...current,
+        ragHealth,
+        ragDocuments,
+        ragChunks,
+        ragCitations,
+      };
+    });
+  };
+
+  const handleRagRegistrationSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (state.status !== "ready") {
+      setRagRegistrationState({
+        status: "error",
+        message: "Le socle IDJOR doit etre charge avant tout enregistrement metadata-only.",
+      });
+      return;
+    }
+
+    const documentKey = ragRegistrationForm.documentKey.trim();
+    const title = ragRegistrationForm.title.trim();
+
+    if (!documentKey || !title) {
+      setRagRegistrationState({
+        status: "error",
+        message: "Document key et titre sont requis.",
+      });
+      return;
+    }
+
+    const parsedMetadata = parseMetadataJsonInput(ragRegistrationForm.metadataJson);
+    if (parsedMetadata.error) {
+      setRagRegistrationState({
+        status: "error",
+        message: parsedMetadata.error,
+      });
+      return;
+    }
+
+    setRagRegistrationState({ status: "submitting" });
+
+    try {
+      const result = await registerIdjorRagDocumentMetadata({
+        tenantKey: state.ragHealth.scope.tenantKey,
+        tenantId: state.ragHealth.scope.tenantId,
+        documentKey,
+        title,
+        source: ragRegistrationForm.source,
+        ingestionStatus: ragRegistrationForm.ingestionStatus,
+        externalReference: ragRegistrationForm.externalReference.trim() || null,
+        metadataJson: parsedMetadata.metadataJson,
+      });
+
+      await refreshRagSection(state.ragHealth.scope.tenantKey);
+
+      setRagRegistrationState({
+        status: "success",
+        result,
+      });
+      setRagRegistrationForm({
+        ...DEFAULT_RAG_REGISTRATION_FORM,
+        source: registrationSourceOptions.includes("SEED_DEMO") ? "SEED_DEMO" : registrationSourceOptions[0],
+      });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible d'enregistrer la metadata documentaire.";
+
+      setRagRegistrationState({
+        status: "error",
+        message,
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -721,6 +919,188 @@ export function IdjorFoundationPanel() {
                     </span>
                   )}
                 </div>
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+                <div className="rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-cyan-300" />
+                    <h3 className="font-medium text-white">Ajout metadata-only</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-sm leading-relaxed text-slate-300">
+                      Enregistrement metadata-only. Aucun fichier n&apos;est lu, ingéré,
+                      vectorisé ou analysé par IA.
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <ExecutiveStatus label="Tenant" value={state.ragHealth.scope.tenantKey} />
+                      <ExecutiveStatus
+                        label="Read only"
+                        value={state.ragHealth.readOnly ? "true" : "false"}
+                        tone={state.ragHealth.readOnly ? "success" : "warning"}
+                      />
+                      <ExecutiveStatus label="LLM" value="false" tone="success" />
+                      <ExecutiveStatus label="Vector store" value="false" tone="success" />
+                    </div>
+                    <p className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3 py-2 text-xs leading-relaxed text-slate-400">
+                      Le backend enregistre uniquement une fiche documentaire et maintient
+                      `REGISTERED` ou `DEGRADED`. Aucun READY, aucun upload et aucun calcul
+                      metier ne sont exposes ici.
+                    </p>
+                  </div>
+                </div>
+
+                <form
+                  onSubmit={handleRagRegistrationSubmit}
+                  className="space-y-4 rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="font-medium text-white">Formulaire interne RAG</h3>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Le formulaire reste borne a la metadata documentaire du tenant courant.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300">
+                      tenant {state.ragHealth.scope.tenantKey}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="space-y-2">
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                        documentKey
+                      </span>
+                      <input
+                        value={ragRegistrationForm.documentKey}
+                        onChange={(event) =>
+                          updateRagRegistrationField("documentKey", event.target.value)
+                        }
+                        className="w-full rounded-2xl border border-slate-400/14 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400/45 focus:bg-slate-950/70"
+                        placeholder="rag.assurance-ma.guide-souscription"
+                        autoComplete="off"
+                      />
+                    </label>
+
+                    <label className="space-y-2">
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                        title
+                      </span>
+                      <input
+                        value={ragRegistrationForm.title}
+                        onChange={(event) => updateRagRegistrationField("title", event.target.value)}
+                        className="w-full rounded-2xl border border-slate-400/14 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400/45 focus:bg-slate-950/70"
+                        placeholder="Guide de souscription assurance recolte"
+                        autoComplete="off"
+                      />
+                    </label>
+
+                    <label className="space-y-2">
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                        source
+                      </span>
+                      <select
+                        value={ragRegistrationForm.source}
+                        onChange={(event) =>
+                          updateRagRegistrationField(
+                            "source",
+                            event.target.value as IdjorRagDocumentRegistrationSource,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-400/14 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400/45 focus:bg-slate-950/70"
+                      >
+                        {registrationSourceOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="space-y-2">
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                        ingestionStatus
+                      </span>
+                      <select
+                        value={ragRegistrationForm.ingestionStatus}
+                        onChange={(event) =>
+                          updateRagRegistrationField(
+                            "ingestionStatus",
+                            event.target.value as IdjorRagMetadataRegistrationStatus,
+                          )
+                        }
+                        className="w-full rounded-2xl border border-slate-400/14 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400/45 focus:bg-slate-950/70"
+                      >
+                        <option value="REGISTERED">REGISTERED</option>
+                        <option value="DEGRADED">DEGRADED</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="space-y-2">
+                    <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      externalReference
+                    </span>
+                    <input
+                      value={ragRegistrationForm.externalReference}
+                      onChange={(event) =>
+                        updateRagRegistrationField("externalReference", event.target.value)
+                      }
+                      className="w-full rounded-2xl border border-slate-400/14 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400/45 focus:bg-slate-950/70"
+                      placeholder="DOC-ASS-MA-2026-001"
+                      autoComplete="off"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      metadataJson
+                    </span>
+                    <textarea
+                      value={ragRegistrationForm.metadataJson}
+                      onChange={(event) =>
+                        updateRagRegistrationField("metadataJson", event.target.value)
+                      }
+                      className="min-h-[128px] w-full rounded-[20px] border border-slate-400/14 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400/45 focus:bg-slate-950/70"
+                      placeholder={'{"language":"fr","category":"guide","metadataOnly":true}'}
+                      spellCheck={false}
+                    />
+                  </label>
+
+                  {ragRegistrationState.status === "error" ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                      {ragRegistrationState.message}
+                    </div>
+                  ) : null}
+
+                  {ragRegistrationState.status === "success" ? (
+                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
+                      {ragRegistrationState.result.operation} pour{" "}
+                      <span className="font-mono">
+                        {ragRegistrationState.result.document.documentKey}
+                      </span>
+                      . Chunks {ragRegistrationState.result.linkedAssetCounts.chunks}, embeddings{" "}
+                      {ragRegistrationState.result.linkedAssetCounts.embeddings}, citations{" "}
+                      {ragRegistrationState.result.linkedAssetCounts.citations}.
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs text-slate-400">
+                      Validation frontend: JSON objet uniquement, source autorisee, statut limite
+                      a `REGISTERED` ou `DEGRADED`.
+                    </p>
+                    <Button
+                      type="submit"
+                      disabled={ragRegistrationState.status === "submitting"}
+                      className="min-w-[168px]"
+                    >
+                      {ragRegistrationState.status === "submitting"
+                        ? "Enregistrement..."
+                        : "Enregistrer la metadata"}
+                    </Button>
+                  </div>
+                </form>
               </div>
 
               <RegistryTable

@@ -9,6 +9,8 @@ import {
   IdjorFoundationHealth,
   IdjorFoundationRegistry,
   IdjorFoundationSecuritySummary,
+  IdjorRegisterRagDocumentMetadataInput,
+  IdjorRegisterRagDocumentMetadataResult,
   IdjorFoundationTenant,
   IdjorRagAssetCounts,
   IdjorRagChunk,
@@ -16,8 +18,11 @@ import {
   IdjorRagCitation,
   IdjorRagCitationsSnapshot,
   IdjorRagDocument,
+  IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
   IdjorRagHealth,
+  IdjorRagLinkedAssetCounts,
+  IdjorRagMetadataRegistrationStatus,
   IdjorRagResponseScope,
   IdjorRagSecuritySummary,
   IdjorModelCatalog,
@@ -454,6 +459,78 @@ function mapIdjorRagCitation(value: unknown): IdjorRagCitation | null {
     excerptText,
     source: normalizeSource(record?.source, "UNAVAILABLE"),
     createdAt: readString(record, "createdAt"),
+  };
+}
+
+function readRegistrationSource(
+  value: unknown,
+): IdjorRagDocumentRegistrationSource {
+  const normalized = normalizeSource(value, "UNAVAILABLE");
+
+  if (
+    normalized === "LIVE" ||
+    normalized === "SEED_DEMO" ||
+    normalized === "MANUAL_ESTIMATE" ||
+    normalized === "DEGRADED" ||
+    normalized === "UNAVAILABLE"
+  ) {
+    return normalized;
+  }
+
+  return "UNAVAILABLE";
+}
+
+function readMetadataRegistrationStatus(
+  value: unknown,
+): IdjorRagMetadataRegistrationStatus {
+  const status = typeof value === "string" ? value.trim().toUpperCase() : "";
+  return status === "DEGRADED" ? "DEGRADED" : "REGISTERED";
+}
+
+function mapIdjorRagLinkedAssetCounts(value: unknown): IdjorRagLinkedAssetCounts {
+  const counts = asObject(value);
+
+  return {
+    chunks: readNumberLike(counts, "chunks") ?? 0,
+    embeddings: readNumberLike(counts, "embeddings") ?? 0,
+    citations: readNumberLike(counts, "citations") ?? 0,
+  };
+}
+
+function mapIdjorRegisterRagDocumentMetadataResult(
+  payload: unknown,
+): IdjorRegisterRagDocumentMetadataResult {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentRecord = asObject(root?.document);
+  const document = mapIdjorRagDocument(documentRecord);
+  const operation = readString(root, "operation");
+
+  if (
+    !root ||
+    !scope ||
+    !documentRecord ||
+    !document ||
+    (operation !== "CREATED" && operation !== "UPDATED")
+  ) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: resultat d'enregistrement metadata RAG incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    operation,
+    document: {
+      ...document,
+      source: readRegistrationSource(documentRecord.source),
+      ingestionStatus: readMetadataRegistrationStatus(documentRecord.ingestionStatus),
+      metadataJson: asObject(documentRecord.metadataJson),
+    },
+    linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
+    metadataOnly: readBooleanLike(root, "metadataOnly") ?? true,
   };
 }
 
@@ -1248,6 +1325,29 @@ export async function getIdjorRagCitations(
   );
 
   return mapIdjorRagCitations(payload);
+}
+
+export async function registerIdjorRagDocumentMetadata(
+  input: IdjorRegisterRagDocumentMetadataInput,
+): Promise<IdjorRegisterRagDocumentMetadataResult> {
+  const payload = await apiFetch<unknown>("/v1/idjor/rag/documents/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      tenantKey: input.tenantKey ?? null,
+      tenantId: input.tenantId ?? null,
+      documentKey: input.documentKey,
+      title: input.title,
+      source: input.source,
+      ingestionStatus: input.ingestionStatus,
+      externalReference: input.externalReference ?? null,
+      metadataJson: input.metadataJson ?? null,
+    }),
+  });
+
+  return mapIdjorRegisterRagDocumentMetadataResult(payload);
 }
 
 export interface InsuranceApplicationByIdResult {
