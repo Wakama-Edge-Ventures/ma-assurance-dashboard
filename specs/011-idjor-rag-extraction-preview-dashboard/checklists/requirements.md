@@ -1,0 +1,21 @@
+# Requirements Checklist: IDJOR RAG Extraction Preview Dashboard
+
+- [X] Frontend calls only `POST /v1/idjor/rag/uploads/:uploadId/extract-preview` and `GET /v1/idjor/rag/uploads/:uploadId/extractions`.
+- [X] Fixed disclosure text present: "Extraction controlee. Aucun chunk, embedding, vector store ou LLM n'est active."
+- [X] `text/plain` successful extraction renders bounded `previewText` in a readable block.
+- [X] Non-`text/plain` uploads show "Extracteur non active pour ce format" without implying parsing occurred.
+- [X] `FILE_MISSING`/`FAILED` status surfaces `errorReason`.
+- [X] Action label limited to "Previsualiser extraction"; no ingest/index/vectorize/question wording.
+- [X] Loading / success / error states implemented for the extraction preview action.
+- [X] Read-only extractions list per upload: status, mimeType, previewText/errorReason, createdAt, most recent first, explicit empty state.
+- [X] After successful extraction: extractions list refreshed; document audit refreshed if open for same document.
+- [X] Document `ingestionStatus` not changed by extraction preview.
+- [X] No backend file modified.
+- [X] No auth flow modified.
+- [X] No new frontend route added (feature lives inside existing `/fr/idjor` quarantine panel).
+- [X] No PDF/DOCX parsing, no OCR, no chunking, no embedding, no vector store, no LLM added on the frontend.
+- [X] `src/components/insurance/evidence-bundle-panel.tsx` left untouched.
+- [X] `.claude/settings*.json` left untouched.
+- [X] `npm run lint` passes.
+- [X] `npm run build` passes, `/fr/idjor` present in route output.
+- [X] Forbidden-wording scan over `src/` clean (no new occurrence).

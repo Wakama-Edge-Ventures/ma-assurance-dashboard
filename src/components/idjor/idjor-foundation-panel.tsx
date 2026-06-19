@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
+  FileSearch,
   Flag,
   Layers3,
   Network,
@@ -41,7 +42,9 @@ import {
   getIdjorRagDocuments,
   getIdjorRagDocumentUploads,
   getIdjorRagHealth,
+  getIdjorRagUploadExtractions,
   registerIdjorRagDocumentMetadata,
+  runIdjorRagUploadExtractionPreview,
   uploadIdjorRagDocumentIntake,
 } from "@/lib/api";
 import { withAlpha } from "@/lib/tenant";
@@ -54,9 +57,12 @@ import type {
   IdjorRagChunksSnapshot,
   IdjorRagCitationsSnapshot,
   IdjorRagDocumentAuditEventsPage,
+  IdjorRagDocumentExtraction,
+  IdjorRagDocumentExtractionsPage,
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
   IdjorRagDocumentUploadsPage,
+  IdjorRagExtractionPreviewResponse,
   IdjorRagHealth,
   IdjorRagIngestionPreview,
   IdjorRagMetadataRegistrationStatus,
@@ -223,6 +229,18 @@ type RagUploadsListState =
   | { status: "loading"; documentId: string }
   | { status: "success"; documentId: string; page: IdjorRagDocumentUploadsPage }
   | { status: "error"; documentId: string; message: string };
+
+type RagExtractionPreviewState =
+  | { status: "idle" }
+  | { status: "loading"; uploadId: string }
+  | { status: "success"; uploadId: string; response: IdjorRagExtractionPreviewResponse }
+  | { status: "error"; uploadId: string; message: string };
+
+type RagUploadExtractionsListState =
+  | { status: "idle" }
+  | { status: "loading"; uploadId: string }
+  | { status: "success"; uploadId: string; page: IdjorRagDocumentExtractionsPage }
+  | { status: "error"; uploadId: string; message: string };
 
 const RAG_UPLOAD_INTAKE_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -513,6 +531,45 @@ function AuditEventList({
   );
 }
 
+function ExtractionResultBlock({ extraction }: { extraction: IdjorRagDocumentExtraction }) {
+  return (
+    <div className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-cyan-400/24 bg-cyan-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-200">
+          {extraction.status}
+        </span>
+        <span className="font-mono text-[11px] text-slate-400">{extraction.mimeType}</span>
+        <span className="ml-auto font-mono text-[10px] text-slate-500">
+          {extraction.createdAt}
+        </span>
+      </div>
+
+      {extraction.status === "EXTRACTED_PENDING_REVIEW" && extraction.previewText ? (
+        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-400/10 bg-[#0c1322]/80 p-3 text-xs leading-relaxed text-slate-200">
+          {extraction.previewText}
+        </pre>
+      ) : null}
+
+      {extraction.status === "UNSUPPORTED_PENDING_EXTRACTOR" ? (
+        <p className="mt-2 text-xs leading-relaxed text-amber-300">
+          Extracteur non active pour ce format. Aucun parsing n&apos;a ete effectue.
+        </p>
+      ) : null}
+
+      {(extraction.status === "FILE_MISSING" || extraction.status === "FAILED") &&
+      extraction.errorReason ? (
+        <p className="mt-2 text-xs leading-relaxed text-rose-300">
+          {extraction.errorReason}
+        </p>
+      ) : null}
+
+      <p className="mt-2 text-[11px] text-slate-500">
+        previewTextLength: {extraction.previewTextLength ?? 0}
+      </p>
+    </div>
+  );
+}
+
 function buildSectionState(compactMode: boolean, demoSafeMode: boolean): SectionState {
   if (demoSafeMode) {
     return compactMode
@@ -587,6 +644,11 @@ export function IdjorFoundationPanel() {
   const [ragUploadsListState, setRagUploadsListState] = useState<RagUploadsListState>({
     status: "idle",
   });
+  const [extractionPanelUploadId, setExtractionPanelUploadId] = useState<string | null>(null);
+  const [ragExtractionPreviewState, setRagExtractionPreviewState] =
+    useState<RagExtractionPreviewState>({ status: "idle" });
+  const [ragUploadExtractionsListState, setRagUploadExtractionsListState] =
+    useState<RagUploadExtractionsListState>({ status: "idle" });
   const [state, setState] = useState<FoundationState>({
     status: "loading",
     tenantKey: explicitTenantKey,
@@ -856,6 +918,9 @@ export function IdjorFoundationPanel() {
     setSelectedUploadFile(null);
     setUploadFileError(null);
     setRagUploadIntakeState({ status: "idle" });
+    setExtractionPanelUploadId(null);
+    setRagExtractionPreviewState({ status: "idle" });
+    setRagUploadExtractionsListState({ status: "idle" });
 
     if (next) {
       void handleLoadDocumentUploads(next);
@@ -907,6 +972,61 @@ export function IdjorFoundationPanel() {
             : "Impossible d'envoyer le fichier en quarantaine.";
 
       setRagUploadIntakeState({ status: "error", documentId, message });
+    }
+  };
+
+  const handleLoadUploadExtractions = async (uploadId: string) => {
+    setRagUploadExtractionsListState({ status: "loading", uploadId });
+
+    try {
+      const page = await getIdjorRagUploadExtractions(uploadId);
+      setRagUploadExtractionsListState({ status: "success", uploadId, page });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de charger les extractions pour ce fichier.";
+
+      setRagUploadExtractionsListState({ status: "error", uploadId, message });
+    }
+  };
+
+  const handleToggleExtractionPanel = (uploadId: string) => {
+    const next = extractionPanelUploadId === uploadId ? null : uploadId;
+    setExtractionPanelUploadId(next);
+    setRagExtractionPreviewState({ status: "idle" });
+
+    if (next) {
+      void handleLoadUploadExtractions(next);
+    }
+  };
+
+  const handleRunExtractionPreview = async (uploadId: string, documentId: string) => {
+    setRagExtractionPreviewState({ status: "loading", uploadId });
+
+    try {
+      const response = await runIdjorRagUploadExtractionPreview(uploadId);
+      setRagExtractionPreviewState({ status: "success", uploadId, response });
+
+      await handleLoadUploadExtractions(uploadId);
+
+      if (
+        ragDocumentAuditState.status !== "idle" &&
+        ragDocumentAuditState.documentId === documentId
+      ) {
+        await handleViewDocumentAudit(documentId);
+      }
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de lancer la previsualisation d'extraction.";
+
+      setRagExtractionPreviewState({ status: "error", uploadId, message });
     }
   };
 
@@ -1701,10 +1821,109 @@ export function IdjorFoundationPanel() {
                             header: "Recu le",
                             render: (upload) => upload.createdAt,
                           },
+                          {
+                            key: "extraction",
+                            header: "Extraction",
+                            render: (upload) => (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleExtractionPanel(upload.id)}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200"
+                              >
+                                <FileSearch className="h-3 w-3" />
+                                {extractionPanelUploadId === upload.id
+                                  ? "Fermer"
+                                  : "Previsualiser extraction"}
+                              </button>
+                            ),
+                          },
                         ]}
                       />
                     ) : null}
                   </div>
+
+                  {extractionPanelUploadId ? (
+                    <div className="space-y-4 rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                      <div className="flex items-center gap-2">
+                        <FileSearch className="h-4 w-4 text-cyan-300" />
+                        <h3 className="font-medium text-white">Extraction controlee</h3>
+                      </div>
+
+                      <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                        Extraction controlee. Aucun chunk, embedding, vector store ou LLM
+                        n&apos;est active.
+                      </p>
+
+                      <Button
+                        type="button"
+                        onClick={() =>
+                          handleRunExtractionPreview(extractionPanelUploadId, uploadPanelDocumentId)
+                        }
+                        disabled={
+                          ragExtractionPreviewState.status === "loading" &&
+                          ragExtractionPreviewState.uploadId === extractionPanelUploadId
+                        }
+                        className="min-w-[200px]"
+                      >
+                        {ragExtractionPreviewState.status === "loading" &&
+                        ragExtractionPreviewState.uploadId === extractionPanelUploadId
+                          ? "Extraction en cours..."
+                          : "Previsualiser extraction"}
+                      </Button>
+
+                      {ragExtractionPreviewState.status === "error" &&
+                      ragExtractionPreviewState.uploadId === extractionPanelUploadId ? (
+                        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                          {ragExtractionPreviewState.message}
+                        </div>
+                      ) : null}
+
+                      {ragExtractionPreviewState.status === "success" &&
+                      ragExtractionPreviewState.uploadId === extractionPanelUploadId ? (
+                        <ExtractionResultBlock extraction={ragExtractionPreviewState.response.extraction} />
+                      ) : null}
+
+                      <div>
+                        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                          Extractions pour ce fichier
+                        </p>
+
+                        {ragUploadExtractionsListState.status === "loading" &&
+                        ragUploadExtractionsListState.uploadId === extractionPanelUploadId ? (
+                          <p className="text-sm text-slate-300">Chargement...</p>
+                        ) : null}
+
+                        {ragUploadExtractionsListState.status === "error" &&
+                        ragUploadExtractionsListState.uploadId === extractionPanelUploadId ? (
+                          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                            {ragUploadExtractionsListState.message}
+                          </div>
+                        ) : null}
+
+                        {ragUploadExtractionsListState.status === "success" &&
+                        ragUploadExtractionsListState.uploadId === extractionPanelUploadId ? (
+                          ragUploadExtractionsListState.page.extractions.length > 0 ? (
+                            <div
+                              className={cn(
+                                "space-y-3 overflow-auto rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3",
+                                tableHeightClass,
+                              )}
+                            >
+                              {ragUploadExtractionsListState.page.extractions.map((extraction) => (
+                                <ExtractionResultBlock key={extraction.id} extraction={extraction} />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                              <p className="text-sm text-slate-400">
+                                Aucune extraction enregistree pour ce fichier.
+                              </p>
+                            </div>
+                          )
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 

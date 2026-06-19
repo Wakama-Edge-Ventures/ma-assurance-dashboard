@@ -355,6 +355,50 @@ export interface IdjorRagUploadIntakeResponse {
   publicDownloadEnabled: false;
 }
 
+export type IdjorRagExtractionStatus =
+  | "EXTRACTED_PENDING_REVIEW"
+  | "UNSUPPORTED_PENDING_EXTRACTOR"
+  | "FILE_MISSING"
+  | "FAILED";
+
+export interface IdjorRagDocumentExtraction {
+  id: string;
+  tenantId: string;
+  institutionId: string | null;
+  country: string;
+  vertical: string;
+  documentId: string;
+  uploadId: string;
+  mimeType: string;
+  status: string;
+  previewText: string | null;
+  previewTextLength: number | null;
+  errorReason: string | null;
+  source: DataSource;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IdjorRagDocumentExtractionsPage {
+  scope: IdjorRagResponseScope;
+  uploadId: string;
+  extractions: IdjorRagDocumentExtraction[];
+  securitySummary: IdjorRagSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export interface IdjorRagExtractionPreviewResponse {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  uploadId: string;
+  extraction: IdjorRagDocumentExtraction;
+  linkedAssetCounts: IdjorRagLinkedAssetCounts;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"

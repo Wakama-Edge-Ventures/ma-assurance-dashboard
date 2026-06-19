@@ -23,8 +23,11 @@ import {
   IdjorRagDocumentAuditEventsPage,
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
+  IdjorRagDocumentExtraction,
+  IdjorRagDocumentExtractionsPage,
   IdjorRagDocumentUpload,
   IdjorRagDocumentUploadsPage,
+  IdjorRagExtractionPreviewResponse,
   IdjorRagHealth,
   IdjorRagIngestionMissingField,
   IdjorRagIngestionPreview,
@@ -767,6 +770,106 @@ function mapIdjorRagUploadIntakeResponse(payload: unknown): IdjorRagUploadIntake
     linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
     quarantineStorage: "LOCAL_PRIVATE",
     publicDownloadEnabled: false,
+  };
+}
+
+function mapIdjorRagDocumentExtraction(value: unknown): IdjorRagDocumentExtraction | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const tenantId = readString(record, "tenantId");
+  const country = readString(record, "country");
+  const vertical = readString(record, "vertical");
+  const documentId = readString(record, "documentId");
+  const uploadId = readString(record, "uploadId");
+  const mimeType = readString(record, "mimeType");
+  const status = readString(record, "status");
+  const createdAt = readString(record, "createdAt");
+  const updatedAt = readString(record, "updatedAt");
+
+  if (
+    !id ||
+    !tenantId ||
+    !country ||
+    !vertical ||
+    !documentId ||
+    !uploadId ||
+    !mimeType ||
+    !status ||
+    !createdAt ||
+    !updatedAt
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    tenantId,
+    institutionId: readString(record, "institutionId"),
+    country,
+    vertical,
+    documentId,
+    uploadId,
+    mimeType,
+    status,
+    previewText: readString(record, "previewText"),
+    previewTextLength: readNumberLike(record, "previewTextLength"),
+    errorReason: readString(record, "errorReason"),
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    createdAt,
+    updatedAt,
+  };
+}
+
+function mapIdjorRagDocumentExtractionsPage(payload: unknown): IdjorRagDocumentExtractionsPage {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const uploadId = readString(root, "uploadId");
+
+  if (!root || !scope || !uploadId) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: liste des extractions RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    uploadId,
+    extractions: readArray(root.extractions)
+      .map((entry) => mapIdjorRagDocumentExtraction(entry))
+      .filter((entry): entry is IdjorRagDocumentExtraction => entry !== null),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagExtractionPreviewResponse(payload: unknown): IdjorRagExtractionPreviewResponse {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+  const uploadId = readString(root, "uploadId");
+  const extraction = mapIdjorRagDocumentExtraction(root?.extraction);
+
+  if (!root || !scope || !documentId || !documentKey || !uploadId || !extraction) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: resultat de previsualisation d'extraction RAG incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    uploadId,
+    extraction,
+    linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
   };
 }
 
@@ -1663,6 +1766,29 @@ export async function getIdjorRagDocumentUploads(
   );
 
   return mapIdjorRagDocumentUploadsPage(payload);
+}
+
+export async function runIdjorRagUploadExtractionPreview(
+  uploadId: string,
+): Promise<IdjorRagExtractionPreviewResponse> {
+  const safeId = encodeURIComponent(uploadId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/uploads/${safeId}/extract-preview`,
+    { method: "POST" },
+  );
+
+  return mapIdjorRagExtractionPreviewResponse(payload);
+}
+
+export async function getIdjorRagUploadExtractions(
+  uploadId: string,
+): Promise<IdjorRagDocumentExtractionsPage> {
+  const safeId = encodeURIComponent(uploadId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/uploads/${safeId}/extractions`,
+  );
+
+  return mapIdjorRagDocumentExtractionsPage(payload);
 }
 
 export interface InsuranceApplicationByIdResult {
