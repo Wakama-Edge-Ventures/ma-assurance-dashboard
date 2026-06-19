@@ -7,5 +7,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/008-demo-freeze-neutral-wording/plan.md`
+`specs/009-demo-freeze-final-validation/plan.md`
 <!-- SPECKIT END -->
