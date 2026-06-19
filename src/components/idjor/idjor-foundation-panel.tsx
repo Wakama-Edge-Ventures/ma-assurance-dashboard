@@ -29,12 +29,20 @@ import {
   ApiError,
   getIdjorFoundationHealth,
   getIdjorFoundationRegistry,
+  getIdjorRagChunks,
+  getIdjorRagCitations,
+  getIdjorRagDocuments,
+  getIdjorRagHealth,
 } from "@/lib/api";
 import { withAlpha } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
 import type {
   IdjorFoundationHealth,
   IdjorFoundationRegistry,
+  IdjorRagChunksSnapshot,
+  IdjorRagCitationsSnapshot,
+  IdjorRagDocumentsSnapshot,
+  IdjorRagHealth,
 } from "@/types";
 
 type FoundationState =
@@ -47,6 +55,10 @@ type FoundationState =
       tenantKey: string | null;
       health: IdjorFoundationHealth;
       registry: IdjorFoundationRegistry;
+      ragHealth: IdjorRagHealth;
+      ragDocuments: IdjorRagDocumentsSnapshot;
+      ragChunks: IdjorRagChunksSnapshot;
+      ragCitations: IdjorRagCitationsSnapshot;
     }
   | {
       status: "error";
@@ -64,6 +76,7 @@ type SectionKey =
   | "tools"
   | "flags"
   | "providersModels"
+  | "rag"
   | "security";
 
 type SectionState = Record<SectionKey, boolean>;
@@ -75,6 +88,7 @@ const COMPACT_SECTION_STATE: SectionState = {
   tools: false,
   flags: false,
   providersModels: false,
+  rag: true,
   security: true,
 };
 
@@ -85,6 +99,7 @@ const FULL_SECTION_STATE: SectionState = {
   tools: true,
   flags: true,
   providersModels: true,
+  rag: true,
   security: true,
 };
 
@@ -263,7 +278,7 @@ function getErrorCard(state: Extract<FoundationState, { status: "error" }>, tena
     return (
       <AuthRequiredCard
         title="Authentification backend requise pour IDJOR"
-        description="La vue /fr/idjor consomme les routes protegees /v1/idjor/foundation/*. Reconnectez-vous avec une session backend valide."
+        description="La vue /fr/idjor consomme les routes protegees /v1/idjor/foundation/* et /v1/idjor/rag/*. Reconnectez-vous avec une session backend valide."
       />
     );
   }
@@ -308,10 +323,15 @@ export function IdjorFoundationPanel() {
       setState({ status: "loading", tenantKey: explicitTenantKey });
 
       try {
-        const [health, registry] = await Promise.all([
-          getIdjorFoundationHealth({ tenantKey: explicitTenantKey }),
-          getIdjorFoundationRegistry({ tenantKey: explicitTenantKey }),
-        ]);
+        const [health, registry, ragHealth, ragDocuments, ragChunks, ragCitations] =
+          await Promise.all([
+            getIdjorFoundationHealth({ tenantKey: explicitTenantKey }),
+            getIdjorFoundationRegistry({ tenantKey: explicitTenantKey }),
+            getIdjorRagHealth({ tenantKey: explicitTenantKey }),
+            getIdjorRagDocuments({ tenantKey: explicitTenantKey }),
+            getIdjorRagChunks({ tenantKey: explicitTenantKey }),
+            getIdjorRagCitations({ tenantKey: explicitTenantKey }),
+          ]);
 
         if (cancelled) return;
 
@@ -320,6 +340,10 @@ export function IdjorFoundationPanel() {
           tenantKey: explicitTenantKey,
           health,
           registry,
+          ragHealth,
+          ragDocuments,
+          ragChunks,
+          ragCitations,
         });
       } catch (error) {
         if (cancelled) return;
@@ -511,7 +535,7 @@ export function IdjorFoundationPanel() {
             Chargement
           </p>
           <p className="text-sm text-slate-300">
-            Construction de la synthese et lecture des snapshots proteges IDJOR en cours...
+            Construction de la synthese et lecture des snapshots proteges IDJOR et RAG en cours...
           </p>
         </AppCard>
       ) : null}
@@ -529,7 +553,7 @@ export function IdjorFoundationPanel() {
             onToggle={() => toggleSection("summary")}
           >
             <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <SummaryMetric
                   label="Agents"
                   value={String(state.health.counts.agents)}
@@ -549,6 +573,11 @@ export function IdjorFoundationPanel() {
                   label="Flags OFF"
                   value={String(state.registry.featureFlags.filter((flag) => !flag.enabled).length)}
                   hint="Feature flags desactives"
+                />
+                <SummaryMetric
+                  label="Docs RAG"
+                  value={String(state.ragHealth.counts.documents)}
+                  hint="Base documentaire read-only"
                 />
               </div>
 
@@ -597,6 +626,218 @@ export function IdjorFoundationPanel() {
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            icon={<ScanSearch className="h-4 w-4" />}
+            title="Base documentaire RAG"
+            subtitle="Metadonnees documentaires en lecture seule, visibles sans ingestion, question, indexation ni calcul."
+            countLabel={`${state.ragHealth.counts.documents} docs · ${state.ragHealth.counts.chunks} chunks · ${state.ragHealth.counts.citations} citations`}
+            open={sections.rag}
+            onToggle={() => toggleSection("rag")}
+          >
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <ExecutiveStatus
+                  label="RAG enabled"
+                  value={state.ragHealth.securitySummary.ragEnabled ? "true" : "false"}
+                  tone={state.ragHealth.securitySummary.ragEnabled ? "danger" : "success"}
+                />
+                <ExecutiveStatus
+                  label="Embeddings"
+                  value={state.ragHealth.securitySummary.embeddingsEnabled ? "true" : "false"}
+                  tone={state.ragHealth.securitySummary.embeddingsEnabled ? "danger" : "success"}
+                />
+                <ExecutiveStatus
+                  label="LLM"
+                  value={state.ragHealth.securitySummary.llmEnabled ? "true" : "false"}
+                  tone={state.ragHealth.securitySummary.llmEnabled ? "danger" : "success"}
+                />
+                <ExecutiveStatus
+                  label="Vector store"
+                  value={state.ragHealth.securitySummary.vectorStoreEnabled ? "true" : "false"}
+                  tone={state.ragHealth.securitySummary.vectorStoreEnabled ? "danger" : "success"}
+                />
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Network className="h-4 w-4 text-cyan-300" />
+                    <h3 className="font-medium text-white">Synthese RAG</h3>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <ExecutiveStatus label="Tenant" value={state.ragHealth.scope.tenantKey} />
+                    <ExecutiveStatus
+                      label="Role"
+                      value={state.ragHealth.scope.role ?? "N/A"}
+                    />
+                    <ExecutiveStatus
+                      label="Read only"
+                      value={state.ragHealth.readOnly ? "true" : "false"}
+                      tone={state.ragHealth.readOnly ? "success" : "danger"}
+                    />
+                    <ExecutiveStatus
+                      label="Resolution"
+                      value={state.ragHealth.resolutionMode ?? "UNKNOWN"}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <BotOff className="h-4 w-4 text-emerald-300" />
+                    <h3 className="font-medium text-white">Message de demo</h3>
+                  </div>
+                  <p className="text-sm leading-relaxed text-slate-300">
+                    La base documentaire RAG est visible uniquement comme socle
+                    metadata read-only. Aucun upload, aucun moteur de recherche,
+                    aucun embedding actif et aucune question en langage naturel ne
+                    sont actives dans cette phase.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-300" />
+                  <h3 className="font-medium text-white">Source labels autorises</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {state.ragHealth.securitySummary.sourceLabels.length > 0 ? (
+                    state.ragHealth.securitySummary.sourceLabels.map((label) => (
+                      <span
+                        key={label}
+                        className="rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300"
+                      >
+                        {label}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 text-xs text-slate-400">
+                      Aucun label source publie pour ce tenant
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <RegistryTable
+                rows={state.ragDocuments.documents}
+                emptyLabel="Aucun document RAG visible pour ce tenant."
+                maxHeightClass={tableHeightClass}
+                columns={[
+                  {
+                    key: "document",
+                    header: "Document",
+                    render: (document) => (
+                      <div className="space-y-1">
+                        <p className="font-medium text-white">{document.title}</p>
+                        <p className="font-mono text-[11px] text-slate-500">
+                          {document.documentKey}
+                        </p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "status",
+                    header: "Etat",
+                    render: (document) => (
+                      <div className="space-y-1">
+                        <p>{document.ingestionStatus}</p>
+                        <p className="text-xs text-slate-500">
+                          {document.mimeType ?? "mime inconnu"}
+                        </p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "reference",
+                    header: "Reference",
+                    render: (document) => (
+                      <p className="text-xs text-slate-400">
+                        {document.externalReference ?? "Aucune reference externe"}
+                      </p>
+                    ),
+                  },
+                  {
+                    key: "source",
+                    header: "Source",
+                    render: (document) => <SourceBadge source={document.source} />,
+                  },
+                ]}
+              />
+
+              <div className="grid gap-4 xl:grid-cols-2">
+                <RegistryTable
+                  rows={state.ragChunks.chunks}
+                  emptyLabel="0 chunk actif ou chunking non active pour ce tenant."
+                  maxHeightClass={tableHeightClass}
+                  columns={[
+                    {
+                      key: "chunk",
+                      header: "Chunk",
+                      render: (chunk) => (
+                        <div className="space-y-1">
+                          <p className="font-medium text-white">{chunk.documentTitle}</p>
+                          <p className="font-mono text-[11px] text-slate-500">
+                            {chunk.documentKey} · #{chunk.chunkIndex}
+                          </p>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "excerpt",
+                      header: "Extrait",
+                      render: (chunk) => (
+                        <p className="max-w-[420px] text-xs text-slate-400">
+                          {chunk.contentText}
+                        </p>
+                      ),
+                    },
+                    {
+                      key: "tokenCount",
+                      header: "Tokens",
+                      render: (chunk) => String(chunk.tokenCount ?? 0),
+                    },
+                  ]}
+                />
+
+                <RegistryTable
+                  rows={state.ragCitations.citations}
+                  emptyLabel="0 citation active ou retrieval non active pour ce tenant."
+                  maxHeightClass={tableHeightClass}
+                  columns={[
+                    {
+                      key: "citation",
+                      header: "Citation",
+                      render: (citation) => (
+                        <div className="space-y-1">
+                          <p className="font-medium text-white">{citation.citationLabel}</p>
+                          <p className="font-mono text-[11px] text-slate-500">
+                            {citation.documentKey}
+                            {citation.chunkIndex !== null ? ` · #${citation.chunkIndex}` : ""}
+                          </p>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "excerpt",
+                      header: "Extrait",
+                      render: (citation) => (
+                        <p className="max-w-[420px] text-xs text-slate-400">
+                          {citation.excerptText}
+                        </p>
+                      ),
+                    },
+                    {
+                      key: "source",
+                      header: "Source",
+                      render: (citation) => <SourceBadge source={citation.source} />,
+                    },
+                  ]}
+                />
               </div>
             </div>
           </SectionCard>

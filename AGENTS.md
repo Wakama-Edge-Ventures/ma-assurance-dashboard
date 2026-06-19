@@ -7,5 +7,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/002-idjor-ux-compact/plan.md`
+`specs/003-idjor-rag-metadata/plan.md`
 <!-- SPECKIT END -->

@@ -111,6 +111,115 @@ export interface IdjorFoundationRegistry {
   readOnly: boolean;
 }
 
+export interface IdjorRagResponseScope {
+  tenantId: string;
+  tenantKey: string;
+  institutionId: string | null;
+  country: string;
+  vertical: string;
+  role: string | null;
+}
+
+export interface IdjorRagSecuritySummary {
+  ragEnabled: boolean;
+  vectorStoreEnabled: boolean;
+  embeddingsEnabled: boolean;
+  llmEnabled: boolean;
+  decisioningEnabled: boolean;
+  sourceLabels: string[];
+  readOnly: boolean;
+}
+
+export interface IdjorRagAssetCounts {
+  documents: number;
+  chunks: number;
+  citations: number;
+}
+
+export interface IdjorRagHealth {
+  scope: IdjorRagResponseScope;
+  counts: IdjorRagAssetCounts;
+  securitySummary: IdjorRagSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export interface IdjorRagDocument {
+  id: string;
+  tenantId: string;
+  institutionId: string | null;
+  country: string;
+  vertical: string;
+  documentKey: string;
+  title: string;
+  mimeType: string | null;
+  contentHash: string;
+  ingestionStatus: string;
+  source: DataSource;
+  externalReference: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface IdjorRagChunk {
+  id: string;
+  tenantId: string;
+  institutionId: string | null;
+  country: string;
+  vertical: string;
+  documentId: string;
+  documentKey: string;
+  documentTitle: string;
+  chunkIndex: number;
+  contentText: string;
+  contentHash: string;
+  tokenCount: number | null;
+  source: DataSource;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface IdjorRagCitation {
+  id: string;
+  tenantId: string;
+  institutionId: string | null;
+  country: string;
+  vertical: string;
+  documentId: string;
+  documentKey: string;
+  documentTitle: string;
+  chunkId: string | null;
+  chunkIndex: number | null;
+  citationLabel: string;
+  excerptText: string;
+  source: DataSource;
+  createdAt: string | null;
+}
+
+export interface IdjorRagDocumentsSnapshot {
+  scope: IdjorRagResponseScope;
+  documents: IdjorRagDocument[];
+  securitySummary: IdjorRagSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export interface IdjorRagChunksSnapshot {
+  scope: IdjorRagResponseScope;
+  chunks: IdjorRagChunk[];
+  securitySummary: IdjorRagSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export interface IdjorRagCitationsSnapshot {
+  scope: IdjorRagResponseScope;
+  citations: IdjorRagCitation[];
+  securitySummary: IdjorRagSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"

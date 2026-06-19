@@ -10,6 +10,16 @@ import {
   IdjorFoundationRegistry,
   IdjorFoundationSecuritySummary,
   IdjorFoundationTenant,
+  IdjorRagAssetCounts,
+  IdjorRagChunk,
+  IdjorRagChunksSnapshot,
+  IdjorRagCitation,
+  IdjorRagCitationsSnapshot,
+  IdjorRagDocument,
+  IdjorRagDocumentsSnapshot,
+  IdjorRagHealth,
+  IdjorRagResponseScope,
+  IdjorRagSecuritySummary,
   IdjorModelCatalog,
   IdjorProviderCatalog,
   IdjorRegistryAgent,
@@ -291,6 +301,162 @@ function mapIdjorSecuritySummary(value: unknown): IdjorFoundationSecuritySummary
   };
 }
 
+function mapIdjorRagScope(value: unknown): IdjorRagResponseScope | null {
+  const scope = asObject(value);
+  const tenantId = readString(scope, "tenantId");
+  const tenantKey = readString(scope, "tenantKey");
+  const country = readString(scope, "country");
+  const vertical = readString(scope, "vertical");
+
+  if (!tenantId || !tenantKey || !country || !vertical) {
+    return null;
+  }
+
+  return {
+    tenantId,
+    tenantKey,
+    institutionId: readString(scope, "institutionId"),
+    country,
+    vertical,
+    role: readString(scope, "role"),
+  };
+}
+
+function mapIdjorRagSecuritySummary(value: unknown): IdjorRagSecuritySummary {
+  return {
+    ragEnabled: readBooleanLike(value, "ragEnabled") ?? false,
+    vectorStoreEnabled: readBooleanLike(value, "vectorStoreEnabled") ?? false,
+    embeddingsEnabled: readBooleanLike(value, "embeddingsEnabled") ?? false,
+    llmEnabled: readBooleanLike(value, "llmEnabled") ?? false,
+    decisioningEnabled: readBooleanLike(value, "decisioningEnabled") ?? false,
+    sourceLabels: readStringArray(value, "sourceLabels"),
+    readOnly: readBooleanLike(value, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagDocument(value: unknown): IdjorRagDocument | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const tenantId = readString(record, "tenantId");
+  const country = readString(record, "country");
+  const vertical = readString(record, "vertical");
+  const documentKey = readString(record, "documentKey");
+  const title = readString(record, "title");
+  const contentHash = readString(record, "contentHash");
+
+  if (!id || !tenantId || !country || !vertical || !documentKey || !title || !contentHash) {
+    return null;
+  }
+
+  return {
+    id,
+    tenantId,
+    institutionId: readString(record, "institutionId"),
+    country,
+    vertical,
+    documentKey,
+    title,
+    mimeType: readString(record, "mimeType"),
+    contentHash,
+    ingestionStatus: readString(record, "ingestionStatus") ?? "REGISTERED",
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    externalReference: readString(record, "externalReference"),
+    createdAt: readString(record, "createdAt"),
+    updatedAt: readString(record, "updatedAt"),
+  };
+}
+
+function mapIdjorRagChunk(value: unknown): IdjorRagChunk | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const tenantId = readString(record, "tenantId");
+  const country = readString(record, "country");
+  const vertical = readString(record, "vertical");
+  const documentId = readString(record, "documentId");
+  const documentKey = readString(record, "documentKey");
+  const documentTitle = readString(record, "documentTitle");
+  const contentText = readString(record, "contentText");
+  const contentHash = readString(record, "contentHash");
+  const chunkIndex = readNumberLike(record, "chunkIndex");
+
+  if (
+    !id ||
+    !tenantId ||
+    !country ||
+    !vertical ||
+    !documentId ||
+    !documentKey ||
+    !documentTitle ||
+    !contentText ||
+    !contentHash ||
+    chunkIndex === null
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    tenantId,
+    institutionId: readString(record, "institutionId"),
+    country,
+    vertical,
+    documentId,
+    documentKey,
+    documentTitle,
+    chunkIndex,
+    contentText,
+    contentHash,
+    tokenCount: readNumberLike(record, "tokenCount"),
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    createdAt: readString(record, "createdAt"),
+    updatedAt: readString(record, "updatedAt"),
+  };
+}
+
+function mapIdjorRagCitation(value: unknown): IdjorRagCitation | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const tenantId = readString(record, "tenantId");
+  const country = readString(record, "country");
+  const vertical = readString(record, "vertical");
+  const documentId = readString(record, "documentId");
+  const documentKey = readString(record, "documentKey");
+  const documentTitle = readString(record, "documentTitle");
+  const citationLabel = readString(record, "citationLabel");
+  const excerptText = readString(record, "excerptText");
+
+  if (
+    !id ||
+    !tenantId ||
+    !country ||
+    !vertical ||
+    !documentId ||
+    !documentKey ||
+    !documentTitle ||
+    !citationLabel ||
+    !excerptText
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    tenantId,
+    institutionId: readString(record, "institutionId"),
+    country,
+    vertical,
+    documentId,
+    documentKey,
+    documentTitle,
+    chunkId: readString(record, "chunkId"),
+    chunkIndex: readNumberLike(record, "chunkIndex"),
+    citationLabel,
+    excerptText,
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    createdAt: readString(record, "createdAt"),
+  };
+}
+
 function mapIdjorRegistryAgent(value: unknown): IdjorRegistryAgent | null {
   const record = asObject(value);
   const id = readString(record, "id");
@@ -505,6 +671,106 @@ function mapIdjorFoundationRegistry(payload: unknown): IdjorFoundationRegistry {
     securitySummary: mapIdjorSecuritySummary(root.securitySummary),
     resolutionMode: readString(root, "resolutionMode"),
     readOnly: readBooleanLike(root, "readOnly") ?? false,
+  };
+}
+
+function mapIdjorRagCounts(value: unknown): IdjorRagAssetCounts {
+  const counts = asObject(value);
+
+  return {
+    documents: readNumberLike(counts, "documents") ?? 0,
+    chunks: readNumberLike(counts, "chunks") ?? 0,
+    citations: readNumberLike(counts, "citations") ?? 0,
+  };
+}
+
+function mapIdjorRagHealth(payload: unknown): IdjorRagHealth {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+
+  if (!root || !scope) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: snapshot IDJOR RAG health incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    counts: mapIdjorRagCounts(root.counts),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagDocuments(payload: unknown): IdjorRagDocumentsSnapshot {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+
+  if (!root || !scope) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: snapshot IDJOR RAG documents incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documents: readArray(root.documents)
+      .map((entry) => mapIdjorRagDocument(entry))
+      .filter((entry): entry is IdjorRagDocument => entry !== null),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagChunks(payload: unknown): IdjorRagChunksSnapshot {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+
+  if (!root || !scope) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: snapshot IDJOR RAG chunks incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    chunks: readArray(root.chunks)
+      .map((entry) => mapIdjorRagChunk(entry))
+      .filter((entry): entry is IdjorRagChunk => entry !== null),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagCitations(payload: unknown): IdjorRagCitationsSnapshot {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+
+  if (!root || !scope) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: snapshot IDJOR RAG citations incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    citations: readArray(root.citations)
+      .map((entry) => mapIdjorRagCitation(entry))
+      .filter((entry): entry is IdjorRagCitation => entry !== null),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
   };
 }
 
@@ -931,6 +1197,57 @@ export async function getIdjorFoundationRegistry(
   );
 
   return mapIdjorFoundationRegistry(payload);
+}
+
+export async function getIdjorRagHealth(
+  options: { tenantKey?: string | null } = {},
+): Promise<IdjorRagHealth> {
+  const payload = await apiFetch<unknown>(
+    withQuery("/v1/idjor/rag/health", {
+      tenantKey: options.tenantKey ?? null,
+    }),
+  );
+
+  return mapIdjorRagHealth(payload);
+}
+
+export async function getIdjorRagDocuments(
+  options: { tenantKey?: string | null; documentKey?: string | null } = {},
+): Promise<IdjorRagDocumentsSnapshot> {
+  const payload = await apiFetch<unknown>(
+    withQuery("/v1/idjor/rag/documents", {
+      tenantKey: options.tenantKey ?? null,
+      documentKey: options.documentKey ?? null,
+    }),
+  );
+
+  return mapIdjorRagDocuments(payload);
+}
+
+export async function getIdjorRagChunks(
+  options: { tenantKey?: string | null; documentKey?: string | null } = {},
+): Promise<IdjorRagChunksSnapshot> {
+  const payload = await apiFetch<unknown>(
+    withQuery("/v1/idjor/rag/chunks", {
+      tenantKey: options.tenantKey ?? null,
+      documentKey: options.documentKey ?? null,
+    }),
+  );
+
+  return mapIdjorRagChunks(payload);
+}
+
+export async function getIdjorRagCitations(
+  options: { tenantKey?: string | null; documentKey?: string | null } = {},
+): Promise<IdjorRagCitationsSnapshot> {
+  const payload = await apiFetch<unknown>(
+    withQuery("/v1/idjor/rag/citations", {
+      tenantKey: options.tenantKey ?? null,
+      documentKey: options.documentKey ?? null,
+    }),
+  );
+
+  return mapIdjorRagCitations(payload);
 }
 
 export interface InsuranceApplicationByIdResult {
