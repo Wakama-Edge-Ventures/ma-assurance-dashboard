@@ -11,17 +11,15 @@ export default function ApplicationsPage() {
   const isAssuranceTenant = tenant.id === "assurance-ma";
 
   const title = isAssuranceTenant
-    ? "Demandes d'assurance - DCA Farmer"
+    ? "Demandes d'assurance agricole - DCA"
     : tenant.terminology.applicationsLabel;
   const description = isAssuranceTenant
-    ? "Lecture seule des dossiers DCA retournes par GET /v1/insurance/applications."
+    ? "Lecture seule des dossiers DCA, declaration de capacite agricole retournee par GET /v1/insurance/applications."
     : "Vue institutionnelle en lecture seule des dossiers retournes par GET /v1/insurance/applications.";
   const note = tenant.demoMode
     ? "Demo institutionnelle - maquette d'illustration. Les donnees et decisions restent sous controle de l'institution."
     : null;
-  const disclaimer = isAssuranceTenant
-    ? "Wakama prepare, structure et documente. La decision finale reste reservee a l'assureur."
-    : tenant.terminology.decisionDisclaimer;
+  const disclaimer = tenant.terminology.decisionDisclaimer;
 
   return (
     <div className="space-y-6">

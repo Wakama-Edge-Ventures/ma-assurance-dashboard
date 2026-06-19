@@ -45,10 +45,10 @@ export function Header() {
   const isApplicationsPage = pathname.startsWith("/fr/applications");
   const isIdjorPage = pathname.startsWith("/fr/idjor");
   const titlePrefix = isIdjorPage
-    ? "Socle IDJOR read-only"
+    ? `${tenant.terminology.idjorLabel} read-only`
     : tenant.id === "assurance-ma"
-      ? "Telemetrie en direct"
-      : tenant.shortName;
+      ? "Assurance agricole"
+      : "Vue institutionnelle";
   const tenantScopeLabel = [tenant.countryLabel, tenant.institutionType].filter(Boolean).join(" · ");
   const searchPlaceholder =
     tenant.id === "assurance-ma"
@@ -102,12 +102,11 @@ export function Header() {
           </span>
         ) : isIdjorPage ? (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/28 bg-amber-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-amber-300">
-            Socle read-only
+            Lecture seule
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/28 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-emerald-400">
-            <span className="oracle-live-dot inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-            Live
+            {tenant.demoMode ? "Vue demo" : "Vue active"}
           </span>
         )}
 

@@ -26,6 +26,10 @@ export interface TenantConfig {
     committeeLabel: string;
     evidenceLabel: string;
     portfolioLabel: string;
+    institutionLabel: string;
+    policyLabel: string;
+    claimLabel: string;
+    idjorLabel: string;
     decisionDisclaimer: string;
   };
   featureFlags: {
@@ -73,8 +77,12 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
       committeeLabel: "Arbitrage",
       evidenceLabel: "Preuves terrain",
       portfolioLabel: "Portefeuille assurance",
+      institutionLabel: "institution",
+      policyLabel: "police",
+      claimLabel: "sinistre",
+      idjorLabel: "Socle IDJOR",
       decisionDisclaimer:
-        "Wakama fournit une structuration technique du risque. L'assureur reste seul decisionnaire pour l'eligibilite, la tarification commerciale, l'emission de police et l'indemnisation.",
+        "Wakama fournit une structuration technique du risque. L'institution reste seule decisionnaire pour l'eligibilite, la tarification commerciale, l'emission de police et l'indemnisation.",
     },
     featureFlags: {
       showInsuranceNavigation: true,
@@ -111,7 +119,11 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
       scoreLabel: "Score risque",
       committeeLabel: "Comite risque",
       evidenceLabel: "Pieces de preuve",
-      portfolioLabel: "Portefeuille credit agricole",
+      portfolioLabel: "Portefeuille agricole",
+      institutionLabel: "institution",
+      policyLabel: "accord",
+      claimLabel: "incident",
+      idjorLabel: "Preuves & audit",
       decisionDisclaimer:
         "Wakama prepare le dossier et la lecture du risque. La decision finale reste sous le controle exclusif de l'institution.",
     },
@@ -150,7 +162,11 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
       scoreLabel: "Score suivi",
       committeeLabel: "Comite programme",
       evidenceLabel: "Preuves & conformite",
-      portfolioLabel: "Portefeuille beneficiaires",
+      portfolioLabel: "Portefeuille agricole",
+      institutionLabel: "institution",
+      policyLabel: "accord",
+      claimLabel: "incident",
+      idjorLabel: "Preuves & audit",
       decisionDisclaimer:
         "Wakama prepare le dossier, les preuves et les indicateurs. Les decisions restent sous le controle exclusif de l'institution.",
     },
@@ -189,7 +205,11 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
       scoreLabel: "Score",
       committeeLabel: "Comite",
       evidenceLabel: "Preuves",
-      portfolioLabel: "Portefeuille",
+      portfolioLabel: "Plateforme Wakama",
+      institutionLabel: "institution",
+      policyLabel: "accord",
+      claimLabel: "incident",
+      idjorLabel: "Preuves & audit",
       decisionDisclaimer:
         "Wakama structure la lecture technique et les preuves. La decision finale reste entierement du ressort de l'institution.",
     },

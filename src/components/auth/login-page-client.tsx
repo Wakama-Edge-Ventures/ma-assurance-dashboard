@@ -149,16 +149,16 @@ export function LoginPageClient() {
 
       if (submitError instanceof ApiError) {
         if (submitError.status === 401) {
-          setError("Identifiants invalides pour le backend assurance.");
+          setError("Identifiants invalides pour le backend du dashboard.");
         } else if (submitError.status === 403) {
-          setError("Acces refuse pour ce compte cote backend assurance.");
+          setError("Acces refuse pour ce compte cote backend du dashboard.");
         } else {
           setError(
             submitError.message || "Echec de connexion backend. Reessayez dans un instant.",
           );
         }
       } else {
-        setError("Impossible de contacter le backend assurance. Verifiez votre connexion.");
+        setError("Impossible de contacter le backend du dashboard. Verifiez votre connexion.");
       }
     } finally {
       setIsSubmitting(false);
@@ -166,11 +166,11 @@ export function LoginPageClient() {
   }
 
   const contextualLoginTitle =
-    tenant.id === "assurance-ma" ? "Connexion Assurance" : `Connexion ${tenant.displayName}`;
+    tenant.id === "assurance-ma" ? "Connexion Assurance agricole" : `Connexion ${tenant.displayName}`;
   const contextualLoginDescription =
     tenant.id === "assurance-ma"
-      ? "Connexion institutionnelle au dashboard assurance."
-      : `Acces demo ${tenant.countryLabel} - ${tenant.vertical}. Le backend reste celui du dashboard assurance existant.`;
+      ? "Connexion institutionnelle au parcours assurance agricole."
+      : `Acces demo ${tenant.countryLabel} - ${tenant.vertical}. Le backend reste celui du dashboard existant.`;
 
   return (
     <main className="relative flex min-h-screen items-center justify-center bg-brand-bg p-4">

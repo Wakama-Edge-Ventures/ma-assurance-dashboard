@@ -581,12 +581,16 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
   const resolvedParams = use(params);
   const applicationId = resolvedParams.id;
   const isAssuranceTenant = tenant.id === "assurance-ma";
+  const policyLabel = tenant.terminology.policyLabel;
+  const claimLabel = tenant.terminology.claimLabel;
+  const policyLabelCapitalized = policyLabel.charAt(0).toUpperCase() + policyLabel.slice(1);
+  const claimLabelCapitalized = claimLabel.charAt(0).toUpperCase() + claimLabel.slice(1);
   const detailSectionSubtitle = isAssuranceTenant
-    ? "Lecture seule du dossier assurance."
+    ? "Lecture seule du dossier DCA."
     : "Lecture seule du dossier institutionnel.";
   const detailPageTitlePrefix = isAssuranceTenant ? "Dossier DCA" : "Dossier";
   const detailPageDescription = isAssuranceTenant
-    ? "Lecture seule du détail d'une demande assurance farmer."
+    ? "Lecture seule du detail d'un dossier DCA farmer."
     : "Lecture seule du dossier institutionnel. Les donnees et decisions restent sous controle de l'institution.";
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<InsuranceApplicationByIdResult | null>(null);
@@ -1091,7 +1095,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <DcaSectionHeader
-              kicker="Dossier de couverture agricole"
+              kicker={isAssuranceTenant ? "Dossier de couverture agricole" : "Declaration de capacite agricole (DCA)"}
               title={referenceValue}
               subtitle={`ID technique : ${application.id}`}
               accent="cyan"
@@ -1126,12 +1130,12 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
 
         {waitingLine && (
           <div className="rounded-xl border border-amber-400/25 bg-amber-400/8 px-4 py-2.5 text-xs text-amber-200">
-            Dossier reçu — en attente d&apos;analyse par l&apos;assureur.
+            Dossier reçu — en attente d&apos;analyse par l&apos;institution.
           </div>
         )}
 
         <p className="text-[11px] text-slate-500">
-          Wakama prépare, structure et documente. L&apos;assureur reste seul décisionnaire.
+          Wakama prépare, structure et documente. L&apos;institution reste seule décisionnaire.
         </p>
       </DcaSectionCard>
 
@@ -1200,7 +1204,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         <DcaSectionHeader
           kicker="Pièces justificatives"
           title="Documents DCA reçus"
-          subtitle="Dossier structuré par Wakama pour l'assureur"
+          subtitle="Dossier structuré par Wakama pour l'institution"
           accent="slate"
         />
 
@@ -1314,12 +1318,16 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       <DcaSectionCard accent="amber">
         <DcaSectionHeader
           kicker="Antécédents"
-          title="Historique sinistres farmer"
+          title={isAssuranceTenant ? "Historique sinistres farmer" : "Historique incidents dossier"}
           subtitle="Sinistres déclarés lors de la souscription"
           accent="amber"
         />
         {application.claimHistory.length === 0 ? (
-          <p className="text-sm text-slate-400">Aucun antécédent de sinistre déclaré ou disponible.</p>
+          <p className="text-sm text-slate-400">
+            {isAssuranceTenant
+              ? "Aucun antécédent de sinistre déclaré ou disponible."
+              : "Aucun incident déclaré ou disponible pour ce dossier."}
+          </p>
         ) : (
           <div className="space-y-3">
             {application.claimHistory.map((item, index) => (
@@ -1348,7 +1356,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         <DcaSectionHeader
           kicker="Conformité"
           title="Consentement CNDP"
-          subtitle="Données personnelles — usage exclusif préparation dossier assureur"
+          subtitle="Données personnelles — usage exclusif préparation du dossier institutionnel"
           accent="slate"
         />
         <div className="grid gap-4 md:grid-cols-3">
@@ -1371,8 +1379,8 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         />
         <div className="flex flex-wrap gap-2">
           <SideEffectPill label="Mission" active={application.sideEffects.missionCreated} />
-          <SideEffectPill label="Police" active={application.sideEffects.policyCreated} />
-          <SideEffectPill label="Sinistre" active={application.sideEffects.claimCreated} />
+          <SideEffectPill label={policyLabelCapitalized} active={application.sideEffects.policyCreated} />
+          <SideEffectPill label={claimLabelCapitalized} active={application.sideEffects.claimCreated} />
           <SideEffectPill label="RAX" active={application.sideEffects.raxCalculated} />
           <SideEffectPill label="Tarification" active={application.sideEffects.pricingCalculated} />
           <SideEffectPill label="Blockchain" active={application.sideEffects.blockchainAnchored} />
@@ -1517,7 +1525,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             )}
 
             <p className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-2 text-xs text-slate-400">
-              Aucun RAX déclenché par cette revue. Aucune police, sinistre, evidence bundle ou ancrage blockchain depuis cet écran.
+              {`Aucun RAX déclenché par cette revue. Aucun ${policyLabel}, aucun ${claimLabel}, aucun evidence bundle ni ancrage blockchain depuis cet écran.`}
             </p>
           </>
         ) : (
@@ -1542,7 +1550,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         )}
 
         <p className="text-[11px] text-slate-500">
-          Wakama prépare et documente. L&apos;assureur reste décisionnaire.
+          Wakama prépare et documente. L&apos;institution reste décisionnaire.
         </p>
       </DcaSectionCard>
 
@@ -1838,7 +1846,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           </div>
 
           <p className="text-[11px] text-slate-500">
-            Wakama prépare et documente. L&apos;assureur décide.
+            Wakama prépare et documente. L&apos;institution décide.
           </p>
         </DcaSectionCard>
       ) : null}
@@ -1984,7 +1992,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           ) : null}
 
           <p className="text-[11px] text-slate-500">
-            Wakama prépare et documente. L&apos;assureur décide.
+            Wakama prépare et documente. L&apos;institution décide.
           </p>
         </DcaSectionCard>
       ) : null}
@@ -2072,7 +2080,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           ) : null}
 
           <p className="text-[11px] text-slate-500">
-            Wakama prépare et documente. L&apos;assureur décide.
+            Wakama prépare et documente. L&apos;institution décide.
           </p>
         </DcaSectionCard>
       ) : null}
@@ -2099,14 +2107,14 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
           <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/8 px-4 py-3">
             <p className="text-xs font-semibold text-emerald-200">Actions de revue disponibles</p>
             <p className="mt-1 text-[11px] text-emerald-100/80">
-              Wakama prépare et documente. L&apos;assureur reste décisionnaire.
+              Wakama prépare et documente. L&apos;institution reste décisionnaire.
             </p>
           </div>
         ) : (
           <div className="rounded-xl border border-amber-400/25 bg-amber-400/8 px-4 py-3">
             <p className="text-xs font-semibold text-amber-200">Actions non actionnables dans ce statut</p>
             <p className="mt-1 text-[11px] text-amber-100/80">
-              Ce statut ne peut pas être modifié dans cette phase. Wakama prépare et documente. L&apos;assureur reste décisionnaire.
+              Ce statut ne peut pas être modifié dans cette phase. Wakama prépare et documente. L&apos;institution reste décisionnaire.
             </p>
           </div>
         )}
@@ -2191,10 +2199,10 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         </div>
 
         <p className="text-[11px] text-slate-500">
-          Aucune mission, aucun RAX, aucun pricing, aucune police, aucun sinistre et aucun ancrage blockchain ne sont déclenchés depuis cette revue.
+          {`Aucune mission, aucun RAX, aucun pricing, aucun ${policyLabel}, aucun ${claimLabel} et aucun ancrage blockchain ne sont déclenchés depuis cette revue.`}
         </p>
         <p className="text-[11px] text-slate-500">
-          Wakama prépare et documente. L&apos;assureur reste décisionnaire.
+          Wakama prépare et documente. L&apos;institution reste décisionnaire.
         </p>
       </DcaSectionCard>
     </div>

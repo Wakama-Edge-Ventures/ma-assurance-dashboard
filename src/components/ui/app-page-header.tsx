@@ -18,9 +18,13 @@ export function AppPageHeader({ title, description, note, action }: AppPageHeade
   const { tenant } = useTenant();
   const sharedLive = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
   const insuranceLive = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
+  const scopeLabel = [tenant.countryLabel, tenant.institutionType].filter(Boolean).join(" · ");
+  const workflowLabel = tenant.featureFlags.showInsuranceNavigation
+    ? "Parcours assurance"
+    : "Portefeuille agricole";
   const kicker =
     tenant.id === "assurance-ma"
-      ? "Assurance Command Center"
+      ? "Assurance agricole"
       : `${tenant.shortName} · ${tenant.vertical}`;
 
   return (
@@ -62,7 +66,7 @@ export function AppPageHeader({ title, description, note, action }: AppPageHeade
                 color: tenant.colors.primary,
               }}
             >
-              {tenant.countryLabel} · {tenant.institutionType}
+              {scopeLabel}
             </span>
             <TenantBadge />
             <span
@@ -76,7 +80,7 @@ export function AppPageHeader({ title, description, note, action }: AppPageHeade
               {sharedLive && (
                 <span className="oracle-live-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />
               )}
-              Shared data {sharedLive ? "LIVE" : "SEED_DEMO"}
+              Donnees partagees {sharedLive ? "LIVE" : "SEED_DEMO"}
             </span>
             <span
               className={cn(
@@ -86,7 +90,7 @@ export function AppPageHeader({ title, description, note, action }: AppPageHeade
                   : "border-amber-400/26 bg-amber-400/9 text-amber-400",
               )}
             >
-              Assurance {insuranceLive ? "LIVE" : "SEED_DEMO"}
+              {workflowLabel} {insuranceLive ? "LIVE" : "SEED_DEMO"}
             </span>
           </div>
         </div>

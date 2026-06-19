@@ -121,6 +121,30 @@ const FULL_SECTION_STATE: SectionState = {
   security: true,
 };
 
+const DEMO_COMPACT_SECTION_STATE: SectionState = {
+  summary: true,
+  agents: false,
+  engines: false,
+  tools: false,
+  flags: false,
+  providersModels: false,
+  rag: true,
+  ragAudit: true,
+  security: false,
+};
+
+const DEMO_FULL_SECTION_STATE: SectionState = {
+  summary: true,
+  agents: false,
+  engines: false,
+  tools: false,
+  flags: false,
+  providersModels: false,
+  rag: true,
+  ragAudit: true,
+  security: true,
+};
+
 interface SummaryMetricProps {
   label: string;
   value: string;
@@ -451,7 +475,13 @@ function AuditEventList({
   );
 }
 
-function buildSectionState(compactMode: boolean): SectionState {
+function buildSectionState(compactMode: boolean, demoSafeMode: boolean): SectionState {
+  if (demoSafeMode) {
+    return compactMode
+      ? { ...DEMO_COMPACT_SECTION_STATE }
+      : { ...DEMO_FULL_SECTION_STATE };
+  }
+
   return compactMode ? { ...COMPACT_SECTION_STATE } : { ...FULL_SECTION_STATE };
 }
 
@@ -493,10 +523,12 @@ function getErrorCard(state: Extract<FoundationState, { status: "error" }>, tena
 
 export function IdjorFoundationPanel() {
   const { tenant } = useTenant();
+  const demoSafeMode = tenant.demoMode;
+  const showTechnicalSections = !tenant.demoMode;
   const searchParams = useSearchParams();
   const explicitTenantKey = searchParams.get("tenantKey")?.trim() || null;
   const [compactMode, setCompactMode] = useState(true);
-  const [sections, setSections] = useState<SectionState>(() => buildSectionState(true));
+  const [sections, setSections] = useState<SectionState>(() => buildSectionState(true, demoSafeMode));
   const [ragRegistrationForm, setRagRegistrationForm] = useState<RagRegistrationFormState>(
     DEFAULT_RAG_REGISTRATION_FORM,
   );
@@ -586,7 +618,7 @@ export function IdjorFoundationPanel() {
 
   const setMode = (nextCompactMode: boolean) => {
     setCompactMode(nextCompactMode);
-    setSections(buildSectionState(nextCompactMode));
+    setSections(buildSectionState(nextCompactMode, demoSafeMode));
   };
 
   const toggleSection = (key: SectionKey) => {
@@ -756,8 +788,12 @@ export function IdjorFoundationPanel() {
   return (
     <div className="space-y-6">
       <PageTitle
-        title="Socle IDJOR"
-        description="Vue protegee du socle technique IDJOR. La page reste demonstrative, compacte et strictement read-only."
+        title={demoSafeMode ? tenant.terminology.idjorLabel : "Socle IDJOR"}
+        description={
+          demoSafeMode
+            ? "Vue protegee des preuves, documents et journaux IDJOR. La page reste demonstrative, compacte et strictement read-only."
+            : "Vue protegee du socle technique IDJOR. La page reste demonstrative, compacte et strictement read-only."
+        }
       />
 
       <AppCard className="overflow-hidden p-0" tone="soft">
@@ -779,10 +815,10 @@ export function IdjorFoundationPanel() {
               }}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              Resume executif
+              {demoSafeMode ? "Preuves & audit" : "Resume executif"}
             </span>
             <span className="inline-flex items-center rounded-full border border-amber-400/28 bg-amber-400/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-300">
-              registry read-only
+              lecture seule
             </span>
             <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300">
               tenant {displayTenantKey}
@@ -798,30 +834,45 @@ export function IdjorFoundationPanel() {
             <div className="space-y-4">
               <div className="space-y-3">
                 <h2 className="font-display text-[28px] font-semibold tracking-[-0.02em] text-white">
-                  IDJOR est pret cote socle technique
+                  {demoSafeMode
+                    ? "Preuves, audit et lecture documentaire"
+                    : "IDJOR est pret cote socle technique"}
                 </h2>
                 <p className="max-w-3xl text-[15px] leading-relaxed text-slate-300">
-                  Cette vue montre un socle institutionnel en lecture seule, pret pour la
-                  demonstration et la gouvernance. Les capacites IA restent desactivees par
-                  defaut et l&apos;institution conserve l&apos;entiere responsabilite de la
-                  decision.
+                  {demoSafeMode
+                    ? "Cette vue met en avant les documents, le hash, les preuves et le journal d'audit. La demonstration reste strictement documentaire et l'institution conserve l'entiere responsabilite de la decision."
+                    : "Cette vue montre un socle institutionnel en lecture seule, pret pour la demonstration et la gouvernance. Les capacites IA restent desactivees par defaut et l&apos;institution conserve l&apos;entiere responsabilite de la decision."}
                 </p>
                 <p className="max-w-3xl border-l-2 border-emerald-400/18 pl-3 text-sm leading-relaxed text-slate-400">
-                  IDJOR prepare, structure et documente. Il ne decide pas, ne score pas et
-                  n&apos;active aucun provider IA dans cette phase.
+                  {demoSafeMode
+                    ? "IDJOR prepare, structure et documente. Il ne decide pas et n'agit pas comme une IA autonome dans cette phase."
+                    : "IDJOR prepare, structure et documente. Il ne decide pas, ne score pas et n&apos;active aucun provider IA dans cette phase."}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
-                  LLM OFF
-                </span>
-                <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
-                  Vector Store OFF
-                </span>
-                <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
-                  Decisioning OFF
-                </span>
+                {demoSafeMode ? (
+                  <>
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                      Documents visibles
+                    </span>
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                      Audit append-only
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                      LLM OFF
+                    </span>
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                      Vector Store OFF
+                    </span>
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                      Decisioning OFF
+                    </span>
+                  </>
+                )}
                 <span className="rounded-full border border-slate-400/18 bg-slate-400/8 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300">
                   Institution decisionnaire
                 </span>
@@ -895,38 +946,63 @@ export function IdjorFoundationPanel() {
             icon={<Layers3 className="h-4 w-4" />}
             title="Synthese"
             subtitle="Vue courte pour la demo, avec les compteurs et le contexte tenant."
-            countLabel={`${state.health.counts.agents} agents · ${state.health.counts.engines} moteurs`}
+            countLabel={demoSafeMode ? `${state.ragHealth.counts.documents} documents · ${state.ragAuditEvents.events.length} evenements` : `${state.health.counts.agents} agents · ${state.health.counts.engines} moteurs`}
             open={sections.summary}
             onToggle={() => toggleSection("summary")}
           >
             <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <SummaryMetric
-                  label="Agents"
-                  value={String(state.health.counts.agents)}
-                  hint="Registre agents visible"
-                />
-                <SummaryMetric
-                  label="Moteurs"
-                  value={String(state.health.counts.engines)}
-                  hint="Moteurs prepares, pas actifs"
-                />
-                <SummaryMetric
-                  label="Tools"
-                  value={String(state.health.counts.tools)}
-                  hint="Outils visibles pour le role courant"
-                />
-                <SummaryMetric
-                  label="Flags OFF"
-                  value={String(state.registry.featureFlags.filter((flag) => !flag.enabled).length)}
-                  hint="Feature flags desactives"
-                />
-                <SummaryMetric
-                  label="Docs RAG"
-                  value={String(state.ragHealth.counts.documents)}
-                  hint="Base documentaire read-only"
-                />
-              </div>
+              {demoSafeMode ? (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <SummaryMetric
+                    label="Documents"
+                    value={String(state.ragHealth.counts.documents)}
+                    hint="Base documentaire visible"
+                  />
+                  <SummaryMetric
+                    label="Journaux"
+                    value={String(state.ragAuditEvents.events.length)}
+                    hint="Evenements append-only"
+                  />
+                  <SummaryMetric
+                    label="Hash"
+                    value={state.ragHealth.readOnly ? "Visible" : "A verifier"}
+                    hint="Integrite documentaire lisible"
+                  />
+                  <SummaryMetric
+                    label="Decision"
+                    value="Institution"
+                    hint="Aucune decision automatisee"
+                  />
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                  <SummaryMetric
+                    label="Agents"
+                    value={String(state.health.counts.agents)}
+                    hint="Registre agents visible"
+                  />
+                  <SummaryMetric
+                    label="Moteurs"
+                    value={String(state.health.counts.engines)}
+                    hint="Moteurs prepares, pas actifs"
+                  />
+                  <SummaryMetric
+                    label="Tools"
+                    value={String(state.health.counts.tools)}
+                    hint="Outils visibles pour le role courant"
+                  />
+                  <SummaryMetric
+                    label="Flags OFF"
+                    value={String(state.registry.featureFlags.filter((flag) => !flag.enabled).length)}
+                    hint="Feature flags desactives"
+                  />
+                  <SummaryMetric
+                    label="Docs RAG"
+                    value={String(state.ragHealth.counts.documents)}
+                    hint="Base documentaire read-only"
+                  />
+                </div>
+              )}
 
               <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
                 <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
@@ -979,9 +1055,9 @@ export function IdjorFoundationPanel() {
 
           <SectionCard
             icon={<ScanSearch className="h-4 w-4" />}
-            title="Base documentaire RAG"
-            subtitle="Metadonnees documentaires en lecture seule, visibles sans ingestion, question, indexation ni calcul."
-            countLabel={`${state.ragHealth.counts.documents} docs · ${state.ragHealth.counts.chunks} chunks · ${state.ragHealth.counts.citations} citations`}
+            title={demoSafeMode ? "Base documentaire" : "Base documentaire RAG"}
+            subtitle={demoSafeMode ? "Documents, hash et audit visibles en lecture seule pour la demonstration." : "Metadonnees documentaires en lecture seule, visibles sans ingestion, question, indexation ni calcul."}
+            countLabel={demoSafeMode ? `${state.ragHealth.counts.documents} documents` : `${state.ragHealth.counts.documents} docs · ${state.ragHealth.counts.chunks} chunks · ${state.ragHealth.counts.citations} citations`}
             open={sections.rag}
             onToggle={() => toggleSection("rag")}
           >
@@ -1070,6 +1146,7 @@ export function IdjorFoundationPanel() {
                 </div>
               </div>
 
+              {!demoSafeMode ? (
               <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
                 <div className="rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
@@ -1126,7 +1203,7 @@ export function IdjorFoundationPanel() {
                           updateRagRegistrationField("documentKey", event.target.value)
                         }
                         className="w-full rounded-2xl border border-slate-400/14 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400/45 focus:bg-slate-950/70"
-                        placeholder="rag.assurance-ma.guide-souscription"
+                        placeholder="proofs.demo.guide-portefeuille"
                         autoComplete="off"
                       />
                     </label>
@@ -1139,7 +1216,7 @@ export function IdjorFoundationPanel() {
                         value={ragRegistrationForm.title}
                         onChange={(event) => updateRagRegistrationField("title", event.target.value)}
                         className="w-full rounded-2xl border border-slate-400/14 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-400/45 focus:bg-slate-950/70"
-                        placeholder="Guide de souscription assurance recolte"
+                        placeholder="Guide portefeuille agricole"
                         autoComplete="off"
                       />
                     </label>
@@ -1251,6 +1328,7 @@ export function IdjorFoundationPanel() {
                   </div>
                 </form>
               </div>
+              ) : null}
 
               <RegistryTable
                 rows={state.ragDocuments.documents}
@@ -1290,32 +1368,48 @@ export function IdjorFoundationPanel() {
                       </p>
                     ),
                   },
-                  {
-                    key: "source",
-                    header: "Source",
-                    render: (document) => <SourceBadge source={document.source} />,
-                  },
-                  {
-                    key: "preview",
-                    header: "Preparation",
-                    render: (document) => (
-                      <button
-                        type="button"
-                        onClick={() => handlePreviewIngestion(document.id)}
-                        disabled={
-                          ragIngestionPreviewState.status === "loading" &&
-                          ragIngestionPreviewState.documentId === document.id
-                        }
-                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
-                      >
-                        <Eye className="h-3 w-3" />
-                        {ragIngestionPreviewState.status === "loading" &&
-                        ragIngestionPreviewState.documentId === document.id
-                          ? "Chargement..."
-                          : "Previsualiser preparation"}
-                      </button>
-                    ),
-                  },
+                  ...(demoSafeMode
+                    ? [
+                        {
+                          key: "hash",
+                          header: "Hash",
+                          render: (document: (typeof state.ragDocuments.documents)[number]) => (
+                            <p className="max-w-[220px] break-all font-mono text-[11px] text-slate-400">
+                              {document.contentHash}
+                            </p>
+                          ),
+                        },
+                      ]
+                    : [
+                        {
+                          key: "source",
+                          header: "Source",
+                          render: (document: (typeof state.ragDocuments.documents)[number]) => (
+                            <SourceBadge source={document.source} />
+                          ),
+                        },
+                        {
+                          key: "preview",
+                          header: "Preparation",
+                          render: (document: (typeof state.ragDocuments.documents)[number]) => (
+                            <button
+                              type="button"
+                              onClick={() => handlePreviewIngestion(document.id)}
+                              disabled={
+                                ragIngestionPreviewState.status === "loading" &&
+                                ragIngestionPreviewState.documentId === document.id
+                              }
+                              className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
+                            >
+                              <Eye className="h-3 w-3" />
+                              {ragIngestionPreviewState.status === "loading" &&
+                              ragIngestionPreviewState.documentId === document.id
+                                ? "Chargement..."
+                                : "Previsualiser preparation"}
+                            </button>
+                          ),
+                        },
+                      ]),
                   {
                     key: "audit",
                     header: "Audit",
@@ -1340,7 +1434,7 @@ export function IdjorFoundationPanel() {
                 ]}
               />
 
-              {ragIngestionPreviewState.status !== "idle" ? (
+              {!demoSafeMode && ragIngestionPreviewState.status !== "idle" ? (
                 <div className="rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <Eye className="h-4 w-4 text-cyan-300" />
@@ -1501,6 +1595,7 @@ export function IdjorFoundationPanel() {
                 </div>
               ) : null}
 
+              {!demoSafeMode ? (
               <div className="grid gap-4 xl:grid-cols-2">
                 <RegistryTable
                   rows={state.ragChunks.chunks}
@@ -1571,13 +1666,14 @@ export function IdjorFoundationPanel() {
                   ]}
                 />
               </div>
+              ) : null}
             </div>
           </SectionCard>
 
           <SectionCard
             icon={<ScrollText className="h-4 w-4" />}
-            title="Journal d'audit RAG"
-            subtitle="Trace append-only des enregistrements metadata-only et des previsualisations de preparation."
+            title={demoSafeMode ? "Journal d'audit" : "Journal d'audit RAG"}
+            subtitle={demoSafeMode ? "Trace append-only des documents et preuves visibles pour la demonstration." : "Trace append-only des enregistrements metadata-only et des previsualisations de preparation."}
             countLabel={`${state.ragAuditEvents.events.length} evenements`}
             open={sections.ragAudit}
             onToggle={() => toggleSection("ragAudit")}
@@ -1596,6 +1692,8 @@ export function IdjorFoundationPanel() {
             </div>
           </SectionCard>
 
+          {showTechnicalSections ? (
+          <>
           <SectionCard
             icon={<BotOff className="h-4 w-4" />}
             title="Agents"
@@ -1859,6 +1957,9 @@ export function IdjorFoundationPanel() {
               />
             </div>
           </SectionCard>
+
+          </>
+          ) : null}
 
           <SectionCard
             icon={<ShieldCheck className="h-4 w-4" />}

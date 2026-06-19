@@ -12,6 +12,7 @@ import { applications as seedApplications, farmers as seedFarmers } from "@/lib/
 import { InsuranceDcaApplication } from "@/types";
 import { AccessDeniedCard } from "@/components/ui/access-denied-card";
 import { AuthRequiredCard } from "@/components/ui/auth-required-card";
+import { useTenant } from "@/components/tenant/useTenant";
 import { DisclosureNote } from "@/components/ui/disclosure-note";
 import { EmptyLiveDataCard } from "@/components/ui/empty-live-data-card";
 
@@ -121,6 +122,7 @@ function buildSeedFallbackRows(): InsuranceDcaApplication[] {
 }
 
 export function ApplicationsLivePanel() {
+  const { tenant } = useTenant();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<InsuranceDcaApplication[]>([]);
   const [usingSeedFallback, setUsingSeedFallback] = useState(false);
@@ -155,10 +157,10 @@ export function ApplicationsLivePanel() {
         if (loadError instanceof ApiError) {
           if (loadError.status === 401) {
             setAuthRequired(true);
-            setError("Authentification backend requise pour lire les DCA assurance.");
+            setError("Authentification backend requise pour lire les dossiers DCA.");
           } else if (loadError.status === 403) {
             setForbidden(true);
-            setError("Acces refuse (403) sur la lecture des DCA assurance.");
+            setError("Acces refuse (403) sur la lecture des dossiers DCA.");
           } else if (loadError.status === 400) {
             setError("Requete invalide sur GET /v1/insurance/applications.");
           } else if (loadError.status >= 500) {
@@ -203,7 +205,7 @@ export function ApplicationsLivePanel() {
   if (loading) {
     return (
       <div className="rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4 text-xs text-slate-400">
-        Chargement en lecture seule des DCA assurance...
+        Chargement en lecture seule des dossiers DCA...
       </div>
     );
   }
@@ -212,11 +214,16 @@ export function ApplicationsLivePanel() {
     <section className="space-y-4 rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-mono text-[11px] uppercase tracking-[0.12em] text-slate-300">
-          DCA Farmer - lecture seule
+          DCA - lecture seule
         </h3>
         <span className="rounded-full border border-slate-400/18 bg-slate-900/50 px-2.5 py-1 font-mono text-[10.5px] text-slate-300">
           Source principale: {formatSourceFr(displayedSource)}
         </span>
+        {tenant.demoMode ? (
+          <span className="rounded-full border border-slate-400/18 bg-slate-900/50 px-2.5 py-1 font-mono text-[10.5px] text-slate-300">
+            Vue institutionnelle
+          </span>
+        ) : null}
       </div>
 
       <p className="text-xs text-slate-400">
@@ -244,7 +251,7 @@ export function ApplicationsLivePanel() {
       ) : null}
 
       {authRequired ? (
-        <AuthRequiredCard description="GET /v1/insurance/applications est protégé et nécessite un JWT assurance." />
+        <AuthRequiredCard description="GET /v1/insurance/applications est protege et necessite un JWT institutionnel." />
       ) : null}
 
       {forbidden ? (

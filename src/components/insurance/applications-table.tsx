@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { InsuranceDcaApplication } from "@/types";
+import { useTenant } from "@/components/tenant/useTenant";
 import {
   formatBooleanFr,
   formatDcaStatusFr,
@@ -30,13 +31,19 @@ function isWaitingReview(status: string) {
 }
 
 export function ApplicationsTable({ rows }: ApplicationsTableProps) {
+  const { tenant } = useTenant();
+  const policyLabel =
+    tenant.terminology.policyLabel.charAt(0).toUpperCase() + tenant.terminology.policyLabel.slice(1);
+  const claimLabel =
+    tenant.terminology.claimLabel.charAt(0).toUpperCase() + tenant.terminology.claimLabel.slice(1);
+
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-400/10 bg-[#101726]/92">
       <table className="min-w-full text-left text-xs text-slate-300">
         <thead>
           <tr className="border-b border-slate-400/10 text-slate-500">
             <th className="px-3 py-2">Référence DCA</th>
-            <th className="px-3 py-2">Farmer</th>
+            <th className="px-3 py-2">Exploitant</th>
             <th className="px-3 py-2">Parcelle</th>
             <th className="px-3 py-2">Culture</th>
             <th className="px-3 py-2">Superficie déclarée</th>
@@ -87,7 +94,7 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
                   <p className="text-[11px] text-slate-500">Code interne: {row.status}</p>
                   {isWaitingReview(row.status) ? (
                     <p className="mt-1 text-[11px] text-amber-300">
-                      Dossier re&ccedil;u &mdash; en attente d&apos;analyse par l&apos;assureur.
+                      Dossier re&ccedil;u &mdash; en attente d&apos;analyse par l&apos;institution.
                     </p>
                   ) : null}
                 </td>
@@ -99,8 +106,8 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
                 <td className="px-3 py-3">{formatBooleanFr(row.consentCndp)}</td>
                 <td className="px-3 py-3">
                   <p>Mission: {row.sideEffects.missionCreated ? "Créée" : "Non créée"}</p>
-                  <p>Police: {row.sideEffects.policyCreated ? "Créée" : "Non créée"}</p>
-                  <p>Sinistre: {row.sideEffects.claimCreated ? "Créé" : "Non créé"}</p>
+                  <p>{policyLabel}: {row.sideEffects.policyCreated ? "Créée" : "Non créée"}</p>
+                  <p>{claimLabel}: {row.sideEffects.claimCreated ? "Créé" : "Non créé"}</p>
                   <p>RAX: {row.sideEffects.raxCalculated ? "Calculé" : "Non calculé"}</p>
                   <p>Tarification: {row.sideEffects.pricingCalculated ? "Calculée" : "Non calculée"}</p>
                   <p>Ancrage blockchain: {row.sideEffects.blockchainAnchored ? "Ancré" : "Non ancré"}</p>

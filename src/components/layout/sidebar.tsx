@@ -88,7 +88,7 @@ const BASE_NAV_GROUPS: NavGroup[] = [
 
 function getTenantNavGroups(tenant: ReturnType<typeof useTenant>["tenant"]): NavGroup[] {
   const groupLabel = tenant.featureFlags.showInsuranceNavigation
-    ? "Assurance"
+    ? "Assurance agricole"
     : tenant.terminology.portfolioLabel;
 
   return BASE_NAV_GROUPS.map((group) => {
@@ -146,6 +146,8 @@ function getTenantNavGroups(tenant: ReturnType<typeof useTenant>["tenant"]): Nav
               ...item,
               label: tenant.id === "assurance-ma" ? "Alertes Wakama" : "Alertes terrain",
             };
+          case "idjor":
+            return { ...item, label: tenant.terminology.idjorLabel };
           default:
             return item;
         }
@@ -285,7 +287,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         />
         {!collapsed && (
           <span className="text-[12px] text-slate-400">
-            {tenant.demoMode ? `${tenant.shortName} demo` : "Oracle en ligne"} · v0.9 MVP
+            {tenant.demoMode ? `${tenant.shortName} demo` : "Vue institutionnelle"} · v0.9 MVP
           </span>
         )}
       </div>
