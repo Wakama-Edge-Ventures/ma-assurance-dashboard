@@ -7,6 +7,7 @@ import {
   BotOff,
   ChevronDown,
   ChevronUp,
+  Eye,
   Flag,
   Layers3,
   Network,
@@ -32,6 +33,7 @@ import {
   getIdjorFoundationRegistry,
   getIdjorRagChunks,
   getIdjorRagCitations,
+  getIdjorRagDocumentIngestionPreview,
   getIdjorRagDocuments,
   getIdjorRagHealth,
   registerIdjorRagDocumentMetadata,
@@ -46,6 +48,7 @@ import type {
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
   IdjorRagHealth,
+  IdjorRagIngestionPreview,
   IdjorRagMetadataRegistrationStatus,
   IdjorRegisterRagDocumentMetadataResult,
 } from "@/types";
@@ -157,6 +160,12 @@ type RagRegistrationState =
       status: "error";
       message: string;
     };
+
+type RagIngestionPreviewState =
+  | { status: "idle" }
+  | { status: "loading"; documentId: string }
+  | { status: "success"; documentId: string; preview: IdjorRagIngestionPreview }
+  | { status: "error"; documentId: string; message: string };
 
 const DEFAULT_RAG_REGISTRATION_FORM: RagRegistrationFormState = {
   documentKey: "",
@@ -399,6 +408,8 @@ export function IdjorFoundationPanel() {
   const [ragRegistrationState, setRagRegistrationState] = useState<RagRegistrationState>({
     status: "idle",
   });
+  const [ragIngestionPreviewState, setRagIngestionPreviewState] =
+    useState<RagIngestionPreviewState>({ status: "idle" });
   const [state, setState] = useState<FoundationState>({
     status: "loading",
     tenantKey: explicitTenantKey,
@@ -601,6 +612,24 @@ export function IdjorFoundationPanel() {
         status: "error",
         message,
       });
+    }
+  };
+
+  const handlePreviewIngestion = async (documentId: string) => {
+    setRagIngestionPreviewState({ status: "loading", documentId });
+
+    try {
+      const preview = await getIdjorRagDocumentIngestionPreview(documentId);
+      setRagIngestionPreviewState({ status: "success", documentId, preview });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de charger la previsualisation de preparation.";
+
+      setRagIngestionPreviewState({ status: "error", documentId, message });
     }
   };
 
@@ -1146,8 +1175,156 @@ export function IdjorFoundationPanel() {
                     header: "Source",
                     render: (document) => <SourceBadge source={document.source} />,
                   },
+                  {
+                    key: "preview",
+                    header: "Preparation",
+                    render: (document) => (
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewIngestion(document.id)}
+                        disabled={
+                          ragIngestionPreviewState.status === "loading" &&
+                          ragIngestionPreviewState.documentId === document.id
+                        }
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
+                      >
+                        <Eye className="h-3 w-3" />
+                        {ragIngestionPreviewState.status === "loading" &&
+                        ragIngestionPreviewState.documentId === document.id
+                          ? "Chargement..."
+                          : "Previsualiser preparation"}
+                      </button>
+                    ),
+                  },
                 ]}
               />
+
+              {ragIngestionPreviewState.status !== "idle" ? (
+                <div className="rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-cyan-300" />
+                    <h3 className="font-medium text-white">Previsualisation de preparation</h3>
+                  </div>
+
+                  <p className="mb-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                    Previsualisation uniquement. Aucun fichier n&apos;est lu, traite,
+                    decoupe, vectorise ou analyse par IA.
+                  </p>
+
+                  {ragIngestionPreviewState.status === "loading" ? (
+                    <p className="text-sm text-slate-300">
+                      Chargement de la previsualisation de preparation...
+                    </p>
+                  ) : null}
+
+                  {ragIngestionPreviewState.status === "error" ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                      {ragIngestionPreviewState.message}
+                    </div>
+                  ) : null}
+
+                  {ragIngestionPreviewState.status === "success" ? (
+                    <div className="space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <ExecutiveStatus
+                          label="documentId"
+                          value={ragIngestionPreviewState.preview.documentId}
+                        />
+                        <ExecutiveStatus
+                          label="Tenant"
+                          value={ragIngestionPreviewState.preview.scope.tenantKey}
+                        />
+                        <ExecutiveStatus
+                          label="ingestionReadiness"
+                          value={ragIngestionPreviewState.preview.ingestionReadiness}
+                          tone={
+                            ragIngestionPreviewState.preview.ingestionReadiness === "BLOCKED"
+                              ? "danger"
+                              : "warning"
+                          }
+                        />
+                        <ExecutiveStatus
+                          label="ingestionStatus"
+                          value={ragIngestionPreviewState.preview.ingestionStatus}
+                        />
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                        <ExecutiveStatus label="llmEnabled" value="false" tone="success" />
+                        <ExecutiveStatus label="vectorStoreEnabled" value="false" tone="success" />
+                        <ExecutiveStatus label="embeddingsEnabled" value="false" tone="success" />
+                        <ExecutiveStatus
+                          label="chunks"
+                          value={String(
+                            ragIngestionPreviewState.preview.linkedAssetCounts.chunks,
+                          )}
+                          tone="success"
+                        />
+                        <ExecutiveStatus
+                          label="citations"
+                          value={String(
+                            ragIngestionPreviewState.preview.linkedAssetCounts.citations,
+                          )}
+                          tone="success"
+                        />
+                      </div>
+
+                      <div className="grid gap-4 xl:grid-cols-3">
+                        <div className="rounded-[18px] border border-slate-400/10 bg-slate-400/5 p-3">
+                          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                            missingFields
+                          </p>
+                          {ragIngestionPreviewState.preview.missingFields.length > 0 ? (
+                            <ul className="space-y-1.5 text-xs text-slate-300">
+                              {ragIngestionPreviewState.preview.missingFields.map((item) => (
+                                <li key={item.field}>
+                                  <span className="font-mono text-slate-400">{item.field}</span>
+                                  {" — "}
+                                  {item.reason}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-xs text-slate-500">Aucun champ manquant signale.</p>
+                          )}
+                        </div>
+
+                        <div className="rounded-[18px] border border-slate-400/10 bg-slate-400/5 p-3">
+                          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                            allowedNextSteps
+                          </p>
+                          {ragIngestionPreviewState.preview.allowedNextSteps.length > 0 ? (
+                            <ul className="space-y-1.5 text-xs text-slate-300">
+                              {ragIngestionPreviewState.preview.allowedNextSteps.map((step) => (
+                                <li key={step} className="font-mono">
+                                  {step}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-xs text-slate-500">Aucune etape suivante exposee.</p>
+                          )}
+                        </div>
+
+                        <div className="rounded-[18px] border border-slate-400/10 bg-slate-400/5 p-3">
+                          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                            blockedReasons
+                          </p>
+                          {ragIngestionPreviewState.preview.blockedReasons.length > 0 ? (
+                            <ul className="space-y-1.5 text-xs text-slate-300">
+                              {ragIngestionPreviewState.preview.blockedReasons.map((reason) => (
+                                <li key={reason}>{reason}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-xs text-slate-500">Aucun motif de blocage signale.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="grid gap-4 xl:grid-cols-2">
                 <RegistryTable

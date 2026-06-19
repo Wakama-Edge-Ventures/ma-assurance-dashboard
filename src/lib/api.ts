@@ -21,6 +21,9 @@ import {
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
   IdjorRagHealth,
+  IdjorRagIngestionMissingField,
+  IdjorRagIngestionPreview,
+  IdjorRagIngestionReadinessState,
   IdjorRagLinkedAssetCounts,
   IdjorRagMetadataRegistrationStatus,
   IdjorRagResponseScope,
@@ -531,6 +534,55 @@ function mapIdjorRegisterRagDocumentMetadataResult(
     },
     linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
     metadataOnly: readBooleanLike(root, "metadataOnly") ?? true,
+  };
+}
+
+function readIngestionReadiness(value: unknown): IdjorRagIngestionReadinessState {
+  return value === "BLOCKED" ? "BLOCKED" : "NOT_READY";
+}
+
+function mapIdjorRagIngestionMissingField(value: unknown): IdjorRagIngestionMissingField | null {
+  const record = asObject(value);
+  const field = readString(record, "field");
+  const reason = readString(record, "reason");
+
+  if (!field || !reason) {
+    return null;
+  }
+
+  return { field, reason };
+}
+
+function mapIdjorRagIngestionPreview(payload: unknown): IdjorRagIngestionPreview {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+
+  if (!root || !scope || !documentId || !documentKey) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: previsualisation d'ingestion RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    ingestionStatus: readString(root, "ingestionStatus") ?? "REGISTERED",
+    ingestionReadiness: readIngestionReadiness(root.ingestionReadiness),
+    missingFields: readArray(root.missingFields)
+      .map((entry) => mapIdjorRagIngestionMissingField(entry))
+      .filter((entry): entry is IdjorRagIngestionMissingField => entry !== null),
+    allowedNextSteps: readStringArray(root, "allowedNextSteps"),
+    blockedReasons: readStringArray(root, "blockedReasons"),
+    linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    metadataOnly: readBooleanLike(root, "metadataOnly") ?? true,
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
   };
 }
 
@@ -1348,6 +1400,17 @@ export async function registerIdjorRagDocumentMetadata(
   });
 
   return mapIdjorRegisterRagDocumentMetadataResult(payload);
+}
+
+export async function getIdjorRagDocumentIngestionPreview(
+  documentId: string,
+): Promise<IdjorRagIngestionPreview> {
+  const safeId = encodeURIComponent(documentId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/documents/${safeId}/ingestion-preview`,
+  );
+
+  return mapIdjorRagIngestionPreview(payload);
 }
 
 export interface InsuranceApplicationByIdResult {

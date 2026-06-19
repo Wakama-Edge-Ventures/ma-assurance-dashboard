@@ -258,6 +258,29 @@ export interface IdjorRegisterRagDocumentMetadataResult {
   metadataOnly: boolean;
 }
 
+export type IdjorRagIngestionReadinessState = "NOT_READY" | "BLOCKED";
+
+export interface IdjorRagIngestionMissingField {
+  field: string;
+  reason: string;
+}
+
+export interface IdjorRagIngestionPreview {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  ingestionStatus: string;
+  ingestionReadiness: IdjorRagIngestionReadinessState;
+  missingFields: IdjorRagIngestionMissingField[];
+  allowedNextSteps: string[];
+  blockedReasons: string[];
+  linkedAssetCounts: IdjorRagLinkedAssetCounts;
+  securitySummary: IdjorRagSecuritySummary;
+  metadataOnly: boolean;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"
