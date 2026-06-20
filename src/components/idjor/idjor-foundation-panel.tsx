@@ -30,6 +30,7 @@ import { DegradedStateCard } from "@/components/ui/degraded-state-card";
 import { DisclosureNote } from "@/components/ui/disclosure-note";
 import { PageTitle } from "@/components/ui/page-title";
 import { SourceBadge } from "@/components/ui/source-badge";
+import { StatusOverviewCard } from "@/components/ui/status-overview-card";
 import {
   API_BASE_URL,
   ApiError,
@@ -39,15 +40,19 @@ import {
   getIdjorRagChunks,
   getIdjorRagCitations,
   getIdjorRagDocumentAuditEvents,
+  getIdjorRagDocumentGovernanceCockpit,
   getIdjorRagDocumentIngestionPreview,
   getIdjorRagDocuments,
   getIdjorRagDocumentUploads,
   getIdjorRagEmbeddingReadiness,
+  getIdjorRagExtractionGovernanceCockpit,
   getIdjorRagExtractionChunks,
   getIdjorRagHealth,
+  getIdjorRagRetrievalReadiness,
   getIdjorRagUploadExtractions,
   registerIdjorRagDocumentMetadata,
   requestIdjorRagEmbeddingPreview,
+  requestIdjorRagRetrievalPreview,
   runIdjorRagExtractionChunking,
   runIdjorRagUploadExtractionPreview,
   uploadIdjorRagDocumentIntake,
@@ -73,9 +78,12 @@ import type {
   IdjorRagExtractionChunkingResponse,
   IdjorRagExtractionChunksPage,
   IdjorRagExtractionPreviewResponse,
+  IdjorRagGovernanceCockpitResponse,
   IdjorRagHealth,
   IdjorRagIngestionPreview,
   IdjorRagMetadataRegistrationStatus,
+  IdjorRagRetrievalPreviewRequestResponse,
+  IdjorRagRetrievalReadinessResponse,
   IdjorRagUploadIntakeResponse,
   IdjorRegisterRagDocumentMetadataResult,
 } from "@/types";
@@ -274,6 +282,30 @@ type RagEmbeddingPreviewRequestState =
   | { status: "idle" }
   | { status: "loading"; extractionId: string }
   | { status: "success"; extractionId: string; response: IdjorRagEmbeddingPreviewRequestResponse }
+  | { status: "error"; extractionId: string; message: string };
+
+type RagRetrievalReadinessState =
+  | { status: "idle" }
+  | { status: "loading"; extractionId: string }
+  | { status: "success"; extractionId: string; response: IdjorRagRetrievalReadinessResponse }
+  | { status: "error"; extractionId: string; message: string };
+
+type RagRetrievalPreviewRequestState =
+  | { status: "idle" }
+  | { status: "loading"; extractionId: string }
+  | { status: "success"; extractionId: string; response: IdjorRagRetrievalPreviewRequestResponse }
+  | { status: "error"; extractionId: string; message: string };
+
+type RagDocumentGovernanceCockpitState =
+  | { status: "idle" }
+  | { status: "loading"; documentId: string }
+  | { status: "success"; documentId: string; response: IdjorRagGovernanceCockpitResponse }
+  | { status: "error"; documentId: string; message: string };
+
+type RagExtractionGovernanceCockpitState =
+  | { status: "idle" }
+  | { status: "loading"; extractionId: string }
+  | { status: "success"; extractionId: string; response: IdjorRagGovernanceCockpitResponse }
   | { status: "error"; extractionId: string; message: string };
 
 const RAG_UPLOAD_INTAKE_MAX_BYTES = 10 * 1024 * 1024;
@@ -668,6 +700,228 @@ function EmbeddingReadinessPanel({
   );
 }
 
+function toneForStageStatus(status: string): "success" | "warning" | "danger" | "neutral" {
+  switch (status) {
+    case "DONE":
+      return "success";
+    case "BLOCKED":
+      return "danger";
+    case "NOT_READY":
+      return "warning";
+    default:
+      return "neutral";
+  }
+}
+
+function RetrievalReadinessPanel({
+  readiness,
+}: {
+  readiness: IdjorRagRetrievalReadinessResponse;
+}) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3.5 py-3 dark:border-slate-400/10 dark:bg-slate-400/5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-amber-300/60 bg-amber-50 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-800 dark:border-amber-400/28 dark:bg-amber-400/10 dark:text-amber-300">
+          {readiness.retrievalReadiness}
+        </span>
+        <span className="font-mono text-[11px] text-brand-textMuted">
+          citations: {readiness.citationsCount}
+        </span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <StatusOverviewCard
+          label="Chunks"
+          value={String(readiness.chunksCount)}
+          hint="Chunks disponibles pour cette extraction"
+          tone="neutral"
+        />
+        <StatusOverviewCard
+          label="Embeddings"
+          value={String(readiness.embeddingsCount)}
+          hint="References deja presentes"
+          tone={readiness.embeddingsCount > 0 ? "warning" : "neutral"}
+        />
+        <StatusOverviewCard
+          label="Citations"
+          value={String(readiness.citationsCount)}
+          hint="Aucune citation ne doit etre creee dans cette phase"
+          tone={readiness.citationsCount > 0 ? "warning" : "success"}
+        />
+        <StatusOverviewCard
+          label="Vector Store"
+          value={readiness.vectorStoreStatus}
+          hint="Toujours desactive"
+          tone={readiness.vectorStoreStatus === "DISABLED" ? "success" : "warning"}
+        />
+        <StatusOverviewCard
+          label="Retrieval Runtime"
+          value={readiness.retrievalStatus}
+          hint="Aucun retrieval reel"
+          tone={readiness.retrievalStatus === "BLOCKED" ? "warning" : "success"}
+        />
+        <StatusOverviewCard
+          label="LLM"
+          value={readiness.llmStatus}
+          hint="Toujours desactive"
+          tone={readiness.llmStatus === "DISABLED" ? "success" : "warning"}
+        />
+      </div>
+
+      <DataPanel className="p-3">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+          blockedReasons
+        </p>
+        {readiness.blockedReasons.length > 0 ? (
+          <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+            {readiness.blockedReasons.map((reason) => (
+              <li key={reason} className="font-mono">
+                {reason}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-brand-textMuted">Aucun motif de blocage signale.</p>
+        )}
+      </DataPanel>
+    </div>
+  );
+}
+
+function GovernanceCockpitPanel({
+  title,
+  cockpit,
+  maxHeightClass,
+}: {
+  title: string;
+  cockpit: IdjorRagGovernanceCockpitResponse;
+  maxHeightClass?: string;
+}) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3.5 py-3 dark:border-slate-400/10 dark:bg-slate-400/5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-cyan-300/50 bg-cyan-50 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-800 dark:border-cyan-400/24 dark:bg-cyan-400/10 dark:text-cyan-200">
+          {title}
+        </span>
+        <span className="font-mono text-[11px] text-brand-textMuted">
+          {cockpit.viewMode} · audit {cockpit.counts.auditEvents}
+        </span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {cockpit.pipelineStages.map((stage) => (
+          <StatusOverviewCard
+            key={stage.stage}
+            label={stage.stage.replaceAll("_", " ")}
+            value={stage.status}
+            tone={toneForStageStatus(stage.status)}
+            hint="Pipeline gouverne"
+          />
+        ))}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <StatusOverviewCard
+          label="Uploads"
+          value={String(cockpit.counts.uploads)}
+          tone="neutral"
+        />
+        <StatusOverviewCard
+          label="Extractions"
+          value={String(cockpit.counts.extractions)}
+          tone="neutral"
+        />
+        <StatusOverviewCard
+          label="Chunks"
+          value={String(cockpit.counts.chunks)}
+          tone="neutral"
+        />
+        <StatusOverviewCard
+          label="Embeddings"
+          value={String(cockpit.counts.embeddings)}
+          tone={cockpit.counts.embeddings > 0 ? "warning" : "neutral"}
+        />
+        <StatusOverviewCard
+          label="Citations"
+          value={String(cockpit.counts.citations)}
+          tone={cockpit.counts.citations > 0 ? "warning" : "success"}
+        />
+        <StatusOverviewCard
+          label="Audit Events"
+          value={String(cockpit.counts.auditEvents)}
+          tone="success"
+        />
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-2">
+        <DataPanel className="p-3">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+            allowedNextSteps
+          </p>
+          {cockpit.allowedNextSteps.length > 0 ? (
+            <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+              {cockpit.allowedNextSteps.map((step) => (
+                <li key={step} className="font-mono">
+                  {step}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-brand-textMuted">Aucune etape controlee supplementaire.</p>
+          )}
+        </DataPanel>
+
+        <DataPanel className="p-3">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+            blockedReasons
+          </p>
+          {cockpit.blockedReasons.length > 0 ? (
+            <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+              {cockpit.blockedReasons.map((reason) => (
+                <li key={reason} className="font-mono">
+                  {reason}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-brand-textMuted">Aucun blocage signale.</p>
+          )}
+        </DataPanel>
+      </div>
+
+      <DataPanel className="space-y-2 p-3" maxHeightClass={maxHeightClass}>
+        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+          pipelineEvents
+        </p>
+        {cockpit.pipelineEvents.length > 0 ? (
+          cockpit.pipelineEvents.map((event) => (
+            <div
+              key={event.id}
+              className="rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3 py-2 dark:border-slate-400/10 dark:bg-slate-400/5"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-800 dark:text-cyan-200">
+                  {event.eventType}
+                </span>
+                {event.operation ? (
+                  <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+                    {event.operation}
+                  </span>
+                ) : null}
+                <span className="ml-auto font-mono text-[10px] text-brand-textMuted">
+                  {event.createdAt ?? "n/a"}
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-xs text-brand-textMuted">Aucun evenement de pipeline charge.</p>
+        )}
+      </DataPanel>
+    </div>
+  );
+}
+
 function ExtractionResultBlock({
   extraction,
   chunkingPanelExtractionId,
@@ -679,6 +933,14 @@ function ExtractionResultBlock({
   ragEmbeddingPreviewRequestState,
   onCheckEmbeddingReadiness,
   onRequestEmbeddingPreview,
+  ragRetrievalReadinessState,
+  ragRetrievalPreviewRequestState,
+  onCheckRetrievalReadiness,
+  onRequestRetrievalPreview,
+  ragDocumentGovernanceCockpitState,
+  ragExtractionGovernanceCockpitState,
+  onLoadDocumentGovernanceCockpit,
+  onLoadExtractionGovernanceCockpit,
   maxHeightClass,
 }: {
   extraction: IdjorRagDocumentExtraction;
@@ -689,8 +951,16 @@ function ExtractionResultBlock({
   onRunChunking?: (extractionId: string, documentId: string) => void;
   ragEmbeddingReadinessState?: RagEmbeddingReadinessState;
   ragEmbeddingPreviewRequestState?: RagEmbeddingPreviewRequestState;
-  onCheckEmbeddingReadiness?: (extractionId: string) => void;
+  onCheckEmbeddingReadiness?: (extractionId: string, documentId: string) => void;
   onRequestEmbeddingPreview?: (extractionId: string, documentId: string) => void;
+  ragRetrievalReadinessState?: RagRetrievalReadinessState;
+  ragRetrievalPreviewRequestState?: RagRetrievalPreviewRequestState;
+  onCheckRetrievalReadiness?: (extractionId: string, documentId: string) => void;
+  onRequestRetrievalPreview?: (extractionId: string, documentId: string) => void;
+  ragDocumentGovernanceCockpitState?: RagDocumentGovernanceCockpitState;
+  ragExtractionGovernanceCockpitState?: RagExtractionGovernanceCockpitState;
+  onLoadDocumentGovernanceCockpit?: (documentId: string) => void;
+  onLoadExtractionGovernanceCockpit?: (extractionId: string) => void;
   maxHeightClass?: string;
 }) {
   const isChunkable = extraction.status === "EXTRACTED_PENDING_REVIEW";
@@ -698,6 +968,12 @@ function ExtractionResultBlock({
   const isChunkingLoading =
     ragExtractionChunkingState?.status === "loading" &&
     ragExtractionChunkingState.extractionId === extraction.id;
+  const hasMatchingDocumentCockpit =
+    ragDocumentGovernanceCockpitState?.status !== "idle" &&
+    ragDocumentGovernanceCockpitState?.documentId === extraction.documentId;
+  const hasMatchingExtractionCockpit =
+    ragExtractionGovernanceCockpitState?.status !== "idle" &&
+    ragExtractionGovernanceCockpitState?.extractionId === extraction.id;
 
   return (
     <div className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3">
@@ -814,7 +1090,7 @@ function ExtractionResultBlock({
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => onCheckEmbeddingReadiness(extraction.id)}
+                      onClick={() => onCheckEmbeddingReadiness(extraction.id, extraction.documentId)}
                       disabled={
                         ragEmbeddingReadinessState?.status === "loading" &&
                         ragEmbeddingReadinessState.extractionId === extraction.id
@@ -877,6 +1153,158 @@ function ExtractionResultBlock({
                       {ragEmbeddingPreviewRequestState.response.readiness.embeddingReadiness}. Aucun
                       job d&apos;embedding ni reference embedding n&apos;a ete cree.
                     </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {onCheckRetrievalReadiness && onRequestRetrievalPreview ? (
+                <div className="space-y-3 border-t border-slate-400/10 pt-3">
+                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
+                    Retrieval readiness uniquement. Aucun retrieval reel, vector store,
+                    citation, embedding reel ou LLM n&apos;est active.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onCheckRetrievalReadiness(extraction.id, extraction.documentId)}
+                      disabled={
+                        ragRetrievalReadinessState?.status === "loading" &&
+                        ragRetrievalReadinessState.extractionId === extraction.id
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
+                    >
+                      <ShieldCheck className="h-3 w-3" />
+                      {ragRetrievalReadinessState?.status === "loading" &&
+                      ragRetrievalReadinessState.extractionId === extraction.id
+                        ? "Verification en cours..."
+                        : "Verifier readiness retrieval"}
+                    </button>
+
+                    {ragRetrievalReadinessState?.status === "success" &&
+                    ragRetrievalReadinessState.extractionId === extraction.id &&
+                    (ragRetrievalReadinessState.response.retrievalReadiness === "BLOCKED" ||
+                      ragRetrievalReadinessState.response.retrievalReadiness === "NOT_READY") ? (
+                      <button
+                        type="button"
+                        onClick={() => onRequestRetrievalPreview(extraction.id, extraction.documentId)}
+                        disabled={
+                          ragRetrievalPreviewRequestState?.status === "loading" &&
+                          ragRetrievalPreviewRequestState.extractionId === extraction.id
+                        }
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
+                      >
+                        <ScanSearch className="h-3 w-3" />
+                        {ragRetrievalPreviewRequestState?.status === "loading" &&
+                        ragRetrievalPreviewRequestState.extractionId === extraction.id
+                          ? "Demande en cours..."
+                          : "Demande preview retrieval"}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {ragRetrievalReadinessState?.status === "error" &&
+                  ragRetrievalReadinessState.extractionId === extraction.id ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+                      {ragRetrievalReadinessState.message}
+                    </div>
+                  ) : null}
+
+                  {ragRetrievalReadinessState?.status === "success" &&
+                  ragRetrievalReadinessState.extractionId === extraction.id ? (
+                    <RetrievalReadinessPanel readiness={ragRetrievalReadinessState.response} />
+                  ) : null}
+
+                  {ragRetrievalPreviewRequestState?.status === "error" &&
+                  ragRetrievalPreviewRequestState.extractionId === extraction.id ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+                      {ragRetrievalPreviewRequestState.message}
+                    </div>
+                  ) : null}
+
+                  {ragRetrievalPreviewRequestState?.status === "success" &&
+                  ragRetrievalPreviewRequestState.extractionId === extraction.id ? (
+                    <div className="rounded-2xl border border-amber-400/24 bg-amber-400/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                      Demande de preview retrieval: {ragRetrievalPreviewRequestState.response.previewStatus}.
+                      Readiness actuelle:{" "}
+                      {ragRetrievalPreviewRequestState.response.readiness.retrievalReadiness}. Aucun
+                      retrieval, citation ou LLM n&apos;a ete active.
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {onLoadDocumentGovernanceCockpit && onLoadExtractionGovernanceCockpit ? (
+                <div className="space-y-3 border-t border-slate-400/10 pt-3">
+                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
+                    Governance cockpit : synthese de preuve et d&apos;audit. Aucune decision
+                    automatique.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onLoadExtractionGovernanceCockpit(extraction.id)}
+                      disabled={
+                        ragExtractionGovernanceCockpitState?.status === "loading" &&
+                        ragExtractionGovernanceCockpitState.extractionId === extraction.id
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
+                    >
+                      <ScrollText className="h-3 w-3" />
+                      {ragExtractionGovernanceCockpitState?.status === "loading" &&
+                      ragExtractionGovernanceCockpitState.extractionId === extraction.id
+                        ? "Chargement..."
+                        : "Voir cockpit extraction"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onLoadDocumentGovernanceCockpit(extraction.documentId)}
+                      disabled={
+                        ragDocumentGovernanceCockpitState?.status === "loading" &&
+                        ragDocumentGovernanceCockpitState.documentId === extraction.documentId
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
+                    >
+                      <ScrollText className="h-3 w-3" />
+                      {ragDocumentGovernanceCockpitState?.status === "loading" &&
+                      ragDocumentGovernanceCockpitState.documentId === extraction.documentId
+                        ? "Chargement..."
+                        : "Voir cockpit document"}
+                    </button>
+                  </div>
+
+                  {ragExtractionGovernanceCockpitState?.status === "error" &&
+                  ragExtractionGovernanceCockpitState.extractionId === extraction.id ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+                      {ragExtractionGovernanceCockpitState.message}
+                    </div>
+                  ) : null}
+
+                  {ragDocumentGovernanceCockpitState?.status === "error" &&
+                  ragDocumentGovernanceCockpitState.documentId === extraction.documentId ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+                      {ragDocumentGovernanceCockpitState.message}
+                    </div>
+                  ) : null}
+
+                  {hasMatchingExtractionCockpit &&
+                  ragExtractionGovernanceCockpitState.status === "success" ? (
+                    <GovernanceCockpitPanel
+                      title="Cockpit extraction"
+                      cockpit={ragExtractionGovernanceCockpitState.response}
+                      maxHeightClass={maxHeightClass}
+                    />
+                  ) : null}
+
+                  {hasMatchingDocumentCockpit &&
+                  ragDocumentGovernanceCockpitState.status === "success" ? (
+                    <GovernanceCockpitPanel
+                      title="Cockpit document"
+                      cockpit={ragDocumentGovernanceCockpitState.response}
+                      maxHeightClass={maxHeightClass}
+                    />
                   ) : null}
                 </div>
               ) : null}
@@ -978,6 +1406,14 @@ export function IdjorFoundationPanel() {
     useState<RagEmbeddingReadinessState>({ status: "idle" });
   const [ragEmbeddingPreviewRequestState, setRagEmbeddingPreviewRequestState] =
     useState<RagEmbeddingPreviewRequestState>({ status: "idle" });
+  const [ragRetrievalReadinessState, setRagRetrievalReadinessState] =
+    useState<RagRetrievalReadinessState>({ status: "idle" });
+  const [ragRetrievalPreviewRequestState, setRagRetrievalPreviewRequestState] =
+    useState<RagRetrievalPreviewRequestState>({ status: "idle" });
+  const [ragDocumentGovernanceCockpitState, setRagDocumentGovernanceCockpitState] =
+    useState<RagDocumentGovernanceCockpitState>({ status: "idle" });
+  const [ragExtractionGovernanceCockpitState, setRagExtractionGovernanceCockpitState] =
+    useState<RagExtractionGovernanceCockpitState>({ status: "idle" });
   const [state, setState] = useState<FoundationState>({
     status: "loading",
     tenantKey: explicitTenantKey,
@@ -1223,6 +1659,74 @@ export function IdjorFoundationPanel() {
     }
   };
 
+  const refreshDocumentAuditIfVisible = async (documentId: string) => {
+    if (
+      ragDocumentAuditState.status !== "idle" &&
+      ragDocumentAuditState.documentId === documentId
+    ) {
+      await handleViewDocumentAudit(documentId);
+    }
+  };
+
+  const handleLoadDocumentGovernanceCockpit = async (documentId: string) => {
+    setRagDocumentGovernanceCockpitState({ status: "loading", documentId });
+
+    try {
+      const response = await getIdjorRagDocumentGovernanceCockpit(documentId);
+      setRagDocumentGovernanceCockpitState({ status: "success", documentId, response });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de charger le governance cockpit pour ce document.";
+
+      setRagDocumentGovernanceCockpitState({ status: "error", documentId, message });
+    }
+  };
+
+  const handleLoadExtractionGovernanceCockpit = async (extractionId: string) => {
+    setRagExtractionGovernanceCockpitState({ status: "loading", extractionId });
+
+    try {
+      const response = await getIdjorRagExtractionGovernanceCockpit(extractionId);
+      setRagExtractionGovernanceCockpitState({ status: "success", extractionId, response });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de charger le governance cockpit pour cette extraction.";
+
+      setRagExtractionGovernanceCockpitState({ status: "error", extractionId, message });
+    }
+  };
+
+  const refreshGovernanceCockpitIfVisible = async ({
+    documentId,
+    extractionId,
+  }: {
+    documentId: string;
+    extractionId?: string | null;
+  }) => {
+    if (
+      ragDocumentGovernanceCockpitState.status !== "idle" &&
+      ragDocumentGovernanceCockpitState.documentId === documentId
+    ) {
+      await handleLoadDocumentGovernanceCockpit(documentId);
+    }
+
+    if (
+      extractionId &&
+      ragExtractionGovernanceCockpitState.status !== "idle" &&
+      ragExtractionGovernanceCockpitState.extractionId === extractionId
+    ) {
+      await handleLoadExtractionGovernanceCockpit(extractionId);
+    }
+  };
+
   const handleLoadDocumentUploads = async (documentId: string) => {
     setRagUploadsListState({ status: "loading", documentId });
 
@@ -1255,6 +1759,9 @@ export function IdjorFoundationPanel() {
     setRagExtractionChunksListState({ status: "idle" });
     setRagEmbeddingReadinessState({ status: "idle" });
     setRagEmbeddingPreviewRequestState({ status: "idle" });
+    setRagRetrievalReadinessState({ status: "idle" });
+    setRagRetrievalPreviewRequestState({ status: "idle" });
+    setRagExtractionGovernanceCockpitState({ status: "idle" });
 
     if (next) {
       void handleLoadDocumentUploads(next);
@@ -1291,12 +1798,8 @@ export function IdjorFoundationPanel() {
       if (state.status === "ready") {
         await refreshRagSection(state.ragHealth.scope.tenantKey);
       }
-      if (
-        ragDocumentAuditState.status !== "idle" &&
-        ragDocumentAuditState.documentId === documentId
-      ) {
-        await handleViewDocumentAudit(documentId);
-      }
+      await refreshDocumentAuditIfVisible(documentId);
+      await refreshGovernanceCockpitIfVisible({ documentId });
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -1336,6 +1839,9 @@ export function IdjorFoundationPanel() {
     setRagExtractionChunksListState({ status: "idle" });
     setRagEmbeddingReadinessState({ status: "idle" });
     setRagEmbeddingPreviewRequestState({ status: "idle" });
+    setRagRetrievalReadinessState({ status: "idle" });
+    setRagRetrievalPreviewRequestState({ status: "idle" });
+    setRagExtractionGovernanceCockpitState({ status: "idle" });
 
     if (next) {
       void handleLoadUploadExtractions(next);
@@ -1367,6 +1873,9 @@ export function IdjorFoundationPanel() {
     setRagExtractionChunksListState({ status: "idle" });
     setRagEmbeddingReadinessState({ status: "idle" });
     setRagEmbeddingPreviewRequestState({ status: "idle" });
+    setRagRetrievalReadinessState({ status: "idle" });
+    setRagRetrievalPreviewRequestState({ status: "idle" });
+    setRagExtractionGovernanceCockpitState({ status: "idle" });
 
     if (next) {
       void handleLoadExtractionChunks(next);
@@ -1381,13 +1890,8 @@ export function IdjorFoundationPanel() {
       setRagExtractionChunkingState({ status: "success", extractionId, response });
 
       await handleLoadExtractionChunks(extractionId);
-
-      if (
-        ragDocumentAuditState.status !== "idle" &&
-        ragDocumentAuditState.documentId === documentId
-      ) {
-        await handleViewDocumentAudit(documentId);
-      }
+      await refreshDocumentAuditIfVisible(documentId);
+      await refreshGovernanceCockpitIfVisible({ documentId, extractionId });
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -1400,12 +1904,14 @@ export function IdjorFoundationPanel() {
     }
   };
 
-  const handleCheckEmbeddingReadiness = async (extractionId: string) => {
+  const handleCheckEmbeddingReadiness = async (extractionId: string, documentId: string) => {
     setRagEmbeddingReadinessState({ status: "loading", extractionId });
 
     try {
       const response = await getIdjorRagEmbeddingReadiness(extractionId);
       setRagEmbeddingReadinessState({ status: "success", extractionId, response });
+      await refreshDocumentAuditIfVisible(documentId);
+      await refreshGovernanceCockpitIfVisible({ documentId, extractionId });
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -1424,15 +1930,10 @@ export function IdjorFoundationPanel() {
     try {
       const response = await requestIdjorRagEmbeddingPreview(extractionId);
       setRagEmbeddingPreviewRequestState({ status: "success", extractionId, response });
-
-      await handleCheckEmbeddingReadiness(extractionId);
-
-      if (
-        ragDocumentAuditState.status !== "idle" &&
-        ragDocumentAuditState.documentId === documentId
-      ) {
-        await handleViewDocumentAudit(documentId);
-      }
+      const readiness = await getIdjorRagEmbeddingReadiness(extractionId);
+      setRagEmbeddingReadinessState({ status: "success", extractionId, response: readiness });
+      await refreshDocumentAuditIfVisible(documentId);
+      await refreshGovernanceCockpitIfVisible({ documentId, extractionId });
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -1445,6 +1946,48 @@ export function IdjorFoundationPanel() {
     }
   };
 
+  const handleCheckRetrievalReadiness = async (extractionId: string, documentId: string) => {
+    setRagRetrievalReadinessState({ status: "loading", extractionId });
+
+    try {
+      const response = await getIdjorRagRetrievalReadiness(extractionId);
+      setRagRetrievalReadinessState({ status: "success", extractionId, response });
+      await refreshDocumentAuditIfVisible(documentId);
+      await refreshGovernanceCockpitIfVisible({ documentId, extractionId });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de verifier la readiness retrieval pour cette extraction.";
+
+      setRagRetrievalReadinessState({ status: "error", extractionId, message });
+    }
+  };
+
+  const handleRequestRetrievalPreview = async (extractionId: string, documentId: string) => {
+    setRagRetrievalPreviewRequestState({ status: "loading", extractionId });
+
+    try {
+      const response = await requestIdjorRagRetrievalPreview(extractionId);
+      setRagRetrievalPreviewRequestState({ status: "success", extractionId, response });
+      const readiness = await getIdjorRagRetrievalReadiness(extractionId);
+      setRagRetrievalReadinessState({ status: "success", extractionId, response: readiness });
+      await refreshDocumentAuditIfVisible(documentId);
+      await refreshGovernanceCockpitIfVisible({ documentId, extractionId });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de demander la preview retrieval pour cette extraction.";
+
+      setRagRetrievalPreviewRequestState({ status: "error", extractionId, message });
+    }
+  };
+
   const handleRunExtractionPreview = async (uploadId: string, documentId: string) => {
     setRagExtractionPreviewState({ status: "loading", uploadId });
 
@@ -1453,13 +1996,8 @@ export function IdjorFoundationPanel() {
       setRagExtractionPreviewState({ status: "success", uploadId, response });
 
       await handleLoadUploadExtractions(uploadId);
-
-      if (
-        ragDocumentAuditState.status !== "idle" &&
-        ragDocumentAuditState.documentId === documentId
-      ) {
-        await handleViewDocumentAudit(documentId);
-      }
+      await refreshDocumentAuditIfVisible(documentId);
+      await refreshGovernanceCockpitIfVisible({ documentId });
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -2342,6 +2880,14 @@ export function IdjorFoundationPanel() {
                           ragEmbeddingPreviewRequestState={ragEmbeddingPreviewRequestState}
                           onCheckEmbeddingReadiness={handleCheckEmbeddingReadiness}
                           onRequestEmbeddingPreview={handleRequestEmbeddingPreview}
+                          ragRetrievalReadinessState={ragRetrievalReadinessState}
+                          ragRetrievalPreviewRequestState={ragRetrievalPreviewRequestState}
+                          onCheckRetrievalReadiness={handleCheckRetrievalReadiness}
+                          onRequestRetrievalPreview={handleRequestRetrievalPreview}
+                          ragDocumentGovernanceCockpitState={ragDocumentGovernanceCockpitState}
+                          ragExtractionGovernanceCockpitState={ragExtractionGovernanceCockpitState}
+                          onLoadDocumentGovernanceCockpit={handleLoadDocumentGovernanceCockpit}
+                          onLoadExtractionGovernanceCockpit={handleLoadExtractionGovernanceCockpit}
                           maxHeightClass={tableHeightClass}
                         />
                       ) : null}
@@ -2396,6 +2942,14 @@ export function IdjorFoundationPanel() {
                                     ragEmbeddingPreviewRequestState={ragEmbeddingPreviewRequestState}
                                     onCheckEmbeddingReadiness={handleCheckEmbeddingReadiness}
                                     onRequestEmbeddingPreview={handleRequestEmbeddingPreview}
+                                    ragRetrievalReadinessState={ragRetrievalReadinessState}
+                                    ragRetrievalPreviewRequestState={ragRetrievalPreviewRequestState}
+                                    onCheckRetrievalReadiness={handleCheckRetrievalReadiness}
+                                    onRequestRetrievalPreview={handleRequestRetrievalPreview}
+                                    ragDocumentGovernanceCockpitState={ragDocumentGovernanceCockpitState}
+                                    ragExtractionGovernanceCockpitState={ragExtractionGovernanceCockpitState}
+                                    onLoadDocumentGovernanceCockpit={handleLoadDocumentGovernanceCockpit}
+                                    onLoadExtractionGovernanceCockpit={handleLoadExtractionGovernanceCockpit}
                                     maxHeightClass={tableHeightClass}
                                   />
                                 ))}

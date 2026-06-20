@@ -35,6 +35,15 @@ import {
   IdjorRagEmbeddingReadinessResponse,
   IdjorRagEmbeddingRequiredFlag,
   IdjorRagEmbeddingVectorStoreStatus,
+  IdjorRagGovernanceAllowedNextStep,
+  IdjorRagGovernanceBlockedReason,
+  IdjorRagGovernanceCockpit,
+  IdjorRagGovernanceCockpitResponse,
+  IdjorRagGovernanceCounts,
+  IdjorRagGovernancePipelineEvent,
+  IdjorRagGovernancePipelineStage,
+  IdjorRagGovernancePipelineStageItem,
+  IdjorRagGovernanceStageStatus,
   IdjorRagExtractionChunk,
   IdjorRagExtractionChunksPage,
   IdjorRagExtractionChunkingResponse,
@@ -45,6 +54,12 @@ import {
   IdjorRagIngestionReadinessState,
   IdjorRagLinkedAssetCounts,
   IdjorRagMetadataRegistrationStatus,
+  IdjorRagRetrievalBlockedReason,
+  IdjorRagRetrievalComponentStatus,
+  IdjorRagRetrievalPreviewRequestResponse,
+  IdjorRagRetrievalReadiness,
+  IdjorRagRetrievalReadinessResponse,
+  IdjorRagRetrievalReadinessState,
   IdjorRagResponseScope,
   IdjorRagSecuritySummary,
   IdjorRagUploadIntakeResponse,
@@ -1135,6 +1150,313 @@ function mapIdjorRagEmbeddingPreviewRequestResponse(
   };
 }
 
+const IDJOR_RAG_RETRIEVAL_BLOCKED_REASONS: ReadonlySet<IdjorRagRetrievalBlockedReason> = new Set([
+  "NO_CHUNKS",
+  "NO_EMBEDDINGS",
+  "VECTOR_STORE_DISABLED",
+  "RETRIEVAL_DISABLED",
+  "LLM_DISABLED",
+]);
+
+function mapIdjorRagRetrievalBlockedReasons(value: unknown): IdjorRagRetrievalBlockedReason[] {
+  return readArray(value).filter(
+    (entry): entry is IdjorRagRetrievalBlockedReason =>
+      typeof entry === "string" &&
+      IDJOR_RAG_RETRIEVAL_BLOCKED_REASONS.has(entry as IdjorRagRetrievalBlockedReason),
+  );
+}
+
+function readIdjorRagRetrievalReadinessState(
+  value: unknown,
+): IdjorRagRetrievalReadinessState {
+  return value === "BLOCKED" ? "BLOCKED" : "NOT_READY";
+}
+
+function readIdjorRagRetrievalComponentStatus(
+  value: unknown,
+): IdjorRagRetrievalComponentStatus {
+  return value === "BLOCKED" ? "BLOCKED" : "DISABLED";
+}
+
+function mapIdjorRagRetrievalReadiness(payload: unknown): IdjorRagRetrievalReadiness {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+  const extractionId = readString(root, "extractionId");
+
+  if (!root || !scope || !documentId || !documentKey || !extractionId) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: readiness retrieval RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    extractionId,
+    retrievalReadiness: readIdjorRagRetrievalReadinessState(root.retrievalReadiness),
+    blockedReasons: mapIdjorRagRetrievalBlockedReasons(root.blockedReasons),
+    chunksCount: readNumberLike(root, "chunksCount") ?? 0,
+    embeddingsCount: readNumberLike(root, "embeddingsCount") ?? 0,
+    citationsCount: readNumberLike(root, "citationsCount") ?? 0,
+    vectorStoreStatus: readIdjorRagRetrievalComponentStatus(root.vectorStoreStatus),
+    retrievalStatus: readIdjorRagRetrievalComponentStatus(root.retrievalStatus),
+    llmStatus: readIdjorRagRetrievalComponentStatus(root.llmStatus),
+    linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    retrievalExecuted: readBooleanLike(root, "retrievalExecuted") ?? false,
+    citationsCreated: readBooleanLike(root, "citationsCreated") ?? false,
+    llmExecuted: readBooleanLike(root, "llmExecuted") ?? false,
+  };
+}
+
+function mapIdjorRagRetrievalReadinessResponse(
+  payload: unknown,
+): IdjorRagRetrievalReadinessResponse {
+  const root = asObject(payload);
+
+  return {
+    ...mapIdjorRagRetrievalReadiness(payload),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagRetrievalPreviewRequestResponse(
+  payload: unknown,
+): IdjorRagRetrievalPreviewRequestResponse {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+  const extractionId = readString(root, "extractionId");
+  const previewStatus = readString(root, "previewStatus");
+
+  if (!root || !scope || !documentId || !documentKey || !extractionId || previewStatus !== "BLOCKED") {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: demande de preview retrieval RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    extractionId,
+    previewStatus: "BLOCKED",
+    retrievalReadiness: readIdjorRagRetrievalReadinessState(root.retrievalReadiness),
+    blockedReasons: mapIdjorRagRetrievalBlockedReasons(root.blockedReasons),
+    chunksCount: readNumberLike(root, "chunksCount") ?? 0,
+    embeddingsCount: readNumberLike(root, "embeddingsCount") ?? 0,
+    citationsCount: readNumberLike(root, "citationsCount") ?? 0,
+    vectorStoreStatus: readIdjorRagRetrievalComponentStatus(root.vectorStoreStatus),
+    retrievalStatus: readIdjorRagRetrievalComponentStatus(root.retrievalStatus),
+    llmStatus: readIdjorRagRetrievalComponentStatus(root.llmStatus),
+    readiness: mapIdjorRagRetrievalReadiness(root.readiness),
+    retrievalExecuted: readBooleanLike(root, "retrievalExecuted") ?? false,
+    citationsCreated: readBooleanLike(root, "citationsCreated") ?? false,
+    llmExecuted: readBooleanLike(root, "llmExecuted") ?? false,
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+const IDJOR_RAG_GOVERNANCE_STAGE_VALUES: ReadonlySet<IdjorRagGovernancePipelineStage> = new Set([
+  "METADATA",
+  "UPLOAD_QUARANTINE",
+  "EXTRACTION",
+  "CHUNKING",
+  "EMBEDDING_READINESS",
+  "RETRIEVAL_READINESS",
+  "AUDIT",
+]);
+
+const IDJOR_RAG_GOVERNANCE_STATUS_VALUES: ReadonlySet<IdjorRagGovernanceStageStatus> = new Set([
+  "DONE",
+  "BLOCKED",
+  "NOT_READY",
+  "DISABLED",
+]);
+
+const IDJOR_RAG_GOVERNANCE_BLOCKED_REASONS: ReadonlySet<IdjorRagGovernanceBlockedReason> = new Set([
+  "NO_UPLOADS",
+  "NO_EXTRACTIONS",
+  "EXTRACTION_UNSUPPORTED",
+  "EXTRACTION_FILE_MISSING",
+  "NO_CHUNKS",
+  "NO_EMBEDDINGS",
+  "EMBEDDINGS_DISABLED",
+  "VECTOR_STORE_DISABLED",
+  "RETRIEVAL_DISABLED",
+  "LLM_DISABLED",
+]);
+
+const IDJOR_RAG_GOVERNANCE_ALLOWED_NEXT_STEPS: ReadonlySet<IdjorRagGovernanceAllowedNextStep> = new Set([
+  "UPLOAD_QUARANTINE_DOCUMENT",
+  "REQUEST_EXTRACTION_PREVIEW",
+  "RUN_DETERMINISTIC_CHUNKING",
+  "VIEW_EMBEDDING_READINESS",
+  "REQUEST_EMBEDDING_PREVIEW",
+  "VIEW_RETRIEVAL_READINESS",
+  "REQUEST_RETRIEVAL_PREVIEW",
+  "REVIEW_APPEND_ONLY_AUDIT",
+]);
+
+function mapIdjorRagGovernancePipelineStageItem(
+  value: unknown,
+): IdjorRagGovernancePipelineStageItem | null {
+  const record = asObject(value);
+  const stage = readString(record, "stage");
+  const status = readString(record, "status");
+
+  if (
+    !stage ||
+    !status ||
+    !IDJOR_RAG_GOVERNANCE_STAGE_VALUES.has(stage as IdjorRagGovernancePipelineStage) ||
+    !IDJOR_RAG_GOVERNANCE_STATUS_VALUES.has(status as IdjorRagGovernanceStageStatus)
+  ) {
+    return null;
+  }
+
+  return {
+    stage: stage as IdjorRagGovernancePipelineStage,
+    status: status as IdjorRagGovernanceStageStatus,
+  };
+}
+
+function readIdjorRagGovernanceStageStatus(value: unknown): IdjorRagGovernanceStageStatus {
+  if (
+    typeof value === "string" &&
+    IDJOR_RAG_GOVERNANCE_STATUS_VALUES.has(value as IdjorRagGovernanceStageStatus)
+  ) {
+    return value as IdjorRagGovernanceStageStatus;
+  }
+
+  return "NOT_READY";
+}
+
+function mapIdjorRagGovernanceBlockedReasons(value: unknown): IdjorRagGovernanceBlockedReason[] {
+  return readArray(value).filter(
+    (entry): entry is IdjorRagGovernanceBlockedReason =>
+      typeof entry === "string" &&
+      IDJOR_RAG_GOVERNANCE_BLOCKED_REASONS.has(entry as IdjorRagGovernanceBlockedReason),
+  );
+}
+
+function mapIdjorRagGovernanceAllowedNextSteps(
+  value: unknown,
+): IdjorRagGovernanceAllowedNextStep[] {
+  return readArray(value).filter(
+    (entry): entry is IdjorRagGovernanceAllowedNextStep =>
+      typeof entry === "string" &&
+      IDJOR_RAG_GOVERNANCE_ALLOWED_NEXT_STEPS.has(entry as IdjorRagGovernanceAllowedNextStep),
+  );
+}
+
+function mapIdjorRagGovernanceCounts(value: unknown): IdjorRagGovernanceCounts {
+  const record = asObject(value);
+
+  return {
+    uploads: readNumberLike(record, "uploads") ?? 0,
+    extractions: readNumberLike(record, "extractions") ?? 0,
+    chunks: readNumberLike(record, "chunks") ?? 0,
+    embeddings: readNumberLike(record, "embeddings") ?? 0,
+    citations: readNumberLike(record, "citations") ?? 0,
+    auditEvents: readNumberLike(record, "auditEvents") ?? 0,
+  };
+}
+
+function mapIdjorRagGovernancePipelineEvent(
+  value: unknown,
+): IdjorRagGovernancePipelineEvent | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const eventType = readString(record, "eventType");
+
+  if (!id || !eventType) {
+    return null;
+  }
+
+  return {
+    id,
+    eventType,
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    operation: readString(record, "operation"),
+    uploadId: readString(record, "uploadId"),
+    extractionId: readString(record, "extractionId"),
+    createdAt: readString(record, "createdAt"),
+  };
+}
+
+function mapIdjorRagGovernanceCockpit(payload: unknown): IdjorRagGovernanceCockpit {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const viewMode = readString(root, "viewMode");
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+
+  if (
+    !root ||
+    !scope ||
+    !documentId ||
+    !documentKey ||
+    (viewMode !== "DOCUMENT" && viewMode !== "EXTRACTION")
+  ) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: governance cockpit RAG incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    viewMode,
+    documentId,
+    documentKey,
+    uploadId: readString(root, "uploadId"),
+    extractionId: readString(root, "extractionId"),
+    pipelineStages: readArray(root.pipelineStages)
+      .map((entry) => mapIdjorRagGovernancePipelineStageItem(entry))
+      .filter((entry): entry is IdjorRagGovernancePipelineStageItem => entry !== null),
+    documentStatus: readIdjorRagGovernanceStageStatus(root.documentStatus),
+    uploadStatus: readIdjorRagGovernanceStageStatus(root.uploadStatus),
+    extractionStatus: readIdjorRagGovernanceStageStatus(root.extractionStatus),
+    chunkingStatus: readIdjorRagGovernanceStageStatus(root.chunkingStatus),
+    embeddingStatus: readIdjorRagGovernanceStageStatus(root.embeddingStatus),
+    retrievalStatus: readIdjorRagGovernanceStageStatus(root.retrievalStatus),
+    auditStatus: readIdjorRagGovernanceStageStatus(root.auditStatus),
+    blockedReasons: mapIdjorRagGovernanceBlockedReasons(root.blockedReasons),
+    allowedNextSteps: mapIdjorRagGovernanceAllowedNextSteps(root.allowedNextSteps),
+    counts: mapIdjorRagGovernanceCounts(root.counts),
+    pipelineEvents: readArray(root.pipelineEvents)
+      .map((entry) => mapIdjorRagGovernancePipelineEvent(entry))
+      .filter((entry): entry is IdjorRagGovernancePipelineEvent => entry !== null),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    retrievalExecuted: readBooleanLike(root, "retrievalExecuted") ?? false,
+    citationsCreated: readBooleanLike(root, "citationsCreated") ?? false,
+    llmExecuted: readBooleanLike(root, "llmExecuted") ?? false,
+  };
+}
+
+function mapIdjorRagGovernanceCockpitResponse(
+  payload: unknown,
+): IdjorRagGovernanceCockpitResponse {
+  const root = asObject(payload);
+
+  return {
+    ...mapIdjorRagGovernanceCockpit(payload),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
 function mapIdjorRegistryAgent(value: unknown): IdjorRegistryAgent | null {
   const record = asObject(value);
   const id = readString(record, "id");
@@ -2097,6 +2419,51 @@ export async function requestIdjorRagEmbeddingPreview(
   );
 
   return mapIdjorRagEmbeddingPreviewRequestResponse(payload);
+}
+
+export async function getIdjorRagRetrievalReadiness(
+  extractionId: string,
+): Promise<IdjorRagRetrievalReadinessResponse> {
+  const safeId = encodeURIComponent(extractionId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/extractions/${safeId}/retrieval-readiness`,
+  );
+
+  return mapIdjorRagRetrievalReadinessResponse(payload);
+}
+
+export async function requestIdjorRagRetrievalPreview(
+  extractionId: string,
+): Promise<IdjorRagRetrievalPreviewRequestResponse> {
+  const safeId = encodeURIComponent(extractionId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/extractions/${safeId}/retrieval-preview-request`,
+    { method: "POST" },
+  );
+
+  return mapIdjorRagRetrievalPreviewRequestResponse(payload);
+}
+
+export async function getIdjorRagDocumentGovernanceCockpit(
+  documentId: string,
+): Promise<IdjorRagGovernanceCockpitResponse> {
+  const safeId = encodeURIComponent(documentId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/documents/${safeId}/governance-cockpit`,
+  );
+
+  return mapIdjorRagGovernanceCockpitResponse(payload);
+}
+
+export async function getIdjorRagExtractionGovernanceCockpit(
+  extractionId: string,
+): Promise<IdjorRagGovernanceCockpitResponse> {
+  const safeId = encodeURIComponent(extractionId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/extractions/${safeId}/governance-cockpit`,
+  );
+
+  return mapIdjorRagGovernanceCockpitResponse(payload);
 }
 
 export interface InsuranceApplicationByIdResult {

@@ -505,6 +505,155 @@ export interface IdjorRagEmbeddingPreviewRequestResponse {
   readOnly: boolean;
 }
 
+export type IdjorRagRetrievalReadinessState = "NOT_READY" | "BLOCKED";
+
+export type IdjorRagRetrievalBlockedReason =
+  | "NO_CHUNKS"
+  | "NO_EMBEDDINGS"
+  | "VECTOR_STORE_DISABLED"
+  | "RETRIEVAL_DISABLED"
+  | "LLM_DISABLED";
+
+export type IdjorRagRetrievalComponentStatus = "DISABLED" | "BLOCKED";
+
+export interface IdjorRagRetrievalReadiness {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  extractionId: string;
+  retrievalReadiness: IdjorRagRetrievalReadinessState;
+  blockedReasons: IdjorRagRetrievalBlockedReason[];
+  chunksCount: number;
+  embeddingsCount: number;
+  citationsCount: number;
+  vectorStoreStatus: IdjorRagRetrievalComponentStatus;
+  retrievalStatus: IdjorRagRetrievalComponentStatus;
+  llmStatus: IdjorRagRetrievalComponentStatus;
+  linkedAssetCounts: IdjorRagLinkedAssetCounts;
+  securitySummary: IdjorRagSecuritySummary;
+  retrievalExecuted: boolean;
+  citationsCreated: boolean;
+  llmExecuted: boolean;
+}
+
+export interface IdjorRagRetrievalReadinessResponse extends IdjorRagRetrievalReadiness {
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export interface IdjorRagRetrievalPreviewRequestResponse {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  extractionId: string;
+  previewStatus: "BLOCKED";
+  retrievalReadiness: IdjorRagRetrievalReadinessState;
+  blockedReasons: IdjorRagRetrievalBlockedReason[];
+  chunksCount: number;
+  embeddingsCount: number;
+  citationsCount: number;
+  vectorStoreStatus: IdjorRagRetrievalComponentStatus;
+  retrievalStatus: IdjorRagRetrievalComponentStatus;
+  llmStatus: IdjorRagRetrievalComponentStatus;
+  readiness: IdjorRagRetrievalReadiness;
+  retrievalExecuted: boolean;
+  citationsCreated: boolean;
+  llmExecuted: boolean;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export type IdjorRagGovernancePipelineStage =
+  | "METADATA"
+  | "UPLOAD_QUARANTINE"
+  | "EXTRACTION"
+  | "CHUNKING"
+  | "EMBEDDING_READINESS"
+  | "RETRIEVAL_READINESS"
+  | "AUDIT";
+
+export type IdjorRagGovernanceStageStatus =
+  | "DONE"
+  | "BLOCKED"
+  | "NOT_READY"
+  | "DISABLED";
+
+export type IdjorRagGovernanceBlockedReason =
+  | "NO_UPLOADS"
+  | "NO_EXTRACTIONS"
+  | "EXTRACTION_UNSUPPORTED"
+  | "EXTRACTION_FILE_MISSING"
+  | "NO_CHUNKS"
+  | "NO_EMBEDDINGS"
+  | "EMBEDDINGS_DISABLED"
+  | "VECTOR_STORE_DISABLED"
+  | "RETRIEVAL_DISABLED"
+  | "LLM_DISABLED";
+
+export type IdjorRagGovernanceAllowedNextStep =
+  | "UPLOAD_QUARANTINE_DOCUMENT"
+  | "REQUEST_EXTRACTION_PREVIEW"
+  | "RUN_DETERMINISTIC_CHUNKING"
+  | "VIEW_EMBEDDING_READINESS"
+  | "REQUEST_EMBEDDING_PREVIEW"
+  | "VIEW_RETRIEVAL_READINESS"
+  | "REQUEST_RETRIEVAL_PREVIEW"
+  | "REVIEW_APPEND_ONLY_AUDIT";
+
+export interface IdjorRagGovernancePipelineStageItem {
+  stage: IdjorRagGovernancePipelineStage;
+  status: IdjorRagGovernanceStageStatus;
+}
+
+export interface IdjorRagGovernanceCounts {
+  uploads: number;
+  extractions: number;
+  chunks: number;
+  embeddings: number;
+  citations: number;
+  auditEvents: number;
+}
+
+export interface IdjorRagGovernancePipelineEvent {
+  id: string;
+  eventType: string;
+  source: DataSource;
+  operation: string | null;
+  uploadId: string | null;
+  extractionId: string | null;
+  createdAt: string | null;
+}
+
+export interface IdjorRagGovernanceCockpit {
+  scope: IdjorRagResponseScope;
+  viewMode: "DOCUMENT" | "EXTRACTION";
+  documentId: string;
+  documentKey: string;
+  uploadId: string | null;
+  extractionId: string | null;
+  pipelineStages: IdjorRagGovernancePipelineStageItem[];
+  documentStatus: IdjorRagGovernanceStageStatus;
+  uploadStatus: IdjorRagGovernanceStageStatus;
+  extractionStatus: IdjorRagGovernanceStageStatus;
+  chunkingStatus: IdjorRagGovernanceStageStatus;
+  embeddingStatus: IdjorRagGovernanceStageStatus;
+  retrievalStatus: IdjorRagGovernanceStageStatus;
+  auditStatus: IdjorRagGovernanceStageStatus;
+  blockedReasons: IdjorRagGovernanceBlockedReason[];
+  allowedNextSteps: IdjorRagGovernanceAllowedNextStep[];
+  counts: IdjorRagGovernanceCounts;
+  pipelineEvents: IdjorRagGovernancePipelineEvent[];
+  securitySummary: IdjorRagSecuritySummary;
+  retrievalExecuted: boolean;
+  citationsCreated: boolean;
+  llmExecuted: boolean;
+}
+
+export interface IdjorRagGovernanceCockpitResponse extends IdjorRagGovernanceCockpit {
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"
