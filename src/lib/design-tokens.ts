@@ -29,10 +29,29 @@ export const DESIGN_TOKENS = {
       "grid gap-2.5 rounded-2xl border border-brand-border/10 bg-brand-surface/86 p-3.5 shadow-premium dark:border-cyan-400/12 dark:bg-brand-surface/74 dark:shadow-premium-dark",
   },
   sidebar: {
-    shell: "bg-brand-surface/56 backdrop-blur-xl",
+    shell:
+      "border-r border-brand-border/10 bg-brand-surface/70 dark:bg-gradient-to-b dark:from-[#0a0f1b]/60 dark:to-[#080c17]/30",
+    brandTitle: "text-slate-900 dark:text-white",
+    groupLabel: "text-brand-textMuted",
+    toggleButton:
+      "border border-brand-border/16 bg-brand-surfaceRaised/60 text-brand-textMuted hover:text-slate-900 dark:bg-[#070b17]/45 dark:hover:text-white",
+    footer: "border border-brand-border/12 bg-brand-surfaceRaised/70 dark:bg-[#141c2e]/72",
+    footerText: "text-brand-textMuted",
     active:
       "bg-gradient-to-r from-cyan-500/16 to-violet-500/15 text-slate-900 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.25)] dark:text-slate-100",
-    item: "text-brand-textMuted hover:bg-brand-surfaceRaised/75 hover:text-slate-900 dark:hover:text-slate-100",
+    item:
+      "border-l-[3px] border-transparent text-brand-textMuted hover:bg-brand-surfaceRaised/70 hover:text-slate-900 dark:hover:text-slate-100",
+    icon: "text-brand-textMuted",
+  },
+  header: {
+    shell:
+      "border-b border-brand-border/10 bg-brand-surface/80 backdrop-blur-lg dark:bg-[#070b17]/45",
+    title: "text-slate-900 dark:text-white",
+    searchShell:
+      "border border-brand-border/18 bg-brand-surfaceRaised/70 dark:border-slate-400/18 dark:bg-[#0d1525]/70",
+    searchInput: "text-slate-900 placeholder:text-brand-textMuted dark:text-slate-200 dark:placeholder:text-slate-500",
+    avatarText: "text-white",
+    userName: "text-slate-900 dark:text-white",
   },
   buttons: {
     primary:
@@ -64,6 +83,18 @@ export const DESIGN_TOKENS = {
       "border border-emerald-400/50 bg-emerald-500/16 text-emerald-200 dark:border-emerald-400/50 dark:bg-emerald-500/16 dark:text-emerald-200",
     seedDemo:
       "border border-amber-400/55 bg-amber-500/16 text-amber-200 dark:border-amber-400/55 dark:bg-amber-500/16 dark:text-amber-200",
+  },
+  text: {
+    heading: "text-slate-900 dark:text-white",
+    body: "text-slate-700 dark:text-slate-300",
+    muted: "text-brand-textMuted",
+    faint: "text-slate-500 dark:text-slate-500",
+  },
+  pill: {
+    neutral:
+      "rounded-full border border-brand-border/18 bg-brand-surfaceRaised/70 text-slate-700 dark:border-slate-400/18 dark:bg-slate-400/8 dark:text-slate-300",
+    accent:
+      "rounded-full border border-cyan-400/30 bg-cyan-500/10 text-cyan-700 dark:border-cyan-400/24 dark:bg-cyan-400/10 dark:text-cyan-200",
   },
   focusRing:
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/55 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg",

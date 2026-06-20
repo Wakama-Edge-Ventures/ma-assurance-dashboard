@@ -27,6 +27,7 @@ import {
 import { TenantBadge } from "@/components/tenant/TenantBadge";
 import { TenantLogo } from "@/components/tenant/TenantLogo";
 import { useTenant } from "@/components/tenant/useTenant";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import { withAlpha } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
 
@@ -169,8 +170,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     <aside
       className={cn(
         "sticky top-0 hidden h-screen flex-col py-[22px] backdrop-blur-md lg:flex",
-        "border-r border-slate-400/10",
-        "bg-gradient-to-b from-[#0a0f1b]/60 to-[#080c17]/30",
+        DESIGN_TOKENS.sidebar.shell,
         collapsed ? "w-[76px] items-center px-3" : "w-[252px] px-4",
         "transition-[width] duration-200",
       )}
@@ -185,7 +185,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         />
         {!collapsed && (
           <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate font-display text-[15px] font-semibold tracking-[-0.01em] text-white">
+            <span
+              className={cn(
+                "truncate font-display text-[15px] font-semibold tracking-[-0.01em]",
+                DESIGN_TOKENS.sidebar.brandTitle,
+              )}
+            >
               {tenant.displayName}
             </span>
             <span
@@ -204,7 +209,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <button
           type="button"
           onClick={onToggle}
-          className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/12 bg-[#070b17]/45 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:text-white"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-colors",
+            DESIGN_TOKENS.sidebar.toggleButton,
+          )}
           style={{ borderColor: withAlpha(tenant.colors.primary, "30") }}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
@@ -223,7 +231,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {navGroups.map((group) => (
           <div key={group.label} className="space-y-0.5">
             {!collapsed && (
-              <p className="px-3 pb-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[#5B6B86]">
+              <p
+                className={cn(
+                  "px-3 pb-1.5 font-mono text-[10px] uppercase tracking-[0.16em]",
+                  DESIGN_TOKENS.sidebar.groupLabel,
+                )}
+              >
                 {group.label}
               </p>
             )}
@@ -241,14 +254,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     collapsed ? "justify-center p-[11px]" : "gap-3 py-[9px]",
                     active
                       ? cn(
-                          "text-white",
+                          DESIGN_TOKENS.sidebar.active,
                           "bg-gradient-to-r from-cyan-400/16 to-emerald-400/6",
                           "border-l-[3px]",
                           collapsed ? "pl-[11px]" : "pl-[9px]",
                         )
                       : cn(
-                          "border-l-[3px] border-transparent text-slate-400",
-                          "hover:bg-slate-400/6 hover:text-white",
+                          DESIGN_TOKENS.sidebar.item,
                           collapsed ? "" : "pl-3",
                         ),
                   )}
@@ -265,7 +277,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     className="flex-none"
                     style={active ? { color: tenant.colors.primary } : undefined}
                   >
-                    <Icon className={cn("h-[18px] w-[18px]", active ? "" : "text-slate-500")} />
+                    <Icon className={cn("h-[18px] w-[18px]", active ? "" : DESIGN_TOKENS.sidebar.icon)} />
                   </span>
                   {!collapsed && <span>{item.label}</span>}
                 </Link>
@@ -277,7 +289,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       <div
         className={cn(
-          "mt-auto rounded-[14px] border border-slate-400/10 bg-[#141c2e]/72",
+          "mt-auto rounded-[14px]",
+          DESIGN_TOKENS.sidebar.footer,
           collapsed ? "flex justify-center p-[11px]" : "flex items-center gap-2.5 px-3 py-3",
         )}
       >
@@ -286,7 +299,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           style={{ backgroundColor: tenant.colors.secondary }}
         />
         {!collapsed && (
-          <span className="text-[12px] text-slate-400">
+          <span className={cn("text-[12px]", DESIGN_TOKENS.sidebar.footerText)}>
             {tenant.demoMode ? `${tenant.shortName} demo` : "Vue institutionnelle"} · v0.9 MVP
           </span>
         )}
@@ -301,10 +314,10 @@ export function MobileNav() {
   const flatItems = getTenantNavGroups(tenant).flatMap((group) => group.items);
 
   return (
-    <div className="border-b border-slate-400/10 bg-[#070b17]/50 px-3 py-2 backdrop-blur lg:hidden">
+    <div className={cn("px-3 py-2 backdrop-blur lg:hidden", DESIGN_TOKENS.sidebar.shell)}>
       <div className="mb-2 flex items-center gap-2">
         <TenantBadge />
-        <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-slate-500">
+        <span className={cn("font-mono text-[10px] uppercase tracking-[0.08em]", DESIGN_TOKENS.text.faint)}>
           {tenant.shortName}
         </span>
       </div>
@@ -318,8 +331,8 @@ export function MobileNav() {
               className={cn(
                 "whitespace-nowrap rounded-full border px-3 py-1 font-mono text-[11px] transition-colors",
                 active
-                  ? "bg-cyan-400/12 text-white"
-                  : "border-slate-400/15 bg-transparent text-slate-400 hover:text-white",
+                  ? "border-cyan-400/40 bg-cyan-400/12 text-slate-900 dark:text-white"
+                  : "border-brand-border/15 bg-transparent text-brand-textMuted hover:text-slate-900 dark:hover:text-white",
               )}
               style={active ? { borderColor: withAlpha(tenant.colors.primary, "59") } : undefined}
             >

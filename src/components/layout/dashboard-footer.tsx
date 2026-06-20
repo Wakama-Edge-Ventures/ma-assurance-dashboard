@@ -22,8 +22,8 @@ export function DashboardFooter() {
     tenant.id === "assurance-ma" ? "Workflows assurance" : tenant.terminology.portfolioLabel;
 
   return (
-    <footer className="w-full border-t border-slate-400/10 bg-[#070b17]/60">
-      <div className="flex flex-wrap items-center gap-4 border-b border-slate-400/6 px-8 py-4">
+    <footer className="w-full border-t border-brand-border/10 bg-brand-surface/80 dark:bg-[#070b17]/60">
+      <div className="flex flex-wrap items-center gap-4 border-b border-brand-border/6 px-8 py-4">
         <div className="flex items-center gap-2.5">
           <TenantLogo
             alt={tenant.displayName}
@@ -32,8 +32,8 @@ export function DashboardFooter() {
             height={48}
           />
           <div className="flex flex-col">
-            <span className="text-[12.5px] font-medium text-slate-400">{tenant.displayName}</span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-slate-500">
+            <span className="text-[12.5px] font-medium text-brand-textMuted">{tenant.displayName}</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-brand-textMuted">
               {[tenant.countryLabel, tenant.vertical].filter(Boolean).join(" · ")}
             </span>
           </div>
@@ -41,14 +41,14 @@ export function DashboardFooter() {
 
         <TenantBadge className="ml-auto" />
 
-        <div className="flex flex-wrap items-center gap-1 font-mono text-[11px] text-[#5B6B86]">
-          <span className={sharedLive ? "text-emerald-400" : ""}>
+        <div className="flex flex-wrap items-center gap-1 font-mono text-[11px] text-brand-textMuted">
+          <span className={sharedLive ? "text-emerald-600 dark:text-emerald-400" : ""}>
             Shared data{sharedLive ? " LIVE" : ""}
           </span>
           <span>·</span>
           <span>
             {workflowLabel}
-            {insuranceLive && <span className="ml-1 text-emerald-400">LIVE</span>}
+            {insuranceLive && <span className="ml-1 text-emerald-600 dark:text-emerald-400">LIVE</span>}
           </span>
           <span>·</span>
           <span>© 2026 Wakama Edge Ventures Inc.</span>
@@ -60,7 +60,7 @@ export function DashboardFooter() {
           <Link
             key={link.href}
             href={link.href}
-            className="font-mono text-[11px] text-slate-500 transition-colors hover:text-slate-300"
+            className="font-mono text-[11px] text-brand-textMuted transition-colors hover:text-slate-900 dark:hover:text-slate-300"
           >
             {link.label}
           </Link>

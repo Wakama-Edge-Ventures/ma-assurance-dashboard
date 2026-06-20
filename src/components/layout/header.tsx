@@ -9,6 +9,7 @@ import { TenantDemoSwitcher } from "@/components/tenant/TenantDemoSwitcher";
 import { useTenant } from "@/components/tenant/useTenant";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { AUTH_CHANGED_EVENT, getAuthenticatedUser, signOut } from "@/lib/auth";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import { withAlpha } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,7 @@ export function Header() {
   const isApplicationsPage = pathname.startsWith("/fr/applications");
   const isIdjorPage = pathname.startsWith("/fr/idjor");
   const titlePrefix = isIdjorPage
-    ? `${tenant.terminology.idjorLabel} read-only`
+    ? `${tenant.terminology.idjorLabel} gouverne`
     : tenant.id === "assurance-ma"
       ? "Assurance agricole"
       : "Vue institutionnelle";
@@ -56,7 +57,12 @@ export function Header() {
       : "Rechercher dossier, portefeuille, alerte...";
 
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-[18px] border-b border-slate-400/10 bg-[#070b17]/45 px-[30px] py-[18px] backdrop-blur-lg">
+    <header
+      className={cn(
+        "sticky top-0 z-20 flex items-center gap-[18px] px-[30px] py-[18px] backdrop-blur-lg",
+        DESIGN_TOKENS.header.shell,
+      )}
+    >
       <div className="flex flex-col leading-[1.15]">
         <span
           className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em]"
@@ -65,16 +71,29 @@ export function Header() {
           <Activity className="h-3 w-3" />
           {titlePrefix}
         </span>
-        <span className="mt-0.5 font-display text-[20px] font-semibold tracking-[-0.01em] text-white">
+        <span
+          className={cn(
+            "mt-0.5 font-display text-[20px] font-semibold tracking-[-0.01em]",
+            DESIGN_TOKENS.header.title,
+          )}
+        >
           {currentPage.charAt(0).toUpperCase() + currentPage.slice(1)}
         </span>
       </div>
 
-      <div className="hidden items-center gap-2.5 rounded-full border border-slate-400/18 bg-[#0d1525]/70 px-4 py-2.5 md:flex md:w-[360px]">
-        <Search className="h-[15px] w-[15px] flex-none text-slate-400" />
+      <div
+        className={cn(
+          "hidden items-center gap-2.5 rounded-full px-4 py-2.5 md:flex md:w-[360px]",
+          DESIGN_TOKENS.header.searchShell,
+        )}
+      >
+        <Search className="h-[15px] w-[15px] flex-none text-brand-textMuted" />
         <input
           placeholder={searchPlaceholder}
-          className="w-full border-0 bg-transparent text-[13px] text-slate-200 outline-none placeholder:text-slate-500"
+          className={cn(
+            "w-full border-0 bg-transparent text-[13px] outline-none",
+            DESIGN_TOKENS.header.searchInput,
+          )}
           readOnly
           aria-label="Recherche"
         />
@@ -97,24 +116,30 @@ export function Header() {
         <ThemeToggle />
 
         {isApplicationsPage ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/22 bg-slate-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-slate-300">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em]",
+              DESIGN_TOKENS.pill.neutral,
+            )}
+          >
             Source par dossier
           </span>
         ) : isIdjorPage ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/28 bg-amber-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-amber-300">
-            Lecture seule
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-amber-700 dark:border-amber-400/28 dark:text-amber-300">
+            Socle gouverne
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/28 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-emerald-400">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-emerald-700 dark:border-emerald-400/28 dark:text-emerald-400">
             {tenant.demoMode ? "Vue demo" : "Vue active"}
           </span>
         )}
 
-        <div className="flex items-center gap-2.5 border-l border-slate-400/10 pl-3.5">
+        <div className="flex items-center gap-2.5 border-l border-brand-border/10 pl-3.5">
           <div
             className={cn(
               "grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]",
-              "font-mono text-[12px] font-semibold text-white",
+              "font-mono text-[12px] font-semibold",
+              DESIGN_TOKENS.header.avatarText,
             )}
             style={{
               background: `linear-gradient(135deg, ${tenant.colors.accent}, ${tenant.colors.primary})`,
@@ -124,8 +149,8 @@ export function Header() {
             {initials || "DW"}
           </div>
           <div className="hidden leading-tight xl:block">
-            <p className="text-[12.5px] font-medium text-white">{userName}</p>
-            <p className="text-[10.5px] uppercase tracking-[0.08em] text-slate-500">
+            <p className={cn("text-[12.5px] font-medium", DESIGN_TOKENS.header.userName)}>{userName}</p>
+            <p className={cn("text-[10.5px] uppercase tracking-[0.08em]", DESIGN_TOKENS.text.faint)}>
               {tenant.shortName}
             </p>
           </div>
@@ -137,7 +162,7 @@ export function Header() {
             await signOut();
             router.push("/fr/login");
           }}
-          className="gap-1.5 whitespace-nowrap rounded-[10px] border border-slate-400/10 text-slate-400 hover:border-red-400/30 hover:text-red-400"
+          className="gap-1.5 whitespace-nowrap rounded-[10px] border border-brand-border/10 text-brand-textMuted hover:border-red-400/30 hover:text-red-500 dark:hover:text-red-400"
         >
           <LogOut className="h-4 w-4" />
           <span className="hidden sm:inline">Deconnexion</span>

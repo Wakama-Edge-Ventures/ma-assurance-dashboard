@@ -5,8 +5,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   BotOff,
-  ChevronDown,
-  ChevronUp,
   Eye,
   FileSearch,
   Flag,
@@ -22,9 +20,12 @@ import {
 
 import { useTenant } from "@/components/tenant/useTenant";
 import { AccessDeniedCard } from "@/components/ui/access-denied-card";
+import { AppAccordion } from "@/components/ui/app-accordion";
 import { AppCard } from "@/components/ui/app-card";
+import { AppTabs } from "@/components/ui/app-tabs";
 import { AuthRequiredCard } from "@/components/ui/auth-required-card";
 import { Button } from "@/components/ui/button";
+import { DataPanel } from "@/components/ui/data-panel";
 import { DegradedStateCard } from "@/components/ui/degraded-state-card";
 import { DisclosureNote } from "@/components/ui/disclosure-note";
 import { PageTitle } from "@/components/ui/page-title";
@@ -314,15 +315,15 @@ const METADATA_REGISTRATION_SOURCE_OPTIONS: IdjorRagDocumentRegistrationSource[]
 
 function SummaryMetric({ label, value, hint }: SummaryMetricProps) {
   return (
-    <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
-      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-slate-500">
+    <DataPanel>
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-brand-textMuted">
         {label}
       </p>
-      <p className="mt-2 bg-gradient-to-r from-cyan-300 via-emerald-200 to-cyan-400 bg-clip-text font-mono text-[28px] font-semibold text-transparent">
+      <p className="mt-2 font-mono text-[28px] font-semibold text-slate-900 dark:bg-gradient-to-r dark:from-cyan-300 dark:via-emerald-200 dark:to-cyan-400 dark:bg-clip-text dark:text-transparent">
         {value}
       </p>
-      <p className="mt-1 text-xs text-slate-400">{hint}</p>
-    </div>
+      <p className="mt-1 text-xs text-brand-textMuted">{hint}</p>
+    </DataPanel>
   );
 }
 
@@ -372,10 +373,10 @@ function ExecutiveStatus({
   tone = "neutral",
 }: ExecutiveStatusProps) {
   const toneClass = {
-    success: "border-emerald-400/28 bg-emerald-400/10 text-emerald-300",
-    warning: "border-amber-400/28 bg-amber-400/10 text-amber-300",
-    danger: "border-rose-400/28 bg-rose-400/10 text-rose-300",
-    neutral: "border-slate-400/18 bg-slate-400/8 text-slate-200",
+    success: "border-emerald-300/60 bg-emerald-50 text-emerald-800 dark:border-emerald-400/28 dark:bg-emerald-400/10 dark:text-emerald-300",
+    warning: "border-amber-300/60 bg-amber-50 text-amber-800 dark:border-amber-400/28 dark:bg-amber-400/10 dark:text-amber-300",
+    danger: "border-rose-300/60 bg-rose-50 text-rose-800 dark:border-rose-400/28 dark:bg-rose-400/10 dark:text-rose-300",
+    neutral: "border-brand-border/18 bg-brand-surfaceRaised/70 text-slate-700 dark:border-slate-400/18 dark:bg-slate-400/8 dark:text-slate-200",
   }[tone];
 
   return (
@@ -396,34 +397,16 @@ function SectionCard({
   children,
 }: SectionCardProps) {
   return (
-    <AppCard className="overflow-hidden p-0" tone="soft">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-white/[0.02]"
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            {icon ? (
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl border border-slate-400/16 bg-slate-400/8 text-slate-200">
-                {icon}
-              </span>
-            ) : null}
-            <h2 className="font-display text-[18px] font-semibold text-white">{title}</h2>
-            {countLabel ? (
-              <span className="rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300">
-                {countLabel}
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
-        </div>
-        <span className="mt-0.5 rounded-full border border-slate-400/16 bg-slate-400/8 p-2 text-slate-300">
-          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </span>
-      </button>
-      {open ? <div className="border-t border-slate-400/10 px-5 py-4">{children}</div> : null}
-    </AppCard>
+    <AppAccordion
+      icon={icon}
+      title={title}
+      subtitle={subtitle}
+      countLabel={countLabel}
+      open={open}
+      onToggle={onToggle}
+    >
+      {children}
+    </AppAccordion>
   );
 }
 
@@ -440,23 +423,23 @@ function RegistryTable<T extends { id: string }>({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
-        <p className="text-sm text-slate-400">{emptyLabel}</p>
-      </div>
+      <DataPanel>
+        <p className="text-sm text-brand-textMuted">{emptyLabel}</p>
+      </DataPanel>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75">
+    <div className="overflow-hidden rounded-[18px] border border-brand-border/10 bg-brand-surfaceRaised/72 dark:border-slate-400/10 dark:bg-[#0c1322]/75">
       <div className={cn("overflow-auto", maxHeightClass)}>
-        <table className="min-w-full divide-y divide-slate-400/10">
-          <thead className="sticky top-0 z-10 bg-[#11192b]">
+        <table className="min-w-full divide-y divide-brand-border/10 dark:divide-slate-400/10">
+          <thead className="sticky top-0 z-10 bg-brand-surfaceRaised dark:bg-[#11192b]">
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
                   className={cn(
-                    "px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-slate-500",
+                    "px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-brand-textMuted",
                     column.className,
                   )}
                 >
@@ -467,11 +450,11 @@ function RegistryTable<T extends { id: string }>({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className="border-t border-slate-400/8 align-top">
+              <tr key={row.id} className="border-t border-brand-border/8 align-top dark:border-slate-400/8">
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className={cn("px-4 py-3 text-sm text-slate-200", column.className)}
+                    className={cn("px-4 py-3 text-sm text-slate-700 dark:text-slate-200", column.className)}
                   >
                     {column.render(row)}
                   </td>
@@ -514,53 +497,48 @@ function AuditEventList({
 }) {
   if (events.length === 0) {
     return (
-      <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
-        <p className="text-sm text-slate-400">{emptyLabel}</p>
-      </div>
+      <DataPanel>
+        <p className="text-sm text-brand-textMuted">{emptyLabel}</p>
+      </DataPanel>
     );
   }
 
   return (
-    <div
-      className={cn(
-        "space-y-2 overflow-auto rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3",
-        maxHeightClass,
-      )}
-    >
+    <DataPanel className="space-y-2 p-3" maxHeightClass={maxHeightClass}>
       {events.map((event) => (
         <div
           key={event.id}
-          className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3"
+          className="rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3.5 py-3 dark:border-slate-400/10 dark:bg-slate-400/5"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-cyan-400/24 bg-cyan-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-200">
+            <span className="rounded-full border border-cyan-300/50 bg-cyan-50 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-800 dark:border-cyan-400/24 dark:bg-cyan-400/10 dark:text-cyan-200">
               {event.eventType}
             </span>
             {event.documentKey ? (
-              <span className="font-mono text-[11px] text-slate-400">{event.documentKey}</span>
+              <span className="font-mono text-[11px] text-brand-textMuted">{event.documentKey}</span>
             ) : null}
-            <span className="ml-auto font-mono text-[10px] text-slate-500">
+            <span className="ml-auto font-mono text-[10px] text-brand-textMuted">
               {event.createdAt}
             </span>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-slate-300">
+          <p className="mt-2 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
             {formatAuditEventSummary(event)}
           </p>
-          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-brand-textMuted">
             <span>
-              source: <span className="text-slate-300">{event.source}</span>
+              source: <span className="text-slate-700 dark:text-slate-300">{event.source}</span>
             </span>
             <span>
-              actorRole: <span className="text-slate-300">{event.actorRole ?? "Systeme"}</span>
+              actorRole: <span className="text-slate-700 dark:text-slate-300">{event.actorRole ?? "Systeme"}</span>
             </span>
             <span>
               actorUserId:{" "}
-              <span className="text-slate-300">{event.actorUserId ?? "Systeme"}</span>
+              <span className="text-slate-700 dark:text-slate-300">{event.actorUserId ?? "Systeme"}</span>
             </span>
           </div>
         </div>
       ))}
-    </div>
+    </DataPanel>
   );
 }
 
@@ -573,46 +551,41 @@ function ExtractionChunkList({
 }) {
   if (chunks.length === 0) {
     return (
-      <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
-        <p className="text-sm text-slate-400">Aucun chunk enregistre pour cette extraction.</p>
-      </div>
+      <DataPanel>
+        <p className="text-sm text-brand-textMuted">Aucun chunk enregistre pour cette extraction.</p>
+      </DataPanel>
     );
   }
 
   return (
-    <div
-      className={cn(
-        "space-y-2 overflow-auto rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3",
-        maxHeightClass,
-      )}
-    >
+    <DataPanel className="space-y-2 p-3" maxHeightClass={maxHeightClass}>
       {chunks.map((chunk) => (
         <div
           key={chunk.id}
-          className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3"
+          className="rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3.5 py-3 dark:border-slate-400/10 dark:bg-slate-400/5"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-cyan-400/24 bg-cyan-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-200">
+            <span className="rounded-full border border-cyan-300/50 bg-cyan-50 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-800 dark:border-cyan-400/24 dark:bg-cyan-400/10 dark:text-cyan-200">
               chunk #{chunk.chunkIndex}
             </span>
-            <span className="font-mono text-[11px] text-slate-500">
+            <span className="font-mono text-[11px] text-brand-textMuted">
               {chunk.contentText.length} caracteres
             </span>
-            <span className="ml-auto font-mono text-[10px] text-slate-500">
+            <span className="ml-auto font-mono text-[10px] text-brand-textMuted">
               {chunk.createdAt}
             </span>
           </div>
-          <p className="mt-1.5 max-w-full break-all font-mono text-[11px] text-slate-500">
+          <p className="mt-1.5 max-w-full break-all font-mono text-[11px] text-brand-textMuted">
             {chunk.contentHash}
           </p>
-          <p className="mt-2 text-xs leading-relaxed text-slate-300">
+          <p className="mt-2 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
             {chunk.contentText.length > 160
               ? `${chunk.contentText.slice(0, 160)}…`
               : chunk.contentText}
           </p>
         </div>
       ))}
-    </div>
+    </DataPanel>
   );
 }
 
@@ -622,12 +595,12 @@ function EmbeddingReadinessPanel({
   readiness: IdjorRagEmbeddingReadinessResponse;
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3">
+    <div className="space-y-3 rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3.5 py-3 dark:border-slate-400/10 dark:bg-slate-400/5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full border border-amber-400/28 bg-amber-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-300">
+        <span className="rounded-full border border-amber-300/60 bg-amber-50 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-800 dark:border-amber-400/28 dark:bg-amber-400/10 dark:text-amber-300">
           {readiness.embeddingReadiness}
         </span>
-        <span className="font-mono text-[11px] text-slate-400">
+        <span className="font-mono text-[11px] text-brand-textMuted">
           chunks eligibles: {readiness.eligibleChunksCount}
         </span>
       </div>
@@ -658,12 +631,12 @@ function EmbeddingReadinessPanel({
         />
       </div>
 
-      <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3">
-        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+      <DataPanel className="p-3">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
           blockedReasons
         </p>
         {readiness.blockedReasons.length > 0 ? (
-          <ul className="space-y-1 text-xs text-slate-300">
+          <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
             {readiness.blockedReasons.map((reason) => (
               <li key={reason} className="font-mono">
                 {reason}
@@ -671,16 +644,16 @@ function EmbeddingReadinessPanel({
             ))}
           </ul>
         ) : (
-          <p className="text-xs text-slate-500">Aucun motif de blocage signale.</p>
+          <p className="text-xs text-brand-textMuted">Aucun motif de blocage signale.</p>
         )}
-      </div>
+      </DataPanel>
 
-      <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3">
-        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+      <DataPanel className="p-3">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
           requiredFlags
         </p>
         {readiness.requiredFlags.length > 0 ? (
-          <ul className="space-y-1 text-xs text-slate-300">
+          <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
             {readiness.requiredFlags.map((flag) => (
               <li key={`${flag.targetType}-${flag.targetKey}`} className="font-mono">
                 {flag.targetType}:{flag.targetKey} — {flag.enabled ? "enabled" : "OFF"}
@@ -688,9 +661,9 @@ function EmbeddingReadinessPanel({
             ))}
           </ul>
         ) : (
-          <p className="text-xs text-slate-500">Aucun flag requis signale.</p>
+          <p className="text-xs text-brand-textMuted">Aucun flag requis signale.</p>
         )}
-      </div>
+      </DataPanel>
     </div>
   );
 }
@@ -729,35 +702,35 @@ function ExtractionResultBlock({
   return (
     <div className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full border border-cyan-400/24 bg-cyan-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-200">
+        <span className="rounded-full border border-cyan-400/24 bg-cyan-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-800 dark:text-cyan-200">
           {extraction.status}
         </span>
-        <span className="font-mono text-[11px] text-slate-400">{extraction.mimeType}</span>
-        <span className="ml-auto font-mono text-[10px] text-slate-500">
+        <span className="font-mono text-[11px] text-brand-textMuted">{extraction.mimeType}</span>
+        <span className="ml-auto font-mono text-[10px] text-brand-textMuted">
           {extraction.createdAt}
         </span>
       </div>
 
       {extraction.status === "EXTRACTED_PENDING_REVIEW" && extraction.previewText ? (
-        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-400/10 bg-[#0c1322]/80 p-3 text-xs leading-relaxed text-slate-200">
+        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-400/10 bg-brand-surfaceRaised/80 dark:bg-[#0c1322]/80 p-3 text-xs leading-relaxed text-slate-700 dark:text-slate-200">
           {extraction.previewText}
         </pre>
       ) : null}
 
       {extraction.status === "UNSUPPORTED_PENDING_EXTRACTOR" ? (
-        <p className="mt-2 text-xs leading-relaxed text-amber-300">
+        <p className="mt-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
           Extracteur non active pour ce format. Aucun parsing n&apos;a ete effectue.
         </p>
       ) : null}
 
       {(extraction.status === "FILE_MISSING" || extraction.status === "FAILED") &&
       extraction.errorReason ? (
-        <p className="mt-2 text-xs leading-relaxed text-rose-300">
+        <p className="mt-2 text-xs leading-relaxed text-rose-800 dark:text-rose-300">
           {extraction.errorReason}
         </p>
       ) : null}
 
-      <p className="mt-2 text-[11px] text-slate-500">
+      <p className="mt-2 text-[11px] text-brand-textMuted">
         previewTextLength: {extraction.previewTextLength ?? 0}
       </p>
 
@@ -766,15 +739,15 @@ function ExtractionResultBlock({
           <button
             type="button"
             onClick={() => onToggleChunkingPanel(extraction.id)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200"
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200"
           >
             <Layers3 className="h-3 w-3" />
             {isChunkingPanelOpen ? "Fermer le decoupage" : "Decouper deterministiquement"}
           </button>
 
           {isChunkingPanelOpen ? (
-            <div className="space-y-3 rounded-2xl border border-cyan-400/14 bg-[#0c1322]/75 p-3">
-              <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+            <div className="space-y-3 rounded-2xl border border-cyan-400/14 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-3">
+              <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
                 Decoupage deterministe. Aucun embedding, vector store, retrieval ou LLM
                 n&apos;est active.
               </p>
@@ -790,14 +763,14 @@ function ExtractionResultBlock({
 
               {ragExtractionChunkingState?.status === "error" &&
               ragExtractionChunkingState.extractionId === extraction.id ? (
-                <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                   {ragExtractionChunkingState.message}
                 </div>
               ) : null}
 
               {ragExtractionChunkingState?.status === "success" &&
               ragExtractionChunkingState.extractionId === extraction.id ? (
-                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
+                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
                   {ragExtractionChunkingState.response.created
                     ? "Chunks crees"
                     : "Chunks deja existants"}{" "}
@@ -806,18 +779,18 @@ function ExtractionResultBlock({
               ) : null}
 
               <div>
-                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                   Chunks pour cette extraction
                 </p>
 
                 {ragExtractionChunksListState?.status === "loading" &&
                 ragExtractionChunksListState.extractionId === extraction.id ? (
-                  <p className="text-sm text-slate-300">Chargement...</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300">Chargement...</p>
                 ) : null}
 
                 {ragExtractionChunksListState?.status === "error" &&
                 ragExtractionChunksListState.extractionId === extraction.id ? (
-                  <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                  <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                     {ragExtractionChunksListState.message}
                   </div>
                 ) : null}
@@ -833,7 +806,7 @@ function ExtractionResultBlock({
 
               {onCheckEmbeddingReadiness && onRequestEmbeddingPreview ? (
                 <div className="space-y-3 border-t border-slate-400/10 pt-3">
-                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
                     Readiness embeddings uniquement. Aucun embedding reel, provider externe,
                     vector store, retrieval ou LLM n&apos;est active.
                   </p>
@@ -846,7 +819,7 @@ function ExtractionResultBlock({
                         ragEmbeddingReadinessState?.status === "loading" &&
                         ragEmbeddingReadinessState.extractionId === extraction.id
                       }
-                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
                     >
                       <ShieldCheck className="h-3 w-3" />
                       {ragEmbeddingReadinessState?.status === "loading" &&
@@ -866,7 +839,7 @@ function ExtractionResultBlock({
                           ragEmbeddingPreviewRequestState?.status === "loading" &&
                           ragEmbeddingPreviewRequestState.extractionId === extraction.id
                         }
-                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
                       >
                         <ScanSearch className="h-3 w-3" />
                         {ragEmbeddingPreviewRequestState?.status === "loading" &&
@@ -879,7 +852,7 @@ function ExtractionResultBlock({
 
                   {ragEmbeddingReadinessState?.status === "error" &&
                   ragEmbeddingReadinessState.extractionId === extraction.id ? (
-                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                       {ragEmbeddingReadinessState.message}
                     </div>
                   ) : null}
@@ -891,14 +864,14 @@ function ExtractionResultBlock({
 
                   {ragEmbeddingPreviewRequestState?.status === "error" &&
                   ragEmbeddingPreviewRequestState.extractionId === extraction.id ? (
-                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                       {ragEmbeddingPreviewRequestState.message}
                     </div>
                   ) : null}
 
                   {ragEmbeddingPreviewRequestState?.status === "success" &&
                   ragEmbeddingPreviewRequestState.extractionId === extraction.id ? (
-                    <div className="rounded-2xl border border-amber-400/24 bg-amber-400/10 px-3 py-2 text-sm text-amber-200">
+                    <div className="rounded-2xl border border-amber-400/24 bg-amber-400/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
                       Demande de preview embedding: {ragEmbeddingPreviewRequestState.response.previewStatus}.
                       Readiness actuelle:{" "}
                       {ragEmbeddingPreviewRequestState.response.readiness.embeddingReadiness}. Aucun
@@ -1531,14 +1504,14 @@ export function IdjorFoundationPanel() {
               <Sparkles className="h-3.5 w-3.5" />
               {demoSafeMode ? "Preuves & audit" : "Resume executif"}
             </span>
-            <span className="inline-flex items-center rounded-full border border-amber-400/28 bg-amber-400/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-300">
-              lecture seule
+            <span className="inline-flex items-center rounded-full border border-amber-400/28 bg-amber-400/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-800 dark:text-amber-300">
+              socle gouverne
             </span>
-            <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300">
+            <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
               tenant {displayTenantKey}
             </span>
             {resolutionMode ? (
-              <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300">
+              <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
                 resolution {resolutionMode}
               </span>
             ) : null}
@@ -1547,17 +1520,17 @@ export function IdjorFoundationPanel() {
           <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-4">
               <div className="space-y-3">
-                <h2 className="font-display text-[28px] font-semibold tracking-[-0.02em] text-white">
+                <h2 className="font-display text-[28px] font-semibold tracking-[-0.02em] text-slate-900 dark:text-white">
                   {demoSafeMode
                     ? "Preuves, audit et lecture documentaire"
                     : "IDJOR est pret cote socle technique"}
                 </h2>
-                <p className="max-w-3xl text-[15px] leading-relaxed text-slate-300">
+                <p className="max-w-3xl text-[15px] leading-relaxed text-slate-700 dark:text-slate-300">
                   {demoSafeMode
-                    ? "Cette vue met en avant les documents, le hash, les preuves et le journal d'audit. La demonstration reste strictement documentaire et l'institution conserve l'entiere responsabilite de la decision."
-                    : "Cette vue montre un socle institutionnel en lecture seule, pret pour la demonstration et la gouvernance. Les capacites IA restent desactivees par defaut et l&apos;institution conserve l&apos;entiere responsabilite de la decision."}
+                    ? "Cette vue met en avant les documents, le hash, les preuves et le journal d'audit. Socle gouverne : lecture, tracabilite et actions controlees, sans IA active. L'institution conserve l'entiere responsabilite de la decision."
+                    : "Cette vue montre un socle institutionnel gouverne : lecture, tracabilite et actions controlees (enregistrement, decoupage deterministe), sans IA active. L&apos;institution conserve l&apos;entiere responsabilite de la decision."}
                 </p>
-                <p className="max-w-3xl border-l-2 border-emerald-400/18 pl-3 text-sm leading-relaxed text-slate-400">
+                <p className="max-w-3xl border-l-2 border-emerald-400/18 pl-3 text-sm leading-relaxed text-brand-textMuted">
                   {demoSafeMode
                     ? "IDJOR prepare, structure et documente. Il ne decide pas et n'agit pas comme une IA autonome dans cette phase."
                     : "IDJOR prepare, structure et documente. Il ne decide pas, ne score pas et n&apos;active aucun provider IA dans cette phase."}
@@ -1567,27 +1540,27 @@ export function IdjorFoundationPanel() {
               <div className="flex flex-wrap gap-2">
                 {demoSafeMode ? (
                   <>
-                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-300">
                       Documents visibles
                     </span>
-                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-300">
                       Audit append-only
                     </span>
                   </>
                 ) : (
                   <>
-                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-300">
                       LLM OFF
                     </span>
-                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-300">
                       Vector Store OFF
                     </span>
-                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-300">
+                    <span className="rounded-full border border-emerald-400/24 bg-emerald-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-300">
                       Decisioning OFF
                     </span>
                   </>
                 )}
-                <span className="rounded-full border border-slate-400/18 bg-slate-400/8 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300">
+                <span className="rounded-full border border-slate-400/18 bg-slate-400/8 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
                   Institution decisionnaire
                 </span>
               </div>
@@ -1599,8 +1572,8 @@ export function IdjorFoundationPanel() {
                   className={cn(
                     "rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors",
                     compactMode
-                      ? "border-cyan-400/36 bg-cyan-400/10 text-cyan-200"
-                      : "border-slate-400/16 bg-slate-400/8 text-slate-300 hover:text-white",
+                      ? "border-cyan-400/36 bg-cyan-400/10 text-cyan-800 dark:text-cyan-200"
+                      : "border-slate-400/16 bg-slate-400/8 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white",
                   )}
                 >
                   Mode compact demo
@@ -1611,14 +1584,14 @@ export function IdjorFoundationPanel() {
                   className={cn(
                     "rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors",
                     !compactMode
-                      ? "border-cyan-400/36 bg-cyan-400/10 text-cyan-200"
-                      : "border-slate-400/16 bg-slate-400/8 text-slate-300 hover:text-white",
+                      ? "border-cyan-400/36 bg-cyan-400/10 text-cyan-800 dark:text-cyan-200"
+                      : "border-slate-400/16 bg-slate-400/8 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white",
                   )}
                 >
                   Vue detaillee
                 </button>
-                <span className="text-xs text-slate-400">
-                  Base URL: <span className="font-mono text-slate-300">{API_BASE_URL}</span>
+                <span className="text-xs text-brand-textMuted">
+                  Base URL: <span className="font-mono text-slate-700 dark:text-slate-300">{API_BASE_URL}</span>
                 </span>
               </div>
             </div>
@@ -1629,7 +1602,7 @@ export function IdjorFoundationPanel() {
                 value={foundationReady ? "Pret" : "A verifier"}
                 tone={foundationReady ? "success" : "warning"}
               />
-              <ExecutiveStatus label="Registry" value="Read-only" tone="success" />
+              <ExecutiveStatus label="Registry" value="Lecture + actions controlees" tone="success" />
               <ExecutiveStatus label="LLM" value="OFF" tone="success" />
               <ExecutiveStatus label="Vector Store" value="OFF" tone="success" />
               <ExecutiveStatus label="Decisioning" value="OFF" tone="success" />
@@ -1643,10 +1616,10 @@ export function IdjorFoundationPanel() {
 
       {state.status === "loading" ? (
         <AppCard className="space-y-3 p-5">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-brand-textMuted">
             Chargement
           </p>
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-slate-700 dark:text-slate-300">
             Construction de la synthese et lecture des snapshots proteges IDJOR et RAG en cours...
           </p>
         </AppCard>
@@ -1719,10 +1692,10 @@ export function IdjorFoundationPanel() {
               )}
 
               <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-                <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <Network className="h-4 w-4 text-cyan-300" />
-                    <h3 className="font-medium text-white">Contexte tenant</h3>
+                    <h3 className="font-medium text-slate-900 dark:text-white">Contexte tenant</h3>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <ExecutiveStatus label="Tenant key" value={state.registry.tenant.tenantKey} />
@@ -1735,10 +1708,10 @@ export function IdjorFoundationPanel() {
                   </div>
                 </div>
 
-                <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-emerald-300" />
-                    <h3 className="font-medium text-white">Etat de preparation</h3>
+                    <ShieldCheck className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
+                    <h3 className="font-medium text-slate-900 dark:text-white">Etat de preparation</h3>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <ExecutiveStatus
@@ -1767,6 +1740,14 @@ export function IdjorFoundationPanel() {
             </div>
           </SectionCard>
 
+          <AppTabs
+            tabs={[
+              {
+                key: "rag",
+                label: "Documents & RAG",
+                icon: <ScanSearch className="h-3.5 w-3.5" />,
+                content: (
+                  <div className="space-y-4">
           <SectionCard
             icon={<ScanSearch className="h-4 w-4" />}
             title={demoSafeMode ? "Base documentaire" : "Base documentaire RAG"}
@@ -1800,10 +1781,10 @@ export function IdjorFoundationPanel() {
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <Network className="h-4 w-4 text-cyan-300" />
-                    <h3 className="font-medium text-white">Synthese RAG</h3>
+                    <h3 className="font-medium text-slate-900 dark:text-white">Synthese RAG</h3>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <ExecutiveStatus label="Tenant" value={state.ragHealth.scope.tenantKey} />
@@ -1823,12 +1804,12 @@ export function IdjorFoundationPanel() {
                   </div>
                 </div>
 
-                <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <BotOff className="h-4 w-4 text-emerald-300" />
-                    <h3 className="font-medium text-white">Message de demo</h3>
+                    <BotOff className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
+                    <h3 className="font-medium text-slate-900 dark:text-white">Message de demo</h3>
                   </div>
-                  <p className="text-sm leading-relaxed text-slate-300">
+                  <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                     La base documentaire RAG reste un socle gouverne. La quarantaine de
                     fichiers, la previsualisation d&apos;extraction et le decoupage
                     deterministe sont disponibles comme actions controlees et tracees.
@@ -1838,23 +1819,23 @@ export function IdjorFoundationPanel() {
                 </div>
               </div>
 
-              <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+              <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-300" />
-                  <h3 className="font-medium text-white">Source labels autorises</h3>
+                  <ShieldCheck className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
+                  <h3 className="font-medium text-slate-900 dark:text-white">Source labels autorises</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {state.ragHealth.securitySummary.sourceLabels.length > 0 ? (
                     state.ragHealth.securitySummary.sourceLabels.map((label) => (
                       <span
                         key={label}
-                        className="rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300"
+                        className="rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300"
                       >
                         {label}
                       </span>
                     ))
                   ) : (
-                    <span className="rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 text-xs text-slate-400">
+                    <span className="rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 text-xs text-brand-textMuted">
                       Aucun label source publie pour ce tenant
                     </span>
                   )}
@@ -1863,13 +1844,13 @@ export function IdjorFoundationPanel() {
 
               {!demoSafeMode ? (
               <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-                <div className="rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                <div className="rounded-[18px] border border-cyan-400/14 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-cyan-300" />
-                    <h3 className="font-medium text-white">Ajout metadata-only</h3>
+                    <h3 className="font-medium text-slate-900 dark:text-white">Ajout metadata-only</h3>
                   </div>
                   <div className="space-y-3">
-                    <p className="text-sm leading-relaxed text-slate-300">
+                    <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                       Enregistrement metadata-only. Aucun fichier n&apos;est lu, ingéré,
                       vectorisé ou analysé par IA.
                     </p>
@@ -1883,7 +1864,7 @@ export function IdjorFoundationPanel() {
                       <ExecutiveStatus label="LLM" value="false" tone="success" />
                       <ExecutiveStatus label="Vector store" value="false" tone="success" />
                     </div>
-                    <p className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3 py-2 text-xs leading-relaxed text-slate-400">
+                    <p className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3 py-2 text-xs leading-relaxed text-brand-textMuted">
                       Le backend enregistre uniquement une fiche documentaire et maintient
                       `REGISTERED` ou `DEGRADED`. Aucun READY, aucun upload et aucun calcul
                       metier ne sont exposes ici.
@@ -1893,23 +1874,23 @@ export function IdjorFoundationPanel() {
 
                 <form
                   onSubmit={handleRagRegistrationSubmit}
-                  className="space-y-4 rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4"
+                  className="space-y-4 rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h3 className="font-medium text-white">Formulaire interne RAG</h3>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <h3 className="font-medium text-slate-900 dark:text-white">Formulaire interne RAG</h3>
+                      <p className="mt-1 text-xs text-brand-textMuted">
                         Le formulaire reste borne a la metadata documentaire du tenant courant.
                       </p>
                     </div>
-                    <span className="rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300">
+                    <span className="rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
                       tenant {state.ragHealth.scope.tenantKey}
                     </span>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="space-y-2">
-                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                         documentKey
                       </span>
                       <input
@@ -1924,7 +1905,7 @@ export function IdjorFoundationPanel() {
                     </label>
 
                     <label className="space-y-2">
-                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                         title
                       </span>
                       <input
@@ -1937,7 +1918,7 @@ export function IdjorFoundationPanel() {
                     </label>
 
                     <label className="space-y-2">
-                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                         source
                       </span>
                       <select
@@ -1959,7 +1940,7 @@ export function IdjorFoundationPanel() {
                     </label>
 
                     <label className="space-y-2">
-                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                         ingestionStatus
                       </span>
                       <select
@@ -1979,7 +1960,7 @@ export function IdjorFoundationPanel() {
                   </div>
 
                   <label className="space-y-2">
-                    <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                       externalReference
                     </span>
                     <input
@@ -1994,7 +1975,7 @@ export function IdjorFoundationPanel() {
                   </label>
 
                   <label className="space-y-2">
-                    <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                       metadataJson
                     </span>
                     <textarea
@@ -2009,13 +1990,13 @@ export function IdjorFoundationPanel() {
                   </label>
 
                   {ragRegistrationState.status === "error" ? (
-                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                       {ragRegistrationState.message}
                     </div>
                   ) : null}
 
                   {ragRegistrationState.status === "success" ? (
-                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
+                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
                       {ragRegistrationState.result.operation} pour{" "}
                       <span className="font-mono">
                         {ragRegistrationState.result.document.documentKey}
@@ -2027,7 +2008,7 @@ export function IdjorFoundationPanel() {
                   ) : null}
 
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-brand-textMuted">
                       Validation frontend: JSON objet uniquement, source autorisee, statut limite
                       a `REGISTERED` ou `DEGRADED`.
                     </p>
@@ -2055,8 +2036,8 @@ export function IdjorFoundationPanel() {
                     header: "Document",
                     render: (document) => (
                       <div className="space-y-1">
-                        <p className="font-medium text-white">{document.title}</p>
-                        <p className="font-mono text-[11px] text-slate-500">
+                        <p className="font-medium text-slate-900 dark:text-white">{document.title}</p>
+                        <p className="font-mono text-[11px] text-brand-textMuted">
                           {document.documentKey}
                         </p>
                       </div>
@@ -2068,7 +2049,7 @@ export function IdjorFoundationPanel() {
                     render: (document) => (
                       <div className="space-y-1">
                         <p>{document.ingestionStatus}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-brand-textMuted">
                           {document.mimeType ?? "mime inconnu"}
                         </p>
                       </div>
@@ -2078,7 +2059,7 @@ export function IdjorFoundationPanel() {
                     key: "reference",
                     header: "Reference",
                     render: (document) => (
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-brand-textMuted">
                         {document.externalReference ?? "Aucune reference externe"}
                       </p>
                     ),
@@ -2089,7 +2070,7 @@ export function IdjorFoundationPanel() {
                           key: "hash",
                           header: "Hash",
                           render: (document: (typeof state.ragDocuments.documents)[number]) => (
-                            <p className="max-w-[220px] break-all font-mono text-[11px] text-slate-400">
+                            <p className="max-w-[220px] break-all font-mono text-[11px] text-brand-textMuted">
                               {document.contentHash}
                             </p>
                           ),
@@ -2114,7 +2095,7 @@ export function IdjorFoundationPanel() {
                                 ragIngestionPreviewState.status === "loading" &&
                                 ragIngestionPreviewState.documentId === document.id
                               }
-                              className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
+                              className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
                             >
                               <Eye className="h-3 w-3" />
                               {ragIngestionPreviewState.status === "loading" &&
@@ -2132,7 +2113,7 @@ export function IdjorFoundationPanel() {
                       <button
                         type="button"
                         onClick={() => handleToggleUploadPanel(document.id)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200"
                       >
                         <Upload className="h-3 w-3" />
                         {uploadPanelDocumentId === document.id
@@ -2152,7 +2133,7 @@ export function IdjorFoundationPanel() {
                           ragDocumentAuditState.status === "loading" &&
                           ragDocumentAuditState.documentId === document.id
                         }
-                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
                       >
                         <ScrollText className="h-3 w-3" />
                         {ragDocumentAuditState.status === "loading" &&
@@ -2166,13 +2147,13 @@ export function IdjorFoundationPanel() {
               />
 
               {uploadPanelDocumentId ? (
-                <div className="space-y-4 rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                <div className="space-y-4 rounded-[18px] border border-cyan-400/14 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="flex items-center gap-2">
                     <Upload className="h-4 w-4 text-cyan-300" />
-                    <h3 className="font-medium text-white">Quarantaine documentaire</h3>
+                    <h3 className="font-medium text-slate-900 dark:text-white">Quarantaine documentaire</h3>
                   </div>
 
-                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
                     Quarantaine documentaire uniquement. Aucun contenu n&apos;est lu, extrait,
                     decoupe, vectorise ou analyse par IA.
                   </p>
@@ -2184,7 +2165,7 @@ export function IdjorFoundationPanel() {
                       onChange={(event) =>
                         handleUploadFileChange(event.target.files?.[0] ?? null)
                       }
-                      className="text-xs text-slate-300"
+                      className="text-xs text-slate-700 dark:text-slate-300"
                     />
                     <Button
                       type="button"
@@ -2204,26 +2185,26 @@ export function IdjorFoundationPanel() {
                     </Button>
                   </div>
 
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-brand-textMuted">
                     Taille maximale 10 Mo. Formats acceptes: PDF, TXT, DOCX.
                   </p>
 
                   {uploadFileError ? (
-                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                       {uploadFileError}
                     </div>
                   ) : null}
 
                   {ragUploadIntakeState.status === "error" &&
                   ragUploadIntakeState.documentId === uploadPanelDocumentId ? (
-                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                       {ragUploadIntakeState.message}
                     </div>
                   ) : null}
 
                   {ragUploadIntakeState.status === "success" &&
                   ragUploadIntakeState.documentId === uploadPanelDocumentId ? (
-                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
+                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
                       Fichier mis en quarantaine.{" "}
                       <span className="font-mono break-all">
                         {ragUploadIntakeState.result.upload.sha256Hash}
@@ -2232,18 +2213,18 @@ export function IdjorFoundationPanel() {
                   ) : null}
 
                   <div>
-                    <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                    <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                       Fichiers en quarantaine pour ce document
                     </p>
 
                     {ragUploadsListState.status === "loading" &&
                     ragUploadsListState.documentId === uploadPanelDocumentId ? (
-                      <p className="text-sm text-slate-300">Chargement...</p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300">Chargement...</p>
                     ) : null}
 
                     {ragUploadsListState.status === "error" &&
                     ragUploadsListState.documentId === uploadPanelDocumentId ? (
-                      <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                      <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                         {ragUploadsListState.message}
                       </div>
                     ) : null}
@@ -2260,10 +2241,10 @@ export function IdjorFoundationPanel() {
                             header: "Fichier",
                             render: (upload) => (
                               <div className="space-y-1">
-                                <p className="font-medium text-white">
+                                <p className="font-medium text-slate-900 dark:text-white">
                                   {upload.originalFilename}
                                 </p>
-                                <p className="text-xs text-slate-500">{upload.mimeType}</p>
+                                <p className="text-xs text-brand-textMuted">{upload.mimeType}</p>
                               </div>
                             ),
                           },
@@ -2276,7 +2257,7 @@ export function IdjorFoundationPanel() {
                             key: "hash",
                             header: "Hash sha256",
                             render: (upload) => (
-                              <p className="max-w-[220px] break-all font-mono text-[11px] text-slate-400">
+                              <p className="max-w-[220px] break-all font-mono text-[11px] text-brand-textMuted">
                                 {upload.sha256Hash}
                               </p>
                             ),
@@ -2298,7 +2279,7 @@ export function IdjorFoundationPanel() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleExtractionPanel(upload.id)}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200"
                               >
                                 <FileSearch className="h-3 w-3" />
                                 {extractionPanelUploadId === upload.id
@@ -2313,13 +2294,13 @@ export function IdjorFoundationPanel() {
                   </div>
 
                   {extractionPanelUploadId ? (
-                    <div className="space-y-4 rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                    <div className="space-y-4 rounded-[18px] border border-cyan-400/14 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                       <div className="flex items-center gap-2">
                         <FileSearch className="h-4 w-4 text-cyan-300" />
-                        <h3 className="font-medium text-white">Extraction controlee</h3>
+                        <h3 className="font-medium text-slate-900 dark:text-white">Extraction controlee</h3>
                       </div>
 
-                      <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                      <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
                         Extraction controlee. Aucun chunk, embedding, vector store ou LLM
                         n&apos;est active.
                       </p>
@@ -2343,7 +2324,7 @@ export function IdjorFoundationPanel() {
 
                       {ragExtractionPreviewState.status === "error" &&
                       ragExtractionPreviewState.uploadId === extractionPanelUploadId ? (
-                        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                           {ragExtractionPreviewState.message}
                         </div>
                       ) : null}
@@ -2366,18 +2347,18 @@ export function IdjorFoundationPanel() {
                       ) : null}
 
                       <div>
-                        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                           Extractions pour ce fichier
                         </p>
 
                         {ragUploadExtractionsListState.status === "loading" &&
                         ragUploadExtractionsListState.uploadId === extractionPanelUploadId ? (
-                          <p className="text-sm text-slate-300">Chargement...</p>
+                          <p className="text-sm text-slate-700 dark:text-slate-300">Chargement...</p>
                         ) : null}
 
                         {ragUploadExtractionsListState.status === "error" &&
                         ragUploadExtractionsListState.uploadId === extractionPanelUploadId ? (
-                          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                             {ragUploadExtractionsListState.message}
                           </div>
                         ) : null}
@@ -2398,7 +2379,7 @@ export function IdjorFoundationPanel() {
                             return remainingExtractions.length > 0 ? (
                               <div
                                 className={cn(
-                                  "space-y-3 overflow-auto rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3",
+                                  "space-y-3 overflow-auto rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-3",
                                   tableHeightClass,
                                 )}
                               >
@@ -2420,8 +2401,8 @@ export function IdjorFoundationPanel() {
                                 ))}
                               </div>
                             ) : (
-                              <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
-                                <p className="text-sm text-slate-400">
+                              <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
+                                <p className="text-sm text-brand-textMuted">
                                   {currentResultExtractionId
                                     ? "Aucune autre extraction enregistree pour ce fichier."
                                     : "Aucune extraction enregistree pour ce fichier."}
@@ -2437,25 +2418,25 @@ export function IdjorFoundationPanel() {
               ) : null}
 
               {!demoSafeMode && ragIngestionPreviewState.status !== "idle" ? (
-                <div className="rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                <div className="rounded-[18px] border border-cyan-400/14 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <Eye className="h-4 w-4 text-cyan-300" />
-                    <h3 className="font-medium text-white">Previsualisation de preparation</h3>
+                    <h3 className="font-medium text-slate-900 dark:text-white">Previsualisation de preparation</h3>
                   </div>
 
-                  <p className="mb-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                  <p className="mb-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
                     Previsualisation uniquement. Aucun fichier n&apos;est lu, traite,
                     decoupe, vectorise ou analyse par IA.
                   </p>
 
                   {ragIngestionPreviewState.status === "loading" ? (
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
                       Chargement de la previsualisation de preparation...
                     </p>
                   ) : null}
 
                   {ragIngestionPreviewState.status === "error" ? (
-                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                       {ragIngestionPreviewState.message}
                     </div>
                   ) : null}
@@ -2506,7 +2487,7 @@ export function IdjorFoundationPanel() {
                         />
                       </div>
 
-                      <p className="text-xs leading-relaxed text-slate-500">
+                      <p className="text-xs leading-relaxed text-brand-textMuted">
                         Ces compteurs sont une gouvernance metadata-only distincte des chunks
                         techniques deterministes. Les chunks techniques crees via
                         &quot;Decouper deterministiquement&quot; restent visibles dans le
@@ -2516,30 +2497,30 @@ export function IdjorFoundationPanel() {
 
                       <div className="grid gap-4 xl:grid-cols-3">
                         <div className="rounded-[18px] border border-slate-400/10 bg-slate-400/5 p-3">
-                          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                             missingFields
                           </p>
                           {ragIngestionPreviewState.preview.missingFields.length > 0 ? (
-                            <ul className="space-y-1.5 text-xs text-slate-300">
+                            <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
                               {ragIngestionPreviewState.preview.missingFields.map((item) => (
                                 <li key={item.field}>
-                                  <span className="font-mono text-slate-400">{item.field}</span>
+                                  <span className="font-mono text-brand-textMuted">{item.field}</span>
                                   {" — "}
                                   {item.reason}
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <p className="text-xs text-slate-500">Aucun champ manquant signale.</p>
+                            <p className="text-xs text-brand-textMuted">Aucun champ manquant signale.</p>
                           )}
                         </div>
 
                         <div className="rounded-[18px] border border-slate-400/10 bg-slate-400/5 p-3">
-                          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                             allowedNextSteps
                           </p>
                           {ragIngestionPreviewState.preview.allowedNextSteps.length > 0 ? (
-                            <ul className="space-y-1.5 text-xs text-slate-300">
+                            <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
                               {ragIngestionPreviewState.preview.allowedNextSteps.map((step) => (
                                 <li key={step} className="font-mono">
                                   {step}
@@ -2547,22 +2528,22 @@ export function IdjorFoundationPanel() {
                               ))}
                             </ul>
                           ) : (
-                            <p className="text-xs text-slate-500">Aucune etape suivante exposee.</p>
+                            <p className="text-xs text-brand-textMuted">Aucune etape suivante exposee.</p>
                           )}
                         </div>
 
                         <div className="rounded-[18px] border border-slate-400/10 bg-slate-400/5 p-3">
-                          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
                             blockedReasons
                           </p>
                           {ragIngestionPreviewState.preview.blockedReasons.length > 0 ? (
-                            <ul className="space-y-1.5 text-xs text-slate-300">
+                            <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
                               {ragIngestionPreviewState.preview.blockedReasons.map((reason) => (
                                 <li key={reason}>{reason}</li>
                               ))}
                             </ul>
                           ) : (
-                            <p className="text-xs text-slate-500">Aucun motif de blocage signale.</p>
+                            <p className="text-xs text-brand-textMuted">Aucun motif de blocage signale.</p>
                           )}
                         </div>
                       </div>
@@ -2572,25 +2553,25 @@ export function IdjorFoundationPanel() {
               ) : null}
 
               {ragDocumentAuditState.status !== "idle" ? (
-                <div className="rounded-[18px] border border-cyan-400/14 bg-[#0c1322]/75 p-4">
+                <div className="rounded-[18px] border border-cyan-400/14 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <ScrollText className="h-4 w-4 text-cyan-300" />
-                    <h3 className="font-medium text-white">Audit du document</h3>
+                    <h3 className="font-medium text-slate-900 dark:text-white">Audit du document</h3>
                   </div>
 
-                  <p className="mb-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                  <p className="mb-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
                     Journal append-only. Lecture seule. Aucun evenement n&apos;est modifie depuis
                     le dashboard.
                   </p>
 
                   {ragDocumentAuditState.status === "loading" ? (
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
                       Chargement du journal d&apos;audit du document...
                     </p>
                   ) : null}
 
                   {ragDocumentAuditState.status === "error" ? (
-                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
                       {ragDocumentAuditState.message}
                     </div>
                   ) : null}
@@ -2607,7 +2588,7 @@ export function IdjorFoundationPanel() {
 
               {!demoSafeMode ? (
               <div className="space-y-3">
-                <p className="text-xs leading-relaxed text-slate-500">
+                <p className="text-xs leading-relaxed text-brand-textMuted">
                   Chunks et citations ci-dessous sont des compteurs metadata-only de
                   gouvernance, distincts des chunks techniques deterministes crees via
                   l&apos;action &quot;Decouper deterministiquement&quot; (visibles dans le
@@ -2624,8 +2605,8 @@ export function IdjorFoundationPanel() {
                       header: "Chunk",
                       render: (chunk) => (
                         <div className="space-y-1">
-                          <p className="font-medium text-white">{chunk.documentTitle}</p>
-                          <p className="font-mono text-[11px] text-slate-500">
+                          <p className="font-medium text-slate-900 dark:text-white">{chunk.documentTitle}</p>
+                          <p className="font-mono text-[11px] text-brand-textMuted">
                             {chunk.documentKey} · #{chunk.chunkIndex}
                           </p>
                         </div>
@@ -2635,7 +2616,7 @@ export function IdjorFoundationPanel() {
                       key: "excerpt",
                       header: "Extrait",
                       render: (chunk) => (
-                        <p className="max-w-[420px] text-xs text-slate-400">
+                        <p className="max-w-[420px] text-xs text-brand-textMuted">
                           {chunk.contentText}
                         </p>
                       ),
@@ -2658,8 +2639,8 @@ export function IdjorFoundationPanel() {
                       header: "Citation",
                       render: (citation) => (
                         <div className="space-y-1">
-                          <p className="font-medium text-white">{citation.citationLabel}</p>
-                          <p className="font-mono text-[11px] text-slate-500">
+                          <p className="font-medium text-slate-900 dark:text-white">{citation.citationLabel}</p>
+                          <p className="font-mono text-[11px] text-brand-textMuted">
                             {citation.documentKey}
                             {citation.chunkIndex !== null ? ` · #${citation.chunkIndex}` : ""}
                           </p>
@@ -2670,7 +2651,7 @@ export function IdjorFoundationPanel() {
                       key: "excerpt",
                       header: "Extrait",
                       render: (citation) => (
-                        <p className="max-w-[420px] text-xs text-slate-400">
+                        <p className="max-w-[420px] text-xs text-brand-textMuted">
                           {citation.excerptText}
                         </p>
                       ),
@@ -2697,7 +2678,7 @@ export function IdjorFoundationPanel() {
             onToggle={() => toggleSection("ragAudit")}
           >
             <div className="space-y-4">
-              <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+              <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
                 Journal append-only. Lecture seule. Aucun evenement n&apos;est modifie depuis le
                 dashboard.
               </p>
@@ -2709,9 +2690,17 @@ export function IdjorFoundationPanel() {
               />
             </div>
           </SectionCard>
-
-          {showTechnicalSections ? (
-          <>
+                  </div>
+                ),
+              },
+              ...(showTechnicalSections
+                ? [
+                    {
+                      key: "config",
+                      label: "Configuration & gouvernance",
+                      icon: <Network className="h-3.5 w-3.5" />,
+                      content: (
+                        <div className="space-y-4">
           <SectionCard
             icon={<BotOff className="h-4 w-4" />}
             title="Agents"
@@ -2730,8 +2719,8 @@ export function IdjorFoundationPanel() {
                   header: "Agent",
                   render: (agent) => (
                     <div className="space-y-1">
-                      <p className="font-medium text-white">{agent.displayName}</p>
-                      <p className="font-mono text-[11px] text-slate-500">{agent.agentKey}</p>
+                      <p className="font-medium text-slate-900 dark:text-white">{agent.displayName}</p>
+                      <p className="font-mono text-[11px] text-brand-textMuted">{agent.agentKey}</p>
                     </div>
                   ),
                 },
@@ -2742,7 +2731,7 @@ export function IdjorFoundationPanel() {
                   render: (agent) => (
                     <div className="space-y-1">
                       <p>{agent.registryStatus}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-brand-textMuted">
                         {agent.isReadOnly ? "Read-only" : "Mutable"} ·{" "}
                         {agent.isEnabled ? "enabled" : "disabled"}
                       </p>
@@ -2776,8 +2765,8 @@ export function IdjorFoundationPanel() {
                   header: "Moteur",
                   render: (engine) => (
                     <div className="space-y-1">
-                      <p className="font-medium text-white">{engine.displayName}</p>
-                      <p className="font-mono text-[11px] text-slate-500">{engine.engineKey}</p>
+                      <p className="font-medium text-slate-900 dark:text-white">{engine.displayName}</p>
+                      <p className="font-mono text-[11px] text-brand-textMuted">{engine.engineKey}</p>
                     </div>
                   ),
                 },
@@ -2787,7 +2776,7 @@ export function IdjorFoundationPanel() {
                   render: (engine) => (
                     <div className="space-y-1">
                       <p>{engine.registryStatus}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-brand-textMuted">
                         {engine.isReadOnly ? "Read-only" : "Mutable"} ·{" "}
                         {engine.isEnabled ? "enabled" : "disabled"}
                       </p>
@@ -2821,8 +2810,8 @@ export function IdjorFoundationPanel() {
                   header: "Tool",
                   render: (tool) => (
                     <div className="space-y-1">
-                      <p className="font-medium text-white">{tool.displayName}</p>
-                      <p className="font-mono text-[11px] text-slate-500">{tool.toolKey}</p>
+                      <p className="font-medium text-slate-900 dark:text-white">{tool.displayName}</p>
+                      <p className="font-mono text-[11px] text-brand-textMuted">{tool.toolKey}</p>
                     </div>
                   ),
                 },
@@ -2832,9 +2821,9 @@ export function IdjorFoundationPanel() {
                   header: "Roles",
                   render: (tool) =>
                     tool.allowedRoles.length > 0 ? (
-                      <p className="text-xs text-slate-400">{tool.allowedRoles.join(", ")}</p>
+                      <p className="text-xs text-brand-textMuted">{tool.allowedRoles.join(", ")}</p>
                     ) : (
-                      <p className="text-xs text-slate-500">Tous roles lisibles</p>
+                      <p className="text-xs text-brand-textMuted">Tous roles lisibles</p>
                     ),
                 },
                 {
@@ -2843,7 +2832,7 @@ export function IdjorFoundationPanel() {
                   render: (tool) => (
                     <div className="space-y-1">
                       <p>{tool.isReadOnly ? "READ_ONLY" : tool.accessMode}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-brand-textMuted">
                         {tool.isEnabled ? "enabled" : "disabled"}
                       </p>
                     </div>
@@ -2879,7 +2868,7 @@ export function IdjorFoundationPanel() {
                   render: (flag) => (
                     <div className="space-y-1">
                       <p>{flag.rolloutState}</p>
-                      <p className="text-xs text-slate-500">{flag.enabled ? "enabled" : "OFF"}</p>
+                      <p className="text-xs text-brand-textMuted">{flag.enabled ? "enabled" : "OFF"}</p>
                     </div>
                   ),
                 },
@@ -2911,8 +2900,8 @@ export function IdjorFoundationPanel() {
                     header: "Provider",
                     render: (provider) => (
                       <div className="space-y-1">
-                        <p className="font-medium text-white">{provider.displayName}</p>
-                        <p className="font-mono text-[11px] text-slate-500">{provider.providerKey}</p>
+                        <p className="font-medium text-slate-900 dark:text-white">{provider.displayName}</p>
+                        <p className="font-mono text-[11px] text-brand-textMuted">{provider.providerKey}</p>
                       </div>
                     ),
                   },
@@ -2923,7 +2912,7 @@ export function IdjorFoundationPanel() {
                     render: (provider) => (
                       <div className="space-y-1">
                         <p>{provider.registryStatus}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-brand-textMuted">
                           {provider.isEnabled ? "Enabled" : "Disabled"}
                         </p>
                       </div>
@@ -2947,8 +2936,8 @@ export function IdjorFoundationPanel() {
                     header: "Modele",
                     render: (model) => (
                       <div className="space-y-1">
-                        <p className="font-medium text-white">{model.displayName}</p>
-                        <p className="font-mono text-[11px] text-slate-500">{model.modelKey}</p>
+                        <p className="font-medium text-slate-900 dark:text-white">{model.displayName}</p>
+                        <p className="font-mono text-[11px] text-brand-textMuted">{model.modelKey}</p>
                       </div>
                     ),
                   },
@@ -2959,7 +2948,7 @@ export function IdjorFoundationPanel() {
                     render: (model) => (
                       <div className="space-y-1">
                         <p>{model.registryStatus}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-brand-textMuted">
                           {model.isEnabled ? "Enabled" : "Disabled"}
                           {model.isDefault ? " · default" : ""}
                         </p>
@@ -2975,10 +2964,17 @@ export function IdjorFoundationPanel() {
               />
             </div>
           </SectionCard>
-
-          </>
-          ) : null}
-
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
+              {
+                key: "security",
+                label: "Securite IA",
+                icon: <ShieldCheck className="h-3.5 w-3.5" />,
+                content: (
+                  <div className="space-y-4">
           <SectionCard
             icon={<ShieldCheck className="h-4 w-4" />}
             title="Securite"
@@ -3012,35 +3008,35 @@ export function IdjorFoundationPanel() {
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <ScanSearch className="h-4 w-4 text-cyan-300" />
-                    <h3 className="font-medium text-white">Source labels autorises</h3>
+                    <h3 className="font-medium text-slate-900 dark:text-white">Source labels autorises</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {state.health.securitySummary.sourceLabels.length > 0 ? (
                       state.health.securitySummary.sourceLabels.map((label) => (
                         <span
                           key={label}
-                          className="rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300"
+                          className="rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300"
                         >
                           {label}
                         </span>
                       ))
                     ) : (
-                      <span className="rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 text-xs text-slate-400">
+                      <span className="rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 text-xs text-brand-textMuted">
                         Aucun label source publie pour ce tenant
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <BotOff className="h-4 w-4 text-emerald-300" />
-                    <h3 className="font-medium text-white">Message de demo</h3>
+                    <BotOff className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
+                    <h3 className="font-medium text-slate-900 dark:text-white">Message de demo</h3>
                   </div>
-                  <p className="text-sm leading-relaxed text-slate-300">
+                  <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                     Le socle technique IDJOR est visible, trace et gouverne en lecture seule.
                     Aucun LLM, aucun vector store et aucune decision automatisee ne sont
                     actives. L&apos;institution reste le seul decideur.
@@ -3049,6 +3045,11 @@ export function IdjorFoundationPanel() {
               </div>
             </div>
           </SectionCard>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </>
       ) : null}
     </div>
