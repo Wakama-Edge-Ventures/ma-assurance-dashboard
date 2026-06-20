@@ -963,7 +963,9 @@ function ExtractionResultBlock({
   onLoadExtractionGovernanceCockpit?: (extractionId: string) => void;
   maxHeightClass?: string;
 }) {
-  const isChunkable = extraction.status === "EXTRACTED_PENDING_REVIEW";
+  const isChunkable =
+    extraction.status === "EXTRACTED_PENDING_REVIEW" ||
+    extraction.status === "EXTRACTED_PARTIAL_PENDING_REVIEW";
   const isChunkingPanelOpen = chunkingPanelExtractionId === extraction.id;
   const isChunkingLoading =
     ragExtractionChunkingState?.status === "loading" &&
@@ -987,22 +989,40 @@ function ExtractionResultBlock({
         </span>
       </div>
 
-      {extraction.status === "EXTRACTED_PENDING_REVIEW" && extraction.previewText ? (
+      {(extraction.status === "EXTRACTED_PENDING_REVIEW" ||
+        extraction.status === "EXTRACTED_PARTIAL_PENDING_REVIEW") &&
+      extraction.previewText ? (
         <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-400/10 bg-brand-surfaceRaised/80 dark:bg-[#0c1322]/80 p-3 text-xs leading-relaxed text-slate-700 dark:text-slate-200">
           {extraction.previewText}
         </pre>
       ) : null}
 
-      {extraction.status === "UNSUPPORTED_PENDING_EXTRACTOR" ? (
+      {(extraction.status === "UNSUPPORTED_PENDING_EXTRACTOR" ||
+        extraction.status === "EXTRACTION_UNSUPPORTED_TYPE") ? (
         <p className="mt-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
           Extracteur non active pour ce format. Aucun parsing n&apos;a ete effectue.
         </p>
       ) : null}
 
-      {(extraction.status === "FILE_MISSING" || extraction.status === "FAILED") &&
+      {extraction.status === "EXTRACTION_BLOCKED_SCANNED_OR_IMAGE_ONLY" ? (
+        <p className="mt-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+          Aucune couche texte exploitable detectee. OCR desactive, extraction bloquee.
+        </p>
+      ) : null}
+
+      {(extraction.status === "FILE_MISSING" ||
+        extraction.status === "FAILED" ||
+        extraction.status === "EXTRACTION_FAILED") &&
       extraction.errorReason ? (
         <p className="mt-2 text-xs leading-relaxed text-rose-800 dark:text-rose-300">
           {extraction.errorReason}
+        </p>
+      ) : null}
+
+      {extraction.status === "EXTRACTED_PARTIAL_PENDING_REVIEW" ? (
+        <p className="mt-2 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+          Texte natif partiel detecte. Le decoupage reste possible, mais certaines pages restent
+          sans texte exploitable.
         </p>
       ) : null}
 

@@ -357,6 +357,10 @@ export interface IdjorRagUploadIntakeResponse {
 
 export type IdjorRagExtractionStatus =
   | "EXTRACTED_PENDING_REVIEW"
+  | "EXTRACTED_PARTIAL_PENDING_REVIEW"
+  | "EXTRACTION_UNSUPPORTED_TYPE"
+  | "EXTRACTION_BLOCKED_SCANNED_OR_IMAGE_ONLY"
+  | "EXTRACTION_FAILED"
   | "UNSUPPORTED_PENDING_EXTRACTOR"
   | "FILE_MISSING"
   | "FAILED";
@@ -370,7 +374,7 @@ export interface IdjorRagDocumentExtraction {
   documentId: string;
   uploadId: string;
   mimeType: string;
-  status: string;
+  status: IdjorRagExtractionStatus;
   previewText: string | null;
   previewTextLength: number | null;
   errorReason: string | null;
@@ -582,6 +586,8 @@ export type IdjorRagGovernanceBlockedReason =
   | "NO_UPLOADS"
   | "NO_EXTRACTIONS"
   | "EXTRACTION_UNSUPPORTED"
+  | "EXTRACTION_BLOCKED_SCANNED_OR_IMAGE_ONLY"
+  | "EXTRACTION_FAILED"
   | "EXTRACTION_FILE_MISSING"
   | "NO_CHUNKS"
   | "NO_EMBEDDINGS"
