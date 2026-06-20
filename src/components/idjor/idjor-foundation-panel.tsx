@@ -776,7 +776,7 @@ function getErrorCard(state: Extract<FoundationState, { status: "error" }>, tena
   return (
     <DegradedStateCard
       title="Socle IDJOR indisponible"
-      description={`${state.error.message}.${tenantHint} Cette vue reste strictement read-only et n'active aucun moteur IA.`}
+      description={`${state.error.message}.${tenantHint} Cette vue reste un socle gouverne: lecture, tracabilite et actions controlees sans IA active.`}
     />
   );
 }
@@ -1270,8 +1270,8 @@ export function IdjorFoundationPanel() {
         title={demoSafeMode ? tenant.terminology.idjorLabel : "Socle IDJOR"}
         description={
           demoSafeMode
-            ? "Vue protegee des preuves, documents et journaux IDJOR. La page reste demonstrative, compacte et strictement read-only."
-            : "Vue protegee du socle technique IDJOR. La page reste demonstrative, compacte et strictement read-only."
+            ? "Vue protegee des preuves, documents et journaux IDJOR. La page reste demonstrative, compacte et gouvernee: lecture, tracabilite et actions controlees sans IA active."
+            : "Vue protegee du socle technique IDJOR. La page reste demonstrative, compacte et gouvernee: lecture, tracabilite et actions controlees sans IA active."
         }
       />
 
@@ -1594,10 +1594,11 @@ export function IdjorFoundationPanel() {
                     <h3 className="font-medium text-white">Message de demo</h3>
                   </div>
                   <p className="text-sm leading-relaxed text-slate-300">
-                    La base documentaire RAG est visible uniquement comme socle
-                    metadata read-only. Aucun upload, aucun moteur de recherche,
-                    aucun embedding actif et aucune question en langage naturel ne
-                    sont actives dans cette phase.
+                    La base documentaire RAG reste un socle gouverne. La quarantaine de
+                    fichiers, la previsualisation d&apos;extraction et le decoupage
+                    deterministe sont disponibles comme actions controlees et tracees.
+                    Aucune analyse IA, vectorisation ou extraction automatique n&apos;est
+                    activee, et aucune question en langage naturel n&apos;est traitee.
                   </p>
                 </div>
               </div>
@@ -2144,33 +2145,47 @@ export function IdjorFoundationPanel() {
 
                         {ragUploadExtractionsListState.status === "success" &&
                         ragUploadExtractionsListState.uploadId === extractionPanelUploadId ? (
-                          ragUploadExtractionsListState.page.extractions.length > 0 ? (
-                            <div
-                              className={cn(
-                                "space-y-3 overflow-auto rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3",
-                                tableHeightClass,
-                              )}
-                            >
-                              {ragUploadExtractionsListState.page.extractions.map((extraction) => (
-                                <ExtractionResultBlock
-                                  key={extraction.id}
-                                  extraction={extraction}
-                                  chunkingPanelExtractionId={chunkingPanelExtractionId}
-                                  onToggleChunkingPanel={handleToggleChunkingPanel}
-                                  ragExtractionChunkingState={ragExtractionChunkingState}
-                                  ragExtractionChunksListState={ragExtractionChunksListState}
-                                  onRunChunking={handleRunExtractionChunking}
-                                  maxHeightClass={tableHeightClass}
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
-                              <p className="text-sm text-slate-400">
-                                Aucune extraction enregistree pour ce fichier.
-                              </p>
-                            </div>
-                          )
+                          (() => {
+                            const currentResultExtractionId =
+                              ragExtractionPreviewState.status === "success" &&
+                              ragExtractionPreviewState.uploadId === extractionPanelUploadId
+                                ? ragExtractionPreviewState.response.extraction.id
+                                : null;
+                            const remainingExtractions =
+                              ragUploadExtractionsListState.page.extractions.filter(
+                                (extraction) => extraction.id !== currentResultExtractionId,
+                              );
+
+                            return remainingExtractions.length > 0 ? (
+                              <div
+                                className={cn(
+                                  "space-y-3 overflow-auto rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3",
+                                  tableHeightClass,
+                                )}
+                              >
+                                {remainingExtractions.map((extraction) => (
+                                  <ExtractionResultBlock
+                                    key={extraction.id}
+                                    extraction={extraction}
+                                    chunkingPanelExtractionId={chunkingPanelExtractionId}
+                                    onToggleChunkingPanel={handleToggleChunkingPanel}
+                                    ragExtractionChunkingState={ragExtractionChunkingState}
+                                    ragExtractionChunksListState={ragExtractionChunksListState}
+                                    onRunChunking={handleRunExtractionChunking}
+                                    maxHeightClass={tableHeightClass}
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+                                <p className="text-sm text-slate-400">
+                                  {currentResultExtractionId
+                                    ? "Aucune autre extraction enregistree pour ce fichier."
+                                    : "Aucune extraction enregistree pour ce fichier."}
+                                </p>
+                              </div>
+                            );
+                          })()
                         ) : null}
                       </div>
                     </div>
@@ -2214,7 +2229,7 @@ export function IdjorFoundationPanel() {
                           value={ragIngestionPreviewState.preview.scope.tenantKey}
                         />
                         <ExecutiveStatus
-                          label="ingestionReadiness"
+                          label="Readiness gouvernance"
                           value={ragIngestionPreviewState.preview.ingestionReadiness}
                           tone={
                             ragIngestionPreviewState.preview.ingestionReadiness === "BLOCKED"
@@ -2233,20 +2248,28 @@ export function IdjorFoundationPanel() {
                         <ExecutiveStatus label="vectorStoreEnabled" value="false" tone="success" />
                         <ExecutiveStatus label="embeddingsEnabled" value="false" tone="success" />
                         <ExecutiveStatus
-                          label="chunks"
+                          label="Chunks gouvernance (metadata-only)"
                           value={String(
                             ragIngestionPreviewState.preview.linkedAssetCounts.chunks,
                           )}
                           tone="success"
                         />
                         <ExecutiveStatus
-                          label="citations"
+                          label="Citations gouvernance (metadata-only)"
                           value={String(
                             ragIngestionPreviewState.preview.linkedAssetCounts.citations,
                           )}
                           tone="success"
                         />
                       </div>
+
+                      <p className="text-xs leading-relaxed text-slate-500">
+                        Ces compteurs sont une gouvernance metadata-only distincte des chunks
+                        techniques deterministes. Les chunks techniques crees via
+                        &quot;Decouper deterministiquement&quot; restent visibles dans le
+                        panneau d&apos;extraction de ce document, meme si la readiness
+                        gouvernance reste {ragIngestionPreviewState.preview.ingestionReadiness}.
+                      </p>
 
                       <div className="grid gap-4 xl:grid-cols-3">
                         <div className="rounded-[18px] border border-slate-400/10 bg-slate-400/5 p-3">
@@ -2340,10 +2363,17 @@ export function IdjorFoundationPanel() {
               ) : null}
 
               {!demoSafeMode ? (
+              <div className="space-y-3">
+                <p className="text-xs leading-relaxed text-slate-500">
+                  Chunks et citations ci-dessous sont des compteurs metadata-only de
+                  gouvernance, distincts des chunks techniques deterministes crees via
+                  l&apos;action &quot;Decouper deterministiquement&quot; (visibles dans le
+                  panneau d&apos;extraction de chaque document).
+                </p>
               <div className="grid gap-4 xl:grid-cols-2">
                 <RegistryTable
                   rows={state.ragChunks.chunks}
-                  emptyLabel="0 chunk actif ou chunking non active pour ce tenant."
+                  emptyLabel="0 chunk metadata-only pour ce tenant (gouvernance, distinct des chunks techniques deterministes)."
                   maxHeightClass={tableHeightClass}
                   columns={[
                     {
@@ -2409,6 +2439,7 @@ export function IdjorFoundationPanel() {
                     },
                   ]}
                 />
+              </div>
               </div>
               ) : null}
             </div>
