@@ -41,9 +41,11 @@ import {
   getIdjorRagDocumentIngestionPreview,
   getIdjorRagDocuments,
   getIdjorRagDocumentUploads,
+  getIdjorRagExtractionChunks,
   getIdjorRagHealth,
   getIdjorRagUploadExtractions,
   registerIdjorRagDocumentMetadata,
+  runIdjorRagExtractionChunking,
   runIdjorRagUploadExtractionPreview,
   uploadIdjorRagDocumentIntake,
 } from "@/lib/api";
@@ -62,6 +64,9 @@ import type {
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
   IdjorRagDocumentUploadsPage,
+  IdjorRagExtractionChunk,
+  IdjorRagExtractionChunkingResponse,
+  IdjorRagExtractionChunksPage,
   IdjorRagExtractionPreviewResponse,
   IdjorRagHealth,
   IdjorRagIngestionPreview,
@@ -241,6 +246,18 @@ type RagUploadExtractionsListState =
   | { status: "loading"; uploadId: string }
   | { status: "success"; uploadId: string; page: IdjorRagDocumentExtractionsPage }
   | { status: "error"; uploadId: string; message: string };
+
+type RagExtractionChunkingState =
+  | { status: "idle" }
+  | { status: "loading"; extractionId: string }
+  | { status: "success"; extractionId: string; response: IdjorRagExtractionChunkingResponse }
+  | { status: "error"; extractionId: string; message: string };
+
+type RagExtractionChunksListState =
+  | { status: "idle" }
+  | { status: "loading"; extractionId: string }
+  | { status: "success"; extractionId: string; page: IdjorRagExtractionChunksPage }
+  | { status: "error"; extractionId: string; message: string };
 
 const RAG_UPLOAD_INTAKE_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -531,7 +548,81 @@ function AuditEventList({
   );
 }
 
-function ExtractionResultBlock({ extraction }: { extraction: IdjorRagDocumentExtraction }) {
+function ExtractionChunkList({
+  chunks,
+  maxHeightClass,
+}: {
+  chunks: IdjorRagExtractionChunk[];
+  maxHeightClass?: string;
+}) {
+  if (chunks.length === 0) {
+    return (
+      <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-4">
+        <p className="text-sm text-slate-400">Aucun chunk enregistre pour cette extraction.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "space-y-2 overflow-auto rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3",
+        maxHeightClass,
+      )}
+    >
+      {chunks.map((chunk) => (
+        <div
+          key={chunk.id}
+          className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-cyan-400/24 bg-cyan-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-200">
+              chunk #{chunk.chunkIndex}
+            </span>
+            <span className="font-mono text-[11px] text-slate-500">
+              {chunk.contentText.length} caracteres
+            </span>
+            <span className="ml-auto font-mono text-[10px] text-slate-500">
+              {chunk.createdAt}
+            </span>
+          </div>
+          <p className="mt-1.5 max-w-full break-all font-mono text-[11px] text-slate-500">
+            {chunk.contentHash}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-slate-300">
+            {chunk.contentText.length > 160
+              ? `${chunk.contentText.slice(0, 160)}…`
+              : chunk.contentText}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ExtractionResultBlock({
+  extraction,
+  chunkingPanelExtractionId,
+  onToggleChunkingPanel,
+  ragExtractionChunkingState,
+  ragExtractionChunksListState,
+  onRunChunking,
+  maxHeightClass,
+}: {
+  extraction: IdjorRagDocumentExtraction;
+  chunkingPanelExtractionId?: string | null;
+  onToggleChunkingPanel?: (extractionId: string) => void;
+  ragExtractionChunkingState?: RagExtractionChunkingState;
+  ragExtractionChunksListState?: RagExtractionChunksListState;
+  onRunChunking?: (extractionId: string, documentId: string) => void;
+  maxHeightClass?: string;
+}) {
+  const isChunkable = extraction.status === "EXTRACTED_PENDING_REVIEW";
+  const isChunkingPanelOpen = chunkingPanelExtractionId === extraction.id;
+  const isChunkingLoading =
+    ragExtractionChunkingState?.status === "loading" &&
+    ragExtractionChunkingState.extractionId === extraction.id;
+
   return (
     <div className="rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -566,6 +657,80 @@ function ExtractionResultBlock({ extraction }: { extraction: IdjorRagDocumentExt
       <p className="mt-2 text-[11px] text-slate-500">
         previewTextLength: {extraction.previewTextLength ?? 0}
       </p>
+
+      {isChunkable && onToggleChunkingPanel && onRunChunking ? (
+        <div className="mt-3 space-y-3 border-t border-slate-400/10 pt-3">
+          <button
+            type="button"
+            onClick={() => onToggleChunkingPanel(extraction.id)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200"
+          >
+            <Layers3 className="h-3 w-3" />
+            {isChunkingPanelOpen ? "Fermer le decoupage" : "Decouper deterministiquement"}
+          </button>
+
+          {isChunkingPanelOpen ? (
+            <div className="space-y-3 rounded-2xl border border-cyan-400/14 bg-[#0c1322]/75 p-3">
+              <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                Decoupage deterministe. Aucun embedding, vector store, retrieval ou LLM
+                n&apos;est active.
+              </p>
+
+              <Button
+                type="button"
+                onClick={() => onRunChunking(extraction.id, extraction.documentId)}
+                disabled={isChunkingLoading}
+                className="min-w-[200px]"
+              >
+                {isChunkingLoading ? "Decoupage en cours..." : "Decouper deterministiquement"}
+              </Button>
+
+              {ragExtractionChunkingState?.status === "error" &&
+              ragExtractionChunkingState.extractionId === extraction.id ? (
+                <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                  {ragExtractionChunkingState.message}
+                </div>
+              ) : null}
+
+              {ragExtractionChunkingState?.status === "success" &&
+              ragExtractionChunkingState.extractionId === extraction.id ? (
+                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
+                  {ragExtractionChunkingState.response.created
+                    ? "Chunks crees"
+                    : "Chunks deja existants"}{" "}
+                  ({ragExtractionChunkingState.response.chunkCount}).
+                </div>
+              ) : null}
+
+              <div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                  Chunks pour cette extraction
+                </p>
+
+                {ragExtractionChunksListState?.status === "loading" &&
+                ragExtractionChunksListState.extractionId === extraction.id ? (
+                  <p className="text-sm text-slate-300">Chargement...</p>
+                ) : null}
+
+                {ragExtractionChunksListState?.status === "error" &&
+                ragExtractionChunksListState.extractionId === extraction.id ? (
+                  <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                    {ragExtractionChunksListState.message}
+                  </div>
+                ) : null}
+
+                {ragExtractionChunksListState?.status === "success" &&
+                ragExtractionChunksListState.extractionId === extraction.id ? (
+                  <ExtractionChunkList
+                    chunks={ragExtractionChunksListState.page.chunks}
+                    maxHeightClass={maxHeightClass}
+                  />
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -649,6 +814,13 @@ export function IdjorFoundationPanel() {
     useState<RagExtractionPreviewState>({ status: "idle" });
   const [ragUploadExtractionsListState, setRagUploadExtractionsListState] =
     useState<RagUploadExtractionsListState>({ status: "idle" });
+  const [chunkingPanelExtractionId, setChunkingPanelExtractionId] = useState<string | null>(
+    null,
+  );
+  const [ragExtractionChunkingState, setRagExtractionChunkingState] =
+    useState<RagExtractionChunkingState>({ status: "idle" });
+  const [ragExtractionChunksListState, setRagExtractionChunksListState] =
+    useState<RagExtractionChunksListState>({ status: "idle" });
   const [state, setState] = useState<FoundationState>({
     status: "loading",
     tenantKey: explicitTenantKey,
@@ -921,6 +1093,9 @@ export function IdjorFoundationPanel() {
     setExtractionPanelUploadId(null);
     setRagExtractionPreviewState({ status: "idle" });
     setRagUploadExtractionsListState({ status: "idle" });
+    setChunkingPanelExtractionId(null);
+    setRagExtractionChunkingState({ status: "idle" });
+    setRagExtractionChunksListState({ status: "idle" });
 
     if (next) {
       void handleLoadDocumentUploads(next);
@@ -997,9 +1172,68 @@ export function IdjorFoundationPanel() {
     const next = extractionPanelUploadId === uploadId ? null : uploadId;
     setExtractionPanelUploadId(next);
     setRagExtractionPreviewState({ status: "idle" });
+    setChunkingPanelExtractionId(null);
+    setRagExtractionChunkingState({ status: "idle" });
+    setRagExtractionChunksListState({ status: "idle" });
 
     if (next) {
       void handleLoadUploadExtractions(next);
+    }
+  };
+
+  const handleLoadExtractionChunks = async (extractionId: string) => {
+    setRagExtractionChunksListState({ status: "loading", extractionId });
+
+    try {
+      const page = await getIdjorRagExtractionChunks(extractionId);
+      setRagExtractionChunksListState({ status: "success", extractionId, page });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de charger les chunks pour cette extraction.";
+
+      setRagExtractionChunksListState({ status: "error", extractionId, message });
+    }
+  };
+
+  const handleToggleChunkingPanel = (extractionId: string) => {
+    const next = chunkingPanelExtractionId === extractionId ? null : extractionId;
+    setChunkingPanelExtractionId(next);
+    setRagExtractionChunkingState({ status: "idle" });
+    setRagExtractionChunksListState({ status: "idle" });
+
+    if (next) {
+      void handleLoadExtractionChunks(next);
+    }
+  };
+
+  const handleRunExtractionChunking = async (extractionId: string, documentId: string) => {
+    setRagExtractionChunkingState({ status: "loading", extractionId });
+
+    try {
+      const response = await runIdjorRagExtractionChunking(extractionId);
+      setRagExtractionChunkingState({ status: "success", extractionId, response });
+
+      await handleLoadExtractionChunks(extractionId);
+
+      if (
+        ragDocumentAuditState.status !== "idle" &&
+        ragDocumentAuditState.documentId === documentId
+      ) {
+        await handleViewDocumentAudit(documentId);
+      }
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de lancer le decoupage deterministe.";
+
+      setRagExtractionChunkingState({ status: "error", extractionId, message });
     }
   };
 
@@ -1880,7 +2114,15 @@ export function IdjorFoundationPanel() {
 
                       {ragExtractionPreviewState.status === "success" &&
                       ragExtractionPreviewState.uploadId === extractionPanelUploadId ? (
-                        <ExtractionResultBlock extraction={ragExtractionPreviewState.response.extraction} />
+                        <ExtractionResultBlock
+                          extraction={ragExtractionPreviewState.response.extraction}
+                          chunkingPanelExtractionId={chunkingPanelExtractionId}
+                          onToggleChunkingPanel={handleToggleChunkingPanel}
+                          ragExtractionChunkingState={ragExtractionChunkingState}
+                          ragExtractionChunksListState={ragExtractionChunksListState}
+                          onRunChunking={handleRunExtractionChunking}
+                          maxHeightClass={tableHeightClass}
+                        />
                       ) : null}
 
                       <div>
@@ -1910,7 +2152,16 @@ export function IdjorFoundationPanel() {
                               )}
                             >
                               {ragUploadExtractionsListState.page.extractions.map((extraction) => (
-                                <ExtractionResultBlock key={extraction.id} extraction={extraction} />
+                                <ExtractionResultBlock
+                                  key={extraction.id}
+                                  extraction={extraction}
+                                  chunkingPanelExtractionId={chunkingPanelExtractionId}
+                                  onToggleChunkingPanel={handleToggleChunkingPanel}
+                                  ragExtractionChunkingState={ragExtractionChunkingState}
+                                  ragExtractionChunksListState={ragExtractionChunksListState}
+                                  onRunChunking={handleRunExtractionChunking}
+                                  maxHeightClass={tableHeightClass}
+                                />
                               ))}
                             </div>
                           ) : (

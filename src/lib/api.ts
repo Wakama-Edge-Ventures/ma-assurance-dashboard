@@ -27,6 +27,9 @@ import {
   IdjorRagDocumentExtractionsPage,
   IdjorRagDocumentUpload,
   IdjorRagDocumentUploadsPage,
+  IdjorRagExtractionChunk,
+  IdjorRagExtractionChunksPage,
+  IdjorRagExtractionChunkingResponse,
   IdjorRagExtractionPreviewResponse,
   IdjorRagHealth,
   IdjorRagIngestionMissingField,
@@ -867,6 +870,106 @@ function mapIdjorRagExtractionPreviewResponse(payload: unknown): IdjorRagExtract
     documentKey,
     uploadId,
     extraction,
+    linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagExtractionChunk(value: unknown): IdjorRagExtractionChunk | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const tenantId = readString(record, "tenantId");
+  const country = readString(record, "country");
+  const vertical = readString(record, "vertical");
+  const documentId = readString(record, "documentId");
+  const contentText = readString(record, "contentText");
+  const contentHash = readString(record, "contentHash");
+  const chunkIndex = readNumberLike(record, "chunkIndex");
+
+  if (
+    !id ||
+    !tenantId ||
+    !country ||
+    !vertical ||
+    !documentId ||
+    !contentText ||
+    !contentHash ||
+    chunkIndex === null
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    tenantId,
+    institutionId: readString(record, "institutionId"),
+    country,
+    vertical,
+    documentId,
+    extractionId: readString(record, "extractionId"),
+    chunkIndex,
+    contentText,
+    contentHash,
+    tokenCount: readNumberLike(record, "tokenCount"),
+    source: normalizeSource(record?.source, "UNAVAILABLE"),
+    createdAt: readString(record, "createdAt"),
+    updatedAt: readString(record, "updatedAt"),
+  };
+}
+
+function mapIdjorRagExtractionChunksPage(payload: unknown): IdjorRagExtractionChunksPage {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const extractionId = readString(root, "extractionId");
+
+  if (!root || !scope || !extractionId) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: liste des chunks d'extraction RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    extractionId,
+    chunks: readArray(root.chunks)
+      .map((entry) => mapIdjorRagExtractionChunk(entry))
+      .filter((entry): entry is IdjorRagExtractionChunk => entry !== null),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagExtractionChunkingResponse(
+  payload: unknown,
+): IdjorRagExtractionChunkingResponse {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+  const extractionId = readString(root, "extractionId");
+
+  if (!root || !scope || !documentId || !documentKey || !extractionId) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: resultat de decoupage deterministe RAG incomplet.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    extractionId,
+    chunks: readArray(root.chunks)
+      .map((entry) => mapIdjorRagExtractionChunk(entry))
+      .filter((entry): entry is IdjorRagExtractionChunk => entry !== null),
+    chunkCount: readNumberLike(root, "chunkCount") ?? 0,
+    created: readBooleanLike(root, "created") ?? false,
     linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
     resolutionMode: readString(root, "resolutionMode"),
     readOnly: readBooleanLike(root, "readOnly") ?? true,
@@ -1789,6 +1892,29 @@ export async function getIdjorRagUploadExtractions(
   );
 
   return mapIdjorRagDocumentExtractionsPage(payload);
+}
+
+export async function runIdjorRagExtractionChunking(
+  extractionId: string,
+): Promise<IdjorRagExtractionChunkingResponse> {
+  const safeId = encodeURIComponent(extractionId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/extractions/${safeId}/chunk`,
+    { method: "POST" },
+  );
+
+  return mapIdjorRagExtractionChunkingResponse(payload);
+}
+
+export async function getIdjorRagExtractionChunks(
+  extractionId: string,
+): Promise<IdjorRagExtractionChunksPage> {
+  const safeId = encodeURIComponent(extractionId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/extractions/${safeId}/chunks`,
+  );
+
+  return mapIdjorRagExtractionChunksPage(payload);
 }
 
 export interface InsuranceApplicationByIdResult {

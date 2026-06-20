@@ -399,6 +399,45 @@ export interface IdjorRagExtractionPreviewResponse {
   readOnly: boolean;
 }
 
+export interface IdjorRagExtractionChunk {
+  id: string;
+  tenantId: string;
+  institutionId: string | null;
+  country: string;
+  vertical: string;
+  documentId: string;
+  extractionId: string | null;
+  chunkIndex: number;
+  contentText: string;
+  contentHash: string;
+  tokenCount: number | null;
+  source: DataSource;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface IdjorRagExtractionChunksPage {
+  scope: IdjorRagResponseScope;
+  extractionId: string;
+  chunks: IdjorRagExtractionChunk[];
+  securitySummary: IdjorRagSecuritySummary;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export interface IdjorRagExtractionChunkingResponse {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  extractionId: string;
+  chunks: IdjorRagExtractionChunk[];
+  chunkCount: number;
+  created: boolean;
+  linkedAssetCounts: IdjorRagLinkedAssetCounts;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"
