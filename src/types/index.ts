@@ -438,6 +438,73 @@ export interface IdjorRagExtractionChunkingResponse {
   readOnly: boolean;
 }
 
+export type IdjorRagEmbeddingReadinessState = "NOT_READY" | "BLOCKED";
+
+export type IdjorRagEmbeddingBlockedReason =
+  | "NO_CHUNKS"
+  | "EMBEDDINGS_FEATURE_FLAG_OFF"
+  | "EMBEDDING_PROVIDER_DISABLED"
+  | "EMBEDDING_MODEL_DISABLED"
+  | "VECTOR_STORE_DISABLED";
+
+export interface IdjorRagEmbeddingRequiredFlag {
+  targetType: "RAG" | "PROVIDER" | "MODEL";
+  targetKey: string;
+  enabled: boolean;
+}
+
+export interface IdjorRagEmbeddingProviderStatus {
+  providerKey: string | null;
+  isEnabled: boolean;
+  registryStatus: string | null;
+}
+
+export interface IdjorRagEmbeddingModelStatus {
+  modelKey: string | null;
+  isEnabled: boolean;
+  registryStatus: string | null;
+}
+
+export interface IdjorRagEmbeddingVectorStoreStatus {
+  vectorStoreEnabled: boolean;
+  reason: string | null;
+}
+
+export interface IdjorRagEmbeddingReadiness {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  extractionId: string;
+  eligibleChunksCount: number;
+  embeddingReadiness: IdjorRagEmbeddingReadinessState;
+  requiredFlags: IdjorRagEmbeddingRequiredFlag[];
+  providerStatus: IdjorRagEmbeddingProviderStatus;
+  modelStatus: IdjorRagEmbeddingModelStatus;
+  vectorStoreStatus: IdjorRagEmbeddingVectorStoreStatus;
+  blockedReasons: IdjorRagEmbeddingBlockedReason[];
+  linkedAssetCounts: IdjorRagLinkedAssetCounts;
+  securitySummary: IdjorRagSecuritySummary;
+  embeddingsComputed: boolean;
+}
+
+export interface IdjorRagEmbeddingReadinessResponse extends IdjorRagEmbeddingReadiness {
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
+export interface IdjorRagEmbeddingPreviewRequestResponse {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  extractionId: string;
+  previewStatus: "BLOCKED";
+  readiness: IdjorRagEmbeddingReadiness;
+  embeddingJobCreated: boolean;
+  embeddingReferenceCreated: boolean;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
 export type RiskTier =
   | "LOW_RISK"
   | "MEDIUM_RISK"

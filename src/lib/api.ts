@@ -27,6 +27,14 @@ import {
   IdjorRagDocumentExtractionsPage,
   IdjorRagDocumentUpload,
   IdjorRagDocumentUploadsPage,
+  IdjorRagEmbeddingBlockedReason,
+  IdjorRagEmbeddingModelStatus,
+  IdjorRagEmbeddingPreviewRequestResponse,
+  IdjorRagEmbeddingProviderStatus,
+  IdjorRagEmbeddingReadiness,
+  IdjorRagEmbeddingReadinessResponse,
+  IdjorRagEmbeddingRequiredFlag,
+  IdjorRagEmbeddingVectorStoreStatus,
   IdjorRagExtractionChunk,
   IdjorRagExtractionChunksPage,
   IdjorRagExtractionChunkingResponse,
@@ -976,6 +984,157 @@ function mapIdjorRagExtractionChunkingResponse(
   };
 }
 
+const IDJOR_RAG_EMBEDDING_BLOCKED_REASONS: ReadonlySet<IdjorRagEmbeddingBlockedReason> = new Set([
+  "NO_CHUNKS",
+  "EMBEDDINGS_FEATURE_FLAG_OFF",
+  "EMBEDDING_PROVIDER_DISABLED",
+  "EMBEDDING_MODEL_DISABLED",
+  "VECTOR_STORE_DISABLED",
+]);
+
+function mapIdjorRagEmbeddingBlockedReasons(value: unknown): IdjorRagEmbeddingBlockedReason[] {
+  return readArray(value).filter(
+    (entry): entry is IdjorRagEmbeddingBlockedReason =>
+      typeof entry === "string" &&
+      IDJOR_RAG_EMBEDDING_BLOCKED_REASONS.has(entry as IdjorRagEmbeddingBlockedReason),
+  );
+}
+
+function mapIdjorRagEmbeddingRequiredFlag(value: unknown): IdjorRagEmbeddingRequiredFlag | null {
+  const record = asObject(value);
+  const targetType = readString(record, "targetType");
+  const targetKey = readString(record, "targetKey");
+
+  if (targetType !== "RAG" && targetType !== "PROVIDER" && targetType !== "MODEL") {
+    return null;
+  }
+  if (!targetKey) return null;
+
+  return {
+    targetType,
+    targetKey,
+    enabled: readBooleanLike(record, "enabled") ?? false,
+  };
+}
+
+function mapIdjorRagEmbeddingProviderStatus(value: unknown): IdjorRagEmbeddingProviderStatus {
+  const record = asObject(value);
+
+  return {
+    providerKey: readString(record, "providerKey"),
+    isEnabled: readBooleanLike(record, "isEnabled") ?? false,
+    registryStatus: readString(record, "registryStatus"),
+  };
+}
+
+function mapIdjorRagEmbeddingModelStatus(value: unknown): IdjorRagEmbeddingModelStatus {
+  const record = asObject(value);
+
+  return {
+    modelKey: readString(record, "modelKey"),
+    isEnabled: readBooleanLike(record, "isEnabled") ?? false,
+    registryStatus: readString(record, "registryStatus"),
+  };
+}
+
+function mapIdjorRagEmbeddingVectorStoreStatus(
+  value: unknown,
+): IdjorRagEmbeddingVectorStoreStatus {
+  const record = asObject(value);
+
+  return {
+    vectorStoreEnabled: readBooleanLike(record, "vectorStoreEnabled") ?? false,
+    reason: readString(record, "reason"),
+  };
+}
+
+function mapIdjorRagEmbeddingReadiness(payload: unknown): IdjorRagEmbeddingReadiness {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+  const extractionId = readString(root, "extractionId");
+  const embeddingReadiness = readString(root, "embeddingReadiness");
+
+  if (
+    !root ||
+    !scope ||
+    !documentId ||
+    !documentKey ||
+    !extractionId ||
+    (embeddingReadiness !== "NOT_READY" && embeddingReadiness !== "BLOCKED")
+  ) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: readiness embeddings RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    extractionId,
+    eligibleChunksCount: readNumberLike(root, "eligibleChunksCount") ?? 0,
+    embeddingReadiness,
+    requiredFlags: readArray(root.requiredFlags)
+      .map((entry) => mapIdjorRagEmbeddingRequiredFlag(entry))
+      .filter((entry): entry is IdjorRagEmbeddingRequiredFlag => entry !== null),
+    providerStatus: mapIdjorRagEmbeddingProviderStatus(root.providerStatus),
+    modelStatus: mapIdjorRagEmbeddingModelStatus(root.modelStatus),
+    vectorStoreStatus: mapIdjorRagEmbeddingVectorStoreStatus(root.vectorStoreStatus),
+    blockedReasons: mapIdjorRagEmbeddingBlockedReasons(root.blockedReasons),
+    linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    embeddingsComputed: readBooleanLike(root, "embeddingsComputed") ?? false,
+  };
+}
+
+function mapIdjorRagEmbeddingReadinessResponse(
+  payload: unknown,
+): IdjorRagEmbeddingReadinessResponse {
+  const root = asObject(payload);
+
+  return {
+    ...mapIdjorRagEmbeddingReadiness(payload),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+function mapIdjorRagEmbeddingPreviewRequestResponse(
+  payload: unknown,
+): IdjorRagEmbeddingPreviewRequestResponse {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+  const extractionId = readString(root, "extractionId");
+  const previewStatus = readString(root, "previewStatus");
+
+  if (!root || !scope || !documentId || !documentKey || !extractionId || previewStatus !== "BLOCKED") {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: demande de preview embedding RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    extractionId,
+    previewStatus: "BLOCKED",
+    readiness: mapIdjorRagEmbeddingReadiness(root.readiness),
+    embeddingJobCreated: readBooleanLike(root, "embeddingJobCreated") ?? false,
+    embeddingReferenceCreated: readBooleanLike(root, "embeddingReferenceCreated") ?? false,
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
 function mapIdjorRegistryAgent(value: unknown): IdjorRegistryAgent | null {
   const record = asObject(value);
   const id = readString(record, "id");
@@ -1915,6 +2074,29 @@ export async function getIdjorRagExtractionChunks(
   );
 
   return mapIdjorRagExtractionChunksPage(payload);
+}
+
+export async function getIdjorRagEmbeddingReadiness(
+  extractionId: string,
+): Promise<IdjorRagEmbeddingReadinessResponse> {
+  const safeId = encodeURIComponent(extractionId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/extractions/${safeId}/embedding-readiness`,
+  );
+
+  return mapIdjorRagEmbeddingReadinessResponse(payload);
+}
+
+export async function requestIdjorRagEmbeddingPreview(
+  extractionId: string,
+): Promise<IdjorRagEmbeddingPreviewRequestResponse> {
+  const safeId = encodeURIComponent(extractionId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/extractions/${safeId}/embedding-preview-request`,
+    { method: "POST" },
+  );
+
+  return mapIdjorRagEmbeddingPreviewRequestResponse(payload);
 }
 
 export interface InsuranceApplicationByIdResult {

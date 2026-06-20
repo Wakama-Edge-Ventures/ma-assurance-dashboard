@@ -41,10 +41,12 @@ import {
   getIdjorRagDocumentIngestionPreview,
   getIdjorRagDocuments,
   getIdjorRagDocumentUploads,
+  getIdjorRagEmbeddingReadiness,
   getIdjorRagExtractionChunks,
   getIdjorRagHealth,
   getIdjorRagUploadExtractions,
   registerIdjorRagDocumentMetadata,
+  requestIdjorRagEmbeddingPreview,
   runIdjorRagExtractionChunking,
   runIdjorRagUploadExtractionPreview,
   uploadIdjorRagDocumentIntake,
@@ -64,6 +66,8 @@ import type {
   IdjorRagDocumentRegistrationSource,
   IdjorRagDocumentsSnapshot,
   IdjorRagDocumentUploadsPage,
+  IdjorRagEmbeddingPreviewRequestResponse,
+  IdjorRagEmbeddingReadinessResponse,
   IdjorRagExtractionChunk,
   IdjorRagExtractionChunkingResponse,
   IdjorRagExtractionChunksPage,
@@ -257,6 +261,18 @@ type RagExtractionChunksListState =
   | { status: "idle" }
   | { status: "loading"; extractionId: string }
   | { status: "success"; extractionId: string; page: IdjorRagExtractionChunksPage }
+  | { status: "error"; extractionId: string; message: string };
+
+type RagEmbeddingReadinessState =
+  | { status: "idle" }
+  | { status: "loading"; extractionId: string }
+  | { status: "success"; extractionId: string; response: IdjorRagEmbeddingReadinessResponse }
+  | { status: "error"; extractionId: string; message: string };
+
+type RagEmbeddingPreviewRequestState =
+  | { status: "idle" }
+  | { status: "loading"; extractionId: string }
+  | { status: "success"; extractionId: string; response: IdjorRagEmbeddingPreviewRequestResponse }
   | { status: "error"; extractionId: string; message: string };
 
 const RAG_UPLOAD_INTAKE_MAX_BYTES = 10 * 1024 * 1024;
@@ -600,6 +616,85 @@ function ExtractionChunkList({
   );
 }
 
+function EmbeddingReadinessPanel({
+  readiness,
+}: {
+  readiness: IdjorRagEmbeddingReadinessResponse;
+}) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3.5 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-amber-400/28 bg-amber-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-300">
+          {readiness.embeddingReadiness}
+        </span>
+        <span className="font-mono text-[11px] text-slate-400">
+          chunks eligibles: {readiness.eligibleChunksCount}
+        </span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ExecutiveStatus
+          label="Provider"
+          value={
+            readiness.providerStatus.providerKey
+              ? `${readiness.providerStatus.providerKey} (${readiness.providerStatus.isEnabled ? "enabled" : "disabled"})`
+              : "Aucun provider catalogue"
+          }
+          tone={readiness.providerStatus.isEnabled ? "warning" : "success"}
+        />
+        <ExecutiveStatus
+          label="Model"
+          value={
+            readiness.modelStatus.modelKey
+              ? `${readiness.modelStatus.modelKey} (${readiness.modelStatus.isEnabled ? "enabled" : "disabled"})`
+              : "Aucun modele catalogue"
+          }
+          tone={readiness.modelStatus.isEnabled ? "warning" : "success"}
+        />
+        <ExecutiveStatus
+          label="Vector store"
+          value={readiness.vectorStoreStatus.vectorStoreEnabled ? "true" : "false"}
+          tone={readiness.vectorStoreStatus.vectorStoreEnabled ? "danger" : "success"}
+        />
+      </div>
+
+      <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+          blockedReasons
+        </p>
+        {readiness.blockedReasons.length > 0 ? (
+          <ul className="space-y-1 text-xs text-slate-300">
+            {readiness.blockedReasons.map((reason) => (
+              <li key={reason} className="font-mono">
+                {reason}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-slate-500">Aucun motif de blocage signale.</p>
+        )}
+      </div>
+
+      <div className="rounded-[18px] border border-slate-400/10 bg-[#0c1322]/75 p-3">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+          requiredFlags
+        </p>
+        {readiness.requiredFlags.length > 0 ? (
+          <ul className="space-y-1 text-xs text-slate-300">
+            {readiness.requiredFlags.map((flag) => (
+              <li key={`${flag.targetType}-${flag.targetKey}`} className="font-mono">
+                {flag.targetType}:{flag.targetKey} — {flag.enabled ? "enabled" : "OFF"}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-slate-500">Aucun flag requis signale.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ExtractionResultBlock({
   extraction,
   chunkingPanelExtractionId,
@@ -607,6 +702,10 @@ function ExtractionResultBlock({
   ragExtractionChunkingState,
   ragExtractionChunksListState,
   onRunChunking,
+  ragEmbeddingReadinessState,
+  ragEmbeddingPreviewRequestState,
+  onCheckEmbeddingReadiness,
+  onRequestEmbeddingPreview,
   maxHeightClass,
 }: {
   extraction: IdjorRagDocumentExtraction;
@@ -615,6 +714,10 @@ function ExtractionResultBlock({
   ragExtractionChunkingState?: RagExtractionChunkingState;
   ragExtractionChunksListState?: RagExtractionChunksListState;
   onRunChunking?: (extractionId: string, documentId: string) => void;
+  ragEmbeddingReadinessState?: RagEmbeddingReadinessState;
+  ragEmbeddingPreviewRequestState?: RagEmbeddingPreviewRequestState;
+  onCheckEmbeddingReadiness?: (extractionId: string) => void;
+  onRequestEmbeddingPreview?: (extractionId: string, documentId: string) => void;
   maxHeightClass?: string;
 }) {
   const isChunkable = extraction.status === "EXTRACTED_PENDING_REVIEW";
@@ -727,6 +830,83 @@ function ExtractionResultBlock({
                   />
                 ) : null}
               </div>
+
+              {onCheckEmbeddingReadiness && onRequestEmbeddingPreview ? (
+                <div className="space-y-3 border-t border-slate-400/10 pt-3">
+                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-200">
+                    Readiness embeddings uniquement. Aucun embedding reel, provider externe,
+                    vector store, retrieval ou LLM n&apos;est active.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onCheckEmbeddingReadiness(extraction.id)}
+                      disabled={
+                        ragEmbeddingReadinessState?.status === "loading" &&
+                        ragEmbeddingReadinessState.extractionId === extraction.id
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
+                    >
+                      <ShieldCheck className="h-3 w-3" />
+                      {ragEmbeddingReadinessState?.status === "loading" &&
+                      ragEmbeddingReadinessState.extractionId === extraction.id
+                        ? "Verification en cours..."
+                        : "Verifier readiness embeddings"}
+                    </button>
+
+                    {ragEmbeddingReadinessState?.status === "success" &&
+                    ragEmbeddingReadinessState.extractionId === extraction.id &&
+                    (ragEmbeddingReadinessState.response.embeddingReadiness === "BLOCKED" ||
+                      ragEmbeddingReadinessState.response.embeddingReadiness === "NOT_READY") ? (
+                      <button
+                        type="button"
+                        onClick={() => onRequestEmbeddingPreview(extraction.id, extraction.documentId)}
+                        disabled={
+                          ragEmbeddingPreviewRequestState?.status === "loading" &&
+                          ragEmbeddingPreviewRequestState.extractionId === extraction.id
+                        }
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-60"
+                      >
+                        <ScanSearch className="h-3 w-3" />
+                        {ragEmbeddingPreviewRequestState?.status === "loading" &&
+                        ragEmbeddingPreviewRequestState.extractionId === extraction.id
+                          ? "Demande en cours..."
+                          : "Demande preview embedding"}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {ragEmbeddingReadinessState?.status === "error" &&
+                  ragEmbeddingReadinessState.extractionId === extraction.id ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                      {ragEmbeddingReadinessState.message}
+                    </div>
+                  ) : null}
+
+                  {ragEmbeddingReadinessState?.status === "success" &&
+                  ragEmbeddingReadinessState.extractionId === extraction.id ? (
+                    <EmbeddingReadinessPanel readiness={ragEmbeddingReadinessState.response} />
+                  ) : null}
+
+                  {ragEmbeddingPreviewRequestState?.status === "error" &&
+                  ragEmbeddingPreviewRequestState.extractionId === extraction.id ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                      {ragEmbeddingPreviewRequestState.message}
+                    </div>
+                  ) : null}
+
+                  {ragEmbeddingPreviewRequestState?.status === "success" &&
+                  ragEmbeddingPreviewRequestState.extractionId === extraction.id ? (
+                    <div className="rounded-2xl border border-amber-400/24 bg-amber-400/10 px-3 py-2 text-sm text-amber-200">
+                      Demande de preview embedding: {ragEmbeddingPreviewRequestState.response.previewStatus}.
+                      Readiness actuelle:{" "}
+                      {ragEmbeddingPreviewRequestState.response.readiness.embeddingReadiness}. Aucun
+                      job d&apos;embedding ni reference embedding n&apos;a ete cree.
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -821,6 +1001,10 @@ export function IdjorFoundationPanel() {
     useState<RagExtractionChunkingState>({ status: "idle" });
   const [ragExtractionChunksListState, setRagExtractionChunksListState] =
     useState<RagExtractionChunksListState>({ status: "idle" });
+  const [ragEmbeddingReadinessState, setRagEmbeddingReadinessState] =
+    useState<RagEmbeddingReadinessState>({ status: "idle" });
+  const [ragEmbeddingPreviewRequestState, setRagEmbeddingPreviewRequestState] =
+    useState<RagEmbeddingPreviewRequestState>({ status: "idle" });
   const [state, setState] = useState<FoundationState>({
     status: "loading",
     tenantKey: explicitTenantKey,
@@ -1096,6 +1280,8 @@ export function IdjorFoundationPanel() {
     setChunkingPanelExtractionId(null);
     setRagExtractionChunkingState({ status: "idle" });
     setRagExtractionChunksListState({ status: "idle" });
+    setRagEmbeddingReadinessState({ status: "idle" });
+    setRagEmbeddingPreviewRequestState({ status: "idle" });
 
     if (next) {
       void handleLoadDocumentUploads(next);
@@ -1175,6 +1361,8 @@ export function IdjorFoundationPanel() {
     setChunkingPanelExtractionId(null);
     setRagExtractionChunkingState({ status: "idle" });
     setRagExtractionChunksListState({ status: "idle" });
+    setRagEmbeddingReadinessState({ status: "idle" });
+    setRagEmbeddingPreviewRequestState({ status: "idle" });
 
     if (next) {
       void handleLoadUploadExtractions(next);
@@ -1204,6 +1392,8 @@ export function IdjorFoundationPanel() {
     setChunkingPanelExtractionId(next);
     setRagExtractionChunkingState({ status: "idle" });
     setRagExtractionChunksListState({ status: "idle" });
+    setRagEmbeddingReadinessState({ status: "idle" });
+    setRagEmbeddingPreviewRequestState({ status: "idle" });
 
     if (next) {
       void handleLoadExtractionChunks(next);
@@ -1234,6 +1424,51 @@ export function IdjorFoundationPanel() {
             : "Impossible de lancer le decoupage deterministe.";
 
       setRagExtractionChunkingState({ status: "error", extractionId, message });
+    }
+  };
+
+  const handleCheckEmbeddingReadiness = async (extractionId: string) => {
+    setRagEmbeddingReadinessState({ status: "loading", extractionId });
+
+    try {
+      const response = await getIdjorRagEmbeddingReadiness(extractionId);
+      setRagEmbeddingReadinessState({ status: "success", extractionId, response });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de verifier la readiness embeddings pour cette extraction.";
+
+      setRagEmbeddingReadinessState({ status: "error", extractionId, message });
+    }
+  };
+
+  const handleRequestEmbeddingPreview = async (extractionId: string, documentId: string) => {
+    setRagEmbeddingPreviewRequestState({ status: "loading", extractionId });
+
+    try {
+      const response = await requestIdjorRagEmbeddingPreview(extractionId);
+      setRagEmbeddingPreviewRequestState({ status: "success", extractionId, response });
+
+      await handleCheckEmbeddingReadiness(extractionId);
+
+      if (
+        ragDocumentAuditState.status !== "idle" &&
+        ragDocumentAuditState.documentId === documentId
+      ) {
+        await handleViewDocumentAudit(documentId);
+      }
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de demander la preview embedding pour cette extraction.";
+
+      setRagEmbeddingPreviewRequestState({ status: "error", extractionId, message });
     }
   };
 
@@ -2122,6 +2357,10 @@ export function IdjorFoundationPanel() {
                           ragExtractionChunkingState={ragExtractionChunkingState}
                           ragExtractionChunksListState={ragExtractionChunksListState}
                           onRunChunking={handleRunExtractionChunking}
+                          ragEmbeddingReadinessState={ragEmbeddingReadinessState}
+                          ragEmbeddingPreviewRequestState={ragEmbeddingPreviewRequestState}
+                          onCheckEmbeddingReadiness={handleCheckEmbeddingReadiness}
+                          onRequestEmbeddingPreview={handleRequestEmbeddingPreview}
                           maxHeightClass={tableHeightClass}
                         />
                       ) : null}
@@ -2172,6 +2411,10 @@ export function IdjorFoundationPanel() {
                                     ragExtractionChunkingState={ragExtractionChunkingState}
                                     ragExtractionChunksListState={ragExtractionChunksListState}
                                     onRunChunking={handleRunExtractionChunking}
+                                    ragEmbeddingReadinessState={ragEmbeddingReadinessState}
+                                    ragEmbeddingPreviewRequestState={ragEmbeddingPreviewRequestState}
+                                    onCheckEmbeddingReadiness={handleCheckEmbeddingReadiness}
+                                    onRequestEmbeddingPreview={handleRequestEmbeddingPreview}
                                     maxHeightClass={tableHeightClass}
                                   />
                                 ))}
