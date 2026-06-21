@@ -53,6 +53,11 @@ import {
   IdjorRagIngestionPreview,
   IdjorRagIngestionReadinessState,
   IdjorRagLinkedAssetCounts,
+  IdjorRagLlmBlockedReason,
+  IdjorRagLlmReadinessFlagKey,
+  IdjorRagLlmReadinessFlagStates,
+  IdjorRagLlmReadinessResponse,
+  IdjorRagLlmReadinessState,
   IdjorRagMetadataRegistrationStatus,
   IdjorRagRetrievalBlockedReason,
   IdjorRagRetrievalComponentStatus,
@@ -1267,6 +1272,81 @@ function mapIdjorRagRetrievalPreviewRequestResponse(
   };
 }
 
+const IDJOR_RAG_LLM_READINESS_FLAG_KEYS: ReadonlySet<IdjorRagLlmReadinessFlagKey> = new Set([
+  "llm-activation",
+  "llm-provider",
+  "llm-model",
+  "llm-prompt-guardrails",
+  "llm-execution",
+  "llm-audit-write",
+]);
+
+const IDJOR_RAG_LLM_BLOCKED_REASONS: ReadonlySet<IdjorRagLlmBlockedReason> = new Set([
+  "LLM_FEATURE_FLAG_OFF",
+  "LLM_PROVIDER_DISABLED",
+  "LLM_MODEL_DISABLED",
+  "PROMPT_GUARDRAILS_DISABLED",
+  "RETRIEVAL_NOT_READY",
+  "CITATIONS_NOT_READY",
+  "TENANT_SCOPE_REQUIRED",
+  "LLM_EXECUTION_DISABLED",
+]);
+
+function readIdjorRagLlmReadinessState(value: unknown): IdjorRagLlmReadinessState {
+  return value === "BLOCKED" ? "BLOCKED" : "NOT_READY";
+}
+
+function mapIdjorRagLlmBlockedReasons(value: unknown): IdjorRagLlmBlockedReason[] {
+  return readArray(value).filter(
+    (entry): entry is IdjorRagLlmBlockedReason =>
+      typeof entry === "string" && IDJOR_RAG_LLM_BLOCKED_REASONS.has(entry as IdjorRagLlmBlockedReason),
+  );
+}
+
+function mapIdjorRagLlmReadinessFlagStates(value: unknown): IdjorRagLlmReadinessFlagStates {
+  const record = asObject(value);
+
+  return Array.from(IDJOR_RAG_LLM_READINESS_FLAG_KEYS).reduce((states, key) => {
+    states[key] = readBooleanLike(record, key) ?? false;
+    return states;
+  }, {} as IdjorRagLlmReadinessFlagStates);
+}
+
+function mapIdjorRagLlmReadinessResponse(payload: unknown): IdjorRagLlmReadinessResponse {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+  const extractionId = readString(root, "extractionId");
+
+  if (!root || !scope || !documentId || !documentKey || !extractionId) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: readiness LLM RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    extractionId,
+    llmReadiness: readIdjorRagLlmReadinessState(root.llmReadiness),
+    flagStates: mapIdjorRagLlmReadinessFlagStates(root.flagStates),
+    blockedReasons: mapIdjorRagLlmBlockedReasons(root.blockedReasons),
+    chunksCount: readNumberLike(root, "chunksCount") ?? 0,
+    embeddingsCount: readNumberLike(root, "embeddingsCount") ?? 0,
+    citationsCount: readNumberLike(root, "citationsCount") ?? 0,
+    linkedAssetCounts: mapIdjorRagLinkedAssetCounts(root.linkedAssetCounts),
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    llmExecuted: readBooleanLike(root, "llmExecuted") ?? false,
+    citationsCreated: readBooleanLike(root, "citationsCreated") ?? false,
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
 const IDJOR_RAG_GOVERNANCE_STAGE_VALUES: ReadonlySet<IdjorRagGovernancePipelineStage> = new Set([
   "METADATA",
   "UPLOAD_QUARANTINE",
@@ -2444,6 +2524,17 @@ export async function requestIdjorRagRetrievalPreview(
   );
 
   return mapIdjorRagRetrievalPreviewRequestResponse(payload);
+}
+
+export async function getIdjorRagLlmReadiness(
+  extractionId: string,
+): Promise<IdjorRagLlmReadinessResponse> {
+  const safeId = encodeURIComponent(extractionId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/extractions/${safeId}/llm-readiness`,
+  );
+
+  return mapIdjorRagLlmReadinessResponse(payload);
 }
 
 export async function getIdjorRagDocumentGovernanceCockpit(

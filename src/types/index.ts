@@ -567,6 +567,50 @@ export interface IdjorRagRetrievalPreviewRequestResponse {
   readOnly: boolean;
 }
 
+export type IdjorRagLlmReadinessState = "NOT_READY" | "BLOCKED";
+
+export type IdjorRagLlmReadinessFlagKey =
+  | "llm-activation"
+  | "llm-provider"
+  | "llm-model"
+  | "llm-prompt-guardrails"
+  | "llm-execution"
+  | "llm-audit-write";
+
+export type IdjorRagLlmReadinessFlagStates = Record<IdjorRagLlmReadinessFlagKey, boolean>;
+
+export type IdjorRagLlmBlockedReason =
+  | "LLM_FEATURE_FLAG_OFF"
+  | "LLM_PROVIDER_DISABLED"
+  | "LLM_MODEL_DISABLED"
+  | "PROMPT_GUARDRAILS_DISABLED"
+  | "RETRIEVAL_NOT_READY"
+  | "CITATIONS_NOT_READY"
+  | "TENANT_SCOPE_REQUIRED"
+  | "LLM_EXECUTION_DISABLED";
+
+export interface IdjorRagLlmReadiness {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  extractionId: string;
+  llmReadiness: IdjorRagLlmReadinessState;
+  flagStates: IdjorRagLlmReadinessFlagStates;
+  blockedReasons: IdjorRagLlmBlockedReason[];
+  chunksCount: number;
+  embeddingsCount: number;
+  citationsCount: number;
+  linkedAssetCounts: IdjorRagLinkedAssetCounts;
+  securitySummary: IdjorRagSecuritySummary;
+  llmExecuted: boolean;
+  citationsCreated: boolean;
+}
+
+export interface IdjorRagLlmReadinessResponse extends IdjorRagLlmReadiness {
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
 export type IdjorRagGovernancePipelineStage =
   | "METADATA"
   | "UPLOAD_QUARANTINE"

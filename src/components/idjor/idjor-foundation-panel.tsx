@@ -48,6 +48,7 @@ import {
   getIdjorRagExtractionGovernanceCockpit,
   getIdjorRagExtractionChunks,
   getIdjorRagHealth,
+  getIdjorRagLlmReadiness,
   getIdjorRagRetrievalReadiness,
   getIdjorRagUploadExtractions,
   registerIdjorRagDocumentMetadata,
@@ -81,6 +82,7 @@ import type {
   IdjorRagGovernanceCockpitResponse,
   IdjorRagHealth,
   IdjorRagIngestionPreview,
+  IdjorRagLlmReadinessResponse,
   IdjorRagMetadataRegistrationStatus,
   IdjorRagRetrievalPreviewRequestResponse,
   IdjorRagRetrievalReadinessResponse,
@@ -294,6 +296,12 @@ type RagRetrievalPreviewRequestState =
   | { status: "idle" }
   | { status: "loading"; extractionId: string }
   | { status: "success"; extractionId: string; response: IdjorRagRetrievalPreviewRequestResponse }
+  | { status: "error"; extractionId: string; message: string };
+
+type RagLlmReadinessState =
+  | { status: "idle" }
+  | { status: "loading"; extractionId: string }
+  | { status: "success"; extractionId: string; response: IdjorRagLlmReadinessResponse }
   | { status: "error"; extractionId: string; message: string };
 
 type RagDocumentGovernanceCockpitState =
@@ -855,6 +863,98 @@ function RetrievalReadinessPanel({
   );
 }
 
+function LlmReadinessPanel({
+  readiness,
+}: {
+  readiness: IdjorRagLlmReadinessResponse;
+}) {
+  const flagEntries = Object.entries(readiness.flagStates);
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3.5 py-3 dark:border-slate-400/10 dark:bg-slate-400/5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-amber-300/60 bg-amber-50 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-800 dark:border-amber-400/28 dark:bg-amber-400/10 dark:text-amber-300">
+          {readiness.llmReadiness}
+        </span>
+        <span className="font-mono text-[11px] text-brand-textMuted">
+          embeddings: {readiness.embeddingsCount}
+        </span>
+        <span className="font-mono text-[11px] text-brand-textMuted">
+          citations: {readiness.citationsCount}
+        </span>
+      </div>
+
+      <p className="rounded-xl border border-slate-300/40 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-slate-400/16 dark:bg-slate-400/5 dark:text-slate-300">
+        LLM IDJOR gouverne — activation non demarree. Aucun moteur LLM actif, aucune reponse
+        generee.
+      </p>
+
+      <DataPanel className="p-3">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+          flags activation LLM (gouvernance, OFF par defaut)
+        </p>
+        <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+          {flagEntries.map(([key, enabled]) => (
+            <li key={key} className="font-mono">
+              {key} — {enabled ? "ON (gouverne)" : "OFF"}
+            </li>
+          ))}
+        </ul>
+      </DataPanel>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <StatusOverviewCard
+          label="Chunks"
+          value={String(readiness.chunksCount)}
+          hint="Chunks disponibles pour cette extraction"
+          tone="neutral"
+        />
+        <StatusOverviewCard
+          label="Embeddings"
+          value={String(readiness.embeddingsCount)}
+          hint="References deja presentes"
+          tone={readiness.embeddingsCount > 0 ? "warning" : "neutral"}
+        />
+        <StatusOverviewCard
+          label="Citations"
+          value={String(readiness.citationsCount)}
+          hint="Aucune citation reelle ne doit etre creee dans cette phase"
+          tone={readiness.citationsCount > 0 ? "warning" : "success"}
+        />
+        <StatusOverviewCard
+          label="Reponse reelle"
+          value={readiness.llmExecuted ? "1" : "0"}
+          hint="Aucune reponse LLM generee dans cette phase"
+          tone={readiness.llmExecuted ? "danger" : "success"}
+        />
+        <StatusOverviewCard
+          label="Decision automatique"
+          value="Interdite"
+          hint="Lecture seule, gouvernance uniquement"
+          tone="success"
+        />
+      </div>
+
+      <DataPanel className="p-3">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+          blockedReasons
+        </p>
+        {readiness.blockedReasons.length > 0 ? (
+          <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+            {readiness.blockedReasons.map((reason) => (
+              <li key={reason} className="font-mono">
+                {reason}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-brand-textMuted">Aucun motif de blocage signale.</p>
+        )}
+      </DataPanel>
+    </div>
+  );
+}
+
 function GovernanceCockpitPanel({
   title,
   cockpit,
@@ -1004,6 +1104,8 @@ function ExtractionResultBlock({
   ragRetrievalPreviewRequestState,
   onCheckRetrievalReadiness,
   onRequestRetrievalPreview,
+  ragLlmReadinessState,
+  onCheckLlmReadiness,
   ragDocumentGovernanceCockpitState,
   ragExtractionGovernanceCockpitState,
   onLoadDocumentGovernanceCockpit,
@@ -1024,6 +1126,8 @@ function ExtractionResultBlock({
   ragRetrievalPreviewRequestState?: RagRetrievalPreviewRequestState;
   onCheckRetrievalReadiness?: (extractionId: string, documentId: string) => void;
   onRequestRetrievalPreview?: (extractionId: string, documentId: string) => void;
+  ragLlmReadinessState?: RagLlmReadinessState;
+  onCheckLlmReadiness?: (extractionId: string, documentId: string) => void;
   ragDocumentGovernanceCockpitState?: RagDocumentGovernanceCockpitState;
   ragExtractionGovernanceCockpitState?: RagExtractionGovernanceCockpitState;
   onLoadDocumentGovernanceCockpit?: (documentId: string) => void;
@@ -1321,6 +1425,45 @@ function ExtractionResultBlock({
                 </div>
               ) : null}
 
+              {onCheckLlmReadiness ? (
+                <div className="space-y-3 border-t border-slate-400/10 pt-3">
+                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
+                    LLM readiness uniquement. Aucun appel LLM, provider externe, vector store,
+                    retrieval reel ou citation reelle n&apos;est active.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onCheckLlmReadiness(extraction.id, extraction.documentId)}
+                      disabled={
+                        ragLlmReadinessState?.status === "loading" &&
+                        ragLlmReadinessState.extractionId === extraction.id
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
+                    >
+                      <BotOff className="h-3 w-3" />
+                      {ragLlmReadinessState?.status === "loading" &&
+                      ragLlmReadinessState.extractionId === extraction.id
+                        ? "Verification en cours..."
+                        : "Verifier readiness LLM"}
+                    </button>
+                  </div>
+
+                  {ragLlmReadinessState?.status === "error" &&
+                  ragLlmReadinessState.extractionId === extraction.id ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+                      {ragLlmReadinessState.message}
+                    </div>
+                  ) : null}
+
+                  {ragLlmReadinessState?.status === "success" &&
+                  ragLlmReadinessState.extractionId === extraction.id ? (
+                    <LlmReadinessPanel readiness={ragLlmReadinessState.response} />
+                  ) : null}
+                </div>
+              ) : null}
+
               {onLoadDocumentGovernanceCockpit && onLoadExtractionGovernanceCockpit ? (
                 <div className="space-y-3 border-t border-slate-400/10 pt-3">
                   <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
@@ -1572,6 +1715,9 @@ export function IdjorFoundationPanel() {
     useState<RagRetrievalReadinessState>({ status: "idle" });
   const [ragRetrievalPreviewRequestState, setRagRetrievalPreviewRequestState] =
     useState<RagRetrievalPreviewRequestState>({ status: "idle" });
+  const [ragLlmReadinessState, setRagLlmReadinessState] = useState<RagLlmReadinessState>({
+    status: "idle",
+  });
   const [ragDocumentGovernanceCockpitState, setRagDocumentGovernanceCockpitState] =
     useState<RagDocumentGovernanceCockpitState>({ status: "idle" });
   const [ragExtractionGovernanceCockpitState, setRagExtractionGovernanceCockpitState] =
@@ -2147,6 +2293,26 @@ export function IdjorFoundationPanel() {
             : "Impossible de demander la preview retrieval pour cette extraction.";
 
       setRagRetrievalPreviewRequestState({ status: "error", extractionId, message });
+    }
+  };
+
+  const handleCheckLlmReadiness = async (extractionId: string, documentId: string) => {
+    setRagLlmReadinessState({ status: "loading", extractionId });
+
+    try {
+      const response = await getIdjorRagLlmReadiness(extractionId);
+      setRagLlmReadinessState({ status: "success", extractionId, response });
+      await refreshDocumentAuditIfVisible(documentId);
+      await refreshGovernanceCockpitIfVisible({ documentId, extractionId });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de verifier la readiness LLM pour cette extraction.";
+
+      setRagLlmReadinessState({ status: "error", extractionId, message });
     }
   };
 
@@ -3048,6 +3214,8 @@ export function IdjorFoundationPanel() {
                           ragRetrievalPreviewRequestState={ragRetrievalPreviewRequestState}
                           onCheckRetrievalReadiness={handleCheckRetrievalReadiness}
                           onRequestRetrievalPreview={handleRequestRetrievalPreview}
+                          ragLlmReadinessState={ragLlmReadinessState}
+                          onCheckLlmReadiness={handleCheckLlmReadiness}
                           ragDocumentGovernanceCockpitState={ragDocumentGovernanceCockpitState}
                           ragExtractionGovernanceCockpitState={ragExtractionGovernanceCockpitState}
                           onLoadDocumentGovernanceCockpit={handleLoadDocumentGovernanceCockpit}
@@ -3110,6 +3278,8 @@ export function IdjorFoundationPanel() {
                                     ragRetrievalPreviewRequestState={ragRetrievalPreviewRequestState}
                                     onCheckRetrievalReadiness={handleCheckRetrievalReadiness}
                                     onRequestRetrievalPreview={handleRequestRetrievalPreview}
+                                    ragLlmReadinessState={ragLlmReadinessState}
+                                    onCheckLlmReadiness={handleCheckLlmReadiness}
                                     ragDocumentGovernanceCockpitState={ragDocumentGovernanceCockpitState}
                                     ragExtractionGovernanceCockpitState={ragExtractionGovernanceCockpitState}
                                     onLoadDocumentGovernanceCockpit={handleLoadDocumentGovernanceCockpit}
