@@ -712,6 +712,43 @@ function EmbeddingReadinessPanel({
   );
 }
 
+function LlmReadinessGovernanceCard() {
+  return (
+    <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <BotOff className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
+        <h3 className="font-medium text-slate-900 dark:text-white">
+          LLM IDJOR — activation non demarree
+        </h3>
+      </div>
+
+      <p className="rounded-xl border border-slate-300/40 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-slate-400/16 dark:bg-slate-400/5 dark:text-slate-300">
+        Specification gouvernee prete — activation non demarree. Aucun moteur LLM actif.
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ExecutiveStatus label="LLM" value="OFF" tone="success" />
+        <ExecutiveStatus label="Provider" value="OFF" tone="success" />
+        <ExecutiveStatus label="Modele" value="OFF" tone="success" />
+        <ExecutiveStatus label="Guardrails prompts" value="OFF" tone="success" />
+        <ExecutiveStatus label="Execution" value="OFF" tone="success" />
+        <ExecutiveStatus label="Audit write" value="OFF" tone="success" />
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <ExecutiveStatus label="Reponse reelle" value="0" tone="success" />
+        <ExecutiveStatus label="Decision automatique" value="Interdite" tone="success" />
+      </div>
+
+      <p className="mt-3 rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3 py-2 text-xs leading-relaxed text-brand-textMuted">
+        Aucun appel LLM, aucun provider externe, aucun vector store, aucun retrieval reel et
+        aucune citation reelle ne sont actifs. Cette carte reste un socle de gouvernance en
+        lecture seule.
+      </p>
+    </div>
+  );
+}
+
 function toneForStageStatus(status: string): "success" | "warning" | "danger" | "neutral" {
   switch (status) {
     case "DONE":
@@ -2504,6 +2541,8 @@ export function IdjorFoundationPanel() {
                   )}
                 </div>
               </div>
+
+              <LlmReadinessGovernanceCard />
 
               {!demoSafeMode ? (
               <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
