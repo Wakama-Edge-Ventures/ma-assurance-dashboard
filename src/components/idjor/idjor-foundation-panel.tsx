@@ -741,6 +741,24 @@ function RetrievalReadinessPanel({
         </span>
       </div>
 
+      <p className="rounded-xl border border-slate-300/40 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-slate-400/16 dark:bg-slate-400/5 dark:text-slate-300">
+        Retrieval gouverne — activation non demarree. Aucun moteur actif.
+      </p>
+
+      <DataPanel className="p-3">
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+          flags activation retrieval (gouvernance, tous desactives)
+        </p>
+        <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+          <li className="font-mono">IDJOR_RETRIEVAL_ENABLED — OFF</li>
+          <li className="font-mono">IDJOR_RETRIEVAL_LLM_PROVIDER_ENABLED — OFF</li>
+          <li className="font-mono">IDJOR_RETRIEVAL_VECTOR_STORE_ENABLED — OFF</li>
+          <li className="font-mono">IDJOR_RETRIEVAL_CITATIONS_WRITE_ENABLED — OFF</li>
+          <li className="font-mono">IDJOR_RETRIEVAL_PREVIEW_ENABLED — OFF</li>
+          <li className="font-mono">IDJOR_RETRIEVAL_BACKFILL_ENABLED — OFF</li>
+        </ul>
+      </DataPanel>
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <StatusOverviewCard
           label="Chunks"
