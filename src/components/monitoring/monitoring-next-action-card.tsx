@@ -14,13 +14,13 @@ export function MonitoringNextActionCard({
   if (severity === "CRITICAL") {
     return (
       <Card className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
           Prochaine action
         </h2>
         <p className="text-sm text-brand-textMuted">Ouvrir un suivi sinistre.</p>
         <Link
           href="/fr/claims"
-          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+          className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
         >
           Ouvrir claims
         </Link>
@@ -31,13 +31,13 @@ export function MonitoringNextActionCard({
   if (severity === "WARNING") {
     return (
       <Card className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
           Prochaine action
         </h2>
         <p className="text-sm text-brand-textMuted">Surveiller et documenter.</p>
         <Link
           href="/fr/reports"
-          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+          className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
         >
           Ouvrir reports
         </Link>
@@ -48,13 +48,13 @@ export function MonitoringNextActionCard({
   if (policyId) {
     return (
       <Card className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
           Prochaine action
         </h2>
         <p className="text-sm text-brand-textMuted">Consulter la police associee.</p>
         <Link
           href={`/fr/policies/${policyId}`}
-          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+          className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
         >
           Ouvrir la police
         </Link>
@@ -64,13 +64,13 @@ export function MonitoringNextActionCard({
 
   return (
     <Card className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
         Prochaine action
       </h2>
       <p className="text-sm text-brand-textMuted">Revenir au monitoring.</p>
       <Link
         href="/fr/monitoring"
-        className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+        className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
       >
         Ouvrir monitoring
       </Link>

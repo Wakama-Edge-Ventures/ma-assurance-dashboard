@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(wsl -d UbuntuWakama -- bash -c \"cd ~/dev/ma-assurance-dashboard && npm run lint 2>&1 | tail -25\")",
+      "PowerShell(wsl -d UbuntuWakama -- bash -c \"cd ~/dev/ma-assurance-dashboard && npm run build 2>&1 | tail -30\")",
+      "PowerShell(wsl -d UbuntuWakama -- bash -c \"cd ~/dev/ma-assurance-dashboard && npm run smoke:live-shared 2>&1 | tail -20\")",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(cp \"C:\\\\Users\\\\wakama\\\\.claude\\\\projects\\\\--wsl-localhost-UbuntuWakama-home-wakama-dev-ma-assurance-dashboard\\\\ca3272d0-7e3c-408d-af6e-772c19fc745e\\\\tool-results\\\\webfetch-1779998532032-x5mxay.bin\" /tmp/design.gz)",
+      "Bash(gunzip -f design.gz)",
+      "Bash(ls -lh design)",
+      "Bash(file /tmp/design)",
+      "Bash(tar xf *)",
+      "Bash(find /tmp -name \"*.html\" -newer /tmp/design 2>/dev/null | head -20)",
+      "Read(//tmp/**)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\('next:', p.dependencies.next\\)\")",
+      "Read(//home/wakama/dev/ma-assurance-dashboard/src/app/**)",
+      "Read(///wsl.localhost/UbuntuWakama/home/wakama/dev/ma-assurance-dashboard/src/app/**)"
+    ]
+  }
+}

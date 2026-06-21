@@ -1,0 +1,22 @@
+# Checklist — Spec 015 (UIX-1)
+
+- [ ] Aucun backend modifié
+- [ ] Aucun changement auth
+- [ ] Aucun changement API / endpoints
+- [ ] Aucun calcul métier modifié
+- [ ] Aucune information IDJOR supprimée
+- [ ] Aucun faux signal "IA active" introduit
+- [ ] Pas de wording "LIVE IA"
+- [ ] Pas de bouton "poser une question"
+- [ ] Pas de bouton "activer embeddings"
+- [ ] Pas de bouton "vectoriser"
+- [ ] RAX/WRS non modifié
+- [ ] `src/components/insurance/evidence-bundle-panel.tsx` non modifié
+- [ ] `.claude/settings*.json` non modifié
+- [ ] Aucun commit automatique
+- [ ] `npm run lint` OK
+- [ ] `npm run build` OK
+- [ ] Scan grep couleurs hardcodées : occurrences restantes justifiées par `dark:` ou un token
+- [ ] Login de validation fonctionnel avec les identifiants seed communiqués
+- [ ] `/fr/dashboard`, `/fr/applications`, `/fr/idjor`, sidebar lisibles en light ET dark
+- [ ] Onglets/disclosures IDJOR réduisent l'empilement vertical sans retirer de section

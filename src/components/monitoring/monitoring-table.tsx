@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
+import { APP_TABLE_CLASSNAMES, AppTable } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import {
   formatDate,
   getMonitoringSignalTypeLabel,
@@ -79,48 +81,50 @@ export function MonitoringTable({ rows }: MonitoringTableProps) {
         onReset={() => setFilters(defaultFilters)}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-surface/90">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-brand-border bg-slate-900/50 text-left text-xs uppercase tracking-wide text-brand-textMuted">
+      <AppTable>
+        <table className={APP_TABLE_CLASSNAMES.table}>
+          <thead className={APP_TABLE_CLASSNAMES.head}>
             <tr>
-              <th className="px-3 py-3">Alerte / Signal</th>
-              <th className="px-3 py-3">Police liee</th>
-              <th className="px-3 py-3">Agriculteur</th>
-              <th className="px-3 py-3">Type</th>
-              <th className="px-3 py-3">Severite</th>
-              <th className="px-3 py-3">Message</th>
-              <th className="px-3 py-3">Date</th>
-              <th className="px-3 py-3">Source</th>
-              <th className="px-3 py-3">Action</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Alerte / Signal</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Police liee</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Agriculteur</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Type</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Severite</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Message</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Date</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-brand-border/70 last:border-0">
-                <td className="px-3 py-3 font-medium text-slate-100">{row.id}</td>
-                <td className="px-3 py-3 text-slate-200">
-                  <p>{row.policyNumber}</p>
-                  <p className="text-xs text-brand-textMuted">{row.policyId}</p>
+              <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} font-mono font-medium text-slate-900 dark:text-slate-100`}>
+                  {row.id}
                 </td>
-                <td className="px-3 py-3 text-slate-200">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
+                  <p>{row.policyNumber}</p>
+                  <p className="font-mono text-xs text-brand-textMuted">{row.policyId}</p>
+                </td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <p>{row.farmerName}</p>
                   <p className="text-xs text-brand-textMuted">{row.cropType}</p>
                 </td>
-                <td className="px-3 py-3 text-slate-200">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   {getMonitoringSignalTypeLabel(row.type)}
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <MonitoringSeverityBadge severity={row.severity} />
                 </td>
-                <td className="px-3 py-3 text-slate-200">{row.message}</td>
-                <td className="px-3 py-3 text-slate-200">{formatDate(row.createdAt)}</td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.message}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatDate(row.createdAt)}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <DataSourceBadge source={row.source} />
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <Link
                     href={`/fr/monitoring/${row.id}`}
-                    className="rounded-md border border-brand-border px-2.5 py-1.5 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                    className={DESIGN_TOKENS.controls.tableAction}
                   >
                     Ouvrir
                   </Link>
@@ -131,21 +135,21 @@ export function MonitoringTable({ rows }: MonitoringTableProps) {
         </table>
 
         {filteredRows.length === 0 ? (
-          <div className="space-y-2 px-4 py-10 text-center">
-            <p className="text-sm text-slate-100">Aucune alerte ne correspond aux filtres.</p>
+          <div className={APP_TABLE_CLASSNAMES.emptyState}>
+            <p className="text-sm text-slate-900 dark:text-slate-100">Aucune alerte ne correspond aux filtres.</p>
             <p className="text-xs text-brand-textMuted">
               Ajustez les criteres pour afficher les signaux de monitoring.
             </p>
             <button
               type="button"
               onClick={() => setFilters(defaultFilters)}
-              className="mt-2 rounded-md border border-brand-border px-3 py-1.5 text-xs text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+              className={DESIGN_TOKENS.controls.resetButton}
             >
               Reinitialiser les filtres
             </button>
           </div>
         ) : null}
-      </div>
+      </AppTable>
     </div>
   );
 }

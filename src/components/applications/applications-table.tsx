@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
+import { APP_TABLE_CLASSNAMES, AppTable } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import { formatDate } from "@/lib/workflow";
 import { ApplicationStatus, DataSource, InsuranceApplication, RiskTier } from "@/types";
 
@@ -70,50 +72,52 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
         onReset={() => setFilters(defaultFilters)}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-surface/90">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-brand-border bg-slate-900/50 text-left text-xs uppercase tracking-wide text-brand-textMuted">
+      <AppTable>
+        <table className={APP_TABLE_CLASSNAMES.table}>
+          <thead className={APP_TABLE_CLASSNAMES.head}>
             <tr>
-              <th className="px-3 py-3">Reference</th>
-              <th className="px-3 py-3">Agriculteur</th>
-              <th className="px-3 py-3">Culture</th>
-              <th className="px-3 py-3">Surface</th>
-              <th className="px-3 py-3">Statut</th>
-              <th className="px-3 py-3">WRS / Tier</th>
-              <th className="px-3 py-3">Source</th>
-              <th className="px-3 py-3">Date</th>
-              <th className="px-3 py-3">Action</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Reference</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Agriculteur</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Culture</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Surface</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Statut</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>WRS / Tier</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Date</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-brand-border/70 last:border-0">
-                <td className="px-3 py-3 font-medium text-slate-100">{row.reference}</td>
-                <td className="px-3 py-3 text-slate-200">
+              <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} font-medium text-slate-900 dark:text-slate-100`}>
+                  {row.reference}
+                </td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <p>{row.farmerName}</p>
                   <p className="text-xs text-brand-textMuted">{row.region ?? "Region N/A"}</p>
                 </td>
-                <td className="px-3 py-3 text-slate-200">{row.cropType}</td>
-                <td className="px-3 py-3 text-slate-200">{row.areaHa} ha</td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.cropType}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{row.areaHa} ha</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <ApplicationStatusBadge status={row.status} />
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <div className="space-y-1">
-                    <p className="text-slate-200">
+                    <p className="tabular-nums text-slate-300">
                       {typeof row.wrsScore === "number" ? row.wrsScore.toFixed(0) : "N/A"}
                     </p>
                     <RiskTierBadge tier={row.riskTier} />
                   </div>
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <DataSourceBadge source={row.source} />
                 </td>
-                <td className="px-3 py-3 text-slate-200">{formatDate(row.createdAt)}</td>
-                <td className="px-3 py-3">
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatDate(row.createdAt)}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <Link
                     href={`/fr/applications/${row.id}`}
-                    className="rounded-md border border-brand-border px-2.5 py-1.5 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                    className={DESIGN_TOKENS.controls.tableAction}
                   >
                     Ouvrir
                   </Link>
@@ -124,21 +128,21 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
         </table>
 
         {filteredRows.length === 0 ? (
-          <div className="space-y-2 px-4 py-10 text-center">
-            <p className="text-sm text-slate-100">Aucune demande ne correspond aux filtres.</p>
+          <div className={APP_TABLE_CLASSNAMES.emptyState}>
+            <p className="text-sm text-slate-900 dark:text-slate-100">Aucune demande ne correspond aux filtres.</p>
             <p className="text-xs text-brand-textMuted">
               Ajustez vos criteres pour retrouver des dossiers.
             </p>
             <button
               type="button"
               onClick={() => setFilters(defaultFilters)}
-              className="mt-2 rounded-md border border-brand-border px-3 py-1.5 text-xs text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+              className={DESIGN_TOKENS.controls.resetButton}
             >
               Reinitialiser les filtres
             </button>
           </div>
         ) : null}
-      </div>
+      </AppTable>
     </div>
   );
 }

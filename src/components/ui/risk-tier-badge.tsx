@@ -1,4 +1,4 @@
-import { RiskTier } from "@/types";
+﻿import { RiskTier } from "@/types";
 
 import { Badge } from "./badge";
 
@@ -9,7 +9,7 @@ interface RiskTierBadgeProps {
 const labels: Record<RiskTier, string> = {
   LOW_RISK: "Risque faible",
   MEDIUM_RISK: "Risque moyen",
-  HIGH_RISK: "Risque élevé",
+  HIGH_RISK: "Risque eleve",
   UNINSURABLE: "Non assurable",
 };
 

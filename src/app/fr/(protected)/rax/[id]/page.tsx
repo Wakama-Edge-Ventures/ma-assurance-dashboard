@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation";
 
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { EvidenceBundlePanel } from "@/components/insurance/evidence-bundle-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { RaxBreakdownCard } from "@/components/rax/rax-breakdown-card";
 import { RaxNextActionCard } from "@/components/rax/rax-next-action-card";
 import { Card } from "@/components/ui/card";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import {
   getFarmers,
   getInsuranceApplicationById,
@@ -68,23 +72,25 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
   const linkedAudit =
     audits.find((audit) => audit.applicationId === evaluation.applicationId) ?? null;
   const metrics = resolveMetrics(evaluation);
+  const demoStepId = isScenarioEntityId(evaluation.id) ? "step-rax" : undefined;
 
   return (
     <div className="space-y-6">
       <PageTitle title={`Evaluation ${evaluation.id}`} description="Detail RAX/WRS technique." />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-brand-textMuted">Evaluation ID</p>
-            <p className="text-lg font-semibold text-slate-100">{evaluation.id}</p>
+            <p className="text-lg font-semibold text-white">{evaluation.id}</p>
           </div>
           <div className="flex items-center gap-2">
             <RiskTierBadge tier={evaluation.riskTier} />
             <DataSourceBadge source={evaluation.source} />
           </div>
         </div>
-        <div className="grid gap-3 text-sm text-slate-200 md:grid-cols-3">
+        <div className="grid gap-3 text-[13px] text-slate-300 md:grid-cols-3">
           <p>Demande liee: {application?.reference ?? evaluation.applicationId}</p>
           <p>Agriculteur: {farmer?.fullName ?? "N/A"}</p>
           <p>WRS: {formatScore(metrics.wrs)}</p>
@@ -125,10 +131,10 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
       </div>
 
       <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
           Lecture du coefficient D
         </h2>
-        <p className="mt-3 text-sm text-slate-200">
+        <p className="mt-3 text-[13px] text-slate-300">
           Plus la surveillance active est forte, plus le coefficient D diminue.
         </p>
         <p className="mt-2 text-xs text-brand-textMuted">
@@ -138,10 +144,10 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Evidence liee
           </h2>
-          <div className="mt-3 space-y-2 text-sm text-slate-200">
+          <div className="mt-3 space-y-2 text-[13px] text-slate-300">
             <p>Demande: {application?.reference ?? evaluation.applicationId}</p>
             <p>Statut demande: {application?.status ?? "N/A"}</p>
             <p>Mode audit: {linkedAudit ? getAuditModeLabel(linkedAudit.auditMode) : "N/A"}</p>
@@ -160,10 +166,10 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
         </Card>
 
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Calibration
           </h2>
-          <p className="mt-3 text-sm text-slate-200">
+          <p className="mt-3 text-[13px] text-slate-300">
             Ce score est un framework v1. Il doit etre calibre avec les historiques de
             sinistres, cultures, zones et regles de souscription de l&apos;assureur.
           </p>
@@ -179,6 +185,19 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
       </div>
 
       <RaxNextActionCard tier={evaluation.riskTier} applicationId={evaluation.applicationId} />
+      <EvidenceBundlePanel
+        title="Evidence bundle - résultat RAX"
+        applicationId={evaluation.applicationId}
+        entityType="RAX_EVALUATION"
+        entityId={evaluation.id}
+        payload={{
+          evaluationId: evaluation.id,
+          applicationId: evaluation.applicationId,
+          wrs: metrics.wrs,
+          riskTier: evaluation.riskTier,
+        }}
+      />
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }

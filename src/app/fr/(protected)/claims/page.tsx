@@ -1,7 +1,8 @@
 import { AlertOctagon, ClipboardList, FolderClock, FolderKanban, HandCoins } from "lucide-react";
 
 import { ClaimsTable, ClaimRow } from "@/components/claims/claims-table";
-import { Card } from "@/components/ui/card";
+import { InsuranceReferencesPanel } from "@/components/insurance/insurance-references-panel";
+import { AppSection } from "@/components/ui/app-section";
 import { PageTitle } from "@/components/ui/page-title";
 import { StatCard } from "@/components/ui/stat-card";
 import {
@@ -102,6 +103,8 @@ export default async function ClaimsPage() {
         d&apos;indemnisation.
       </p>
 
+      <InsuranceReferencesPanel context="claims" />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           title="Signalements ouverts"
@@ -135,21 +138,15 @@ export default async function ClaimsPage() {
         />
       </div>
 
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
-          Lien alertes critiques
-        </h2>
-        <p className="mt-3 text-sm text-brand-textMuted">
+      <AppSection title="Lien alertes critiques">
+        <p className="text-[13px] text-brand-textMuted">
           Les alertes CRITICAL du Monitoring 360deg peuvent ouvrir un suivi sinistre, mais
           ne declenchent pas automatiquement une indemnisation.
         </p>
-      </Card>
+      </AppSection>
 
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
-          Distribution severite
-        </h2>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <AppSection title="Distribution severite">
+        <div className="flex flex-wrap gap-2">
           {Object.entries(severityDistribution)
             .sort(
               ([a], [b]) => getMonitoringSeverityOrder(b) - getMonitoringSeverityOrder(a),
@@ -157,13 +154,13 @@ export default async function ClaimsPage() {
             .map(([severity, count]) => (
               <span
                 key={severity}
-                className="rounded-full border border-brand-border bg-slate-900 px-3 py-1 text-xs text-brand-textMuted"
+                className="rounded-full border border-slate-400/10 bg-slate-800/60 px-3 py-1 font-mono text-[11px] text-slate-400"
               >
                 {getMonitoringSeverityLabel(severity)}: {count}
               </span>
             ))}
         </div>
-      </Card>
+      </AppSection>
 
       <ClaimsTable rows={rows} />
     </div>

@@ -31,7 +31,7 @@ export function MissionChecklist({ mission, linkedAudit }: MissionChecklistProps
 
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
         Checklist operationnelle
       </h2>
       <ul className="mt-3 space-y-2 text-sm">

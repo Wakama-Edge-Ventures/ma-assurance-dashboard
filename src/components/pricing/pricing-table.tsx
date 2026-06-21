@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
+import { APP_TABLE_CLASSNAMES, AppTable } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import { formatMAD } from "@/lib/workflow";
 import { DataSource, RiskTier } from "@/types";
 
@@ -64,49 +66,51 @@ export function PricingTable({ rows }: PricingTableProps) {
         onReset={() => setFilters(defaultFilters)}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-surface/90">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-brand-border bg-slate-900/50 text-left text-xs uppercase tracking-wide text-brand-textMuted">
+      <AppTable>
+        <table className={APP_TABLE_CLASSNAMES.table}>
+          <thead className={APP_TABLE_CLASSNAMES.head}>
             <tr>
-              <th className="px-3 py-3">Offre</th>
-              <th className="px-3 py-3">Demande liee</th>
-              <th className="px-3 py-3">Agriculteur</th>
-              <th className="px-3 py-3">Capital assure</th>
-              <th className="px-3 py-3">Prime pure</th>
-              <th className="px-3 py-3">Frais</th>
-              <th className="px-3 py-3">Taxes</th>
-              <th className="px-3 py-3">Prime TTC</th>
-              <th className="px-3 py-3">Decision farmer</th>
-              <th className="px-3 py-3">Source</th>
-              <th className="px-3 py-3">Action</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Offre</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Demande liee</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Agriculteur</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Capital assure</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Prime pure</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Frais</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Taxes</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Prime TTC</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Decision farmer</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-brand-border/70 last:border-0">
-                <td className="px-3 py-3 font-medium text-slate-100">{row.id}</td>
-                <td className="px-3 py-3 text-slate-200">{row.applicationReference}</td>
-                <td className="px-3 py-3 text-slate-200">
+              <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} font-mono font-medium text-slate-900 dark:text-slate-100`}>
+                  {row.id}
+                </td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.applicationReference}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <p>{row.farmerName}</p>
                   <p className="text-xs text-brand-textMuted">{row.cropType}</p>
                 </td>
-                <td className="px-3 py-3 text-slate-200">{formatMAD(row.totalInsuredCapital)}</td>
-                <td className="px-3 py-3 text-slate-200">{formatMAD(row.purePremiumAmount)}</td>
-                <td className="px-3 py-3 text-slate-200">{formatMAD(row.managementFees)}</td>
-                <td className="px-3 py-3 text-slate-200">{formatMAD(row.taxAmount)}</td>
-                <td className="px-3 py-3 font-medium text-slate-100">
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatMAD(row.totalInsuredCapital)}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatMAD(row.purePremiumAmount)}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatMAD(row.managementFees)}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatMAD(row.taxAmount)}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums font-medium text-slate-900 dark:text-slate-100`}>
                   {formatMAD(row.totalCommercialPremiumTtc)}
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <PricingDecisionBadge decision={row.farmerDecision} />
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <DataSourceBadge source={row.source} />
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <Link
                     href={`/fr/pricing/${row.id}`}
-                    className="rounded-md border border-brand-border px-2.5 py-1.5 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                    className={DESIGN_TOKENS.controls.tableAction}
                   >
                     Ouvrir
                   </Link>
@@ -117,21 +121,21 @@ export function PricingTable({ rows }: PricingTableProps) {
         </table>
 
         {filteredRows.length === 0 ? (
-          <div className="space-y-2 px-4 py-10 text-center">
-            <p className="text-sm text-slate-100">Aucune offre ne correspond aux filtres.</p>
+          <div className={APP_TABLE_CLASSNAMES.emptyState}>
+            <p className="text-sm text-slate-900 dark:text-slate-100">Aucune offre ne correspond aux filtres.</p>
             <p className="text-xs text-brand-textMuted">
               Ajustez les criteres pour afficher des suggestions de prime technique.
             </p>
             <button
               type="button"
               onClick={() => setFilters(defaultFilters)}
-              className="mt-2 rounded-md border border-brand-border px-3 py-1.5 text-xs text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+              className={DESIGN_TOKENS.controls.resetButton}
             >
               Reinitialiser les filtres
             </button>
           </div>
         ) : null}
-      </div>
+      </AppTable>
     </div>
   );
 }

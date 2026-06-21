@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 
 import { WakamaAlertSeverityBadge } from "@/components/shared/wakama-alert-severity-badge";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
+import { APP_TABLE_CLASSNAMES, AppTable, AppTableFilters } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import { formatDate } from "@/lib/workflow";
 import { DataSource } from "@/types";
 
@@ -59,12 +61,12 @@ export function WakamaAlertsTable({ rows }: WakamaAlertsTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 rounded-xl border border-brand-border bg-brand-surface/90 p-4 md:grid-cols-5">
+      <AppTableFilters className="md:grid-cols-5">
         <input
           value={filters.search}
           onChange={(event) => setFilters({ ...filters, search: event.target.value })}
           placeholder="Recherche: id, message, type, entite..."
-          className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet md:col-span-2"
+          className={`${DESIGN_TOKENS.controls.input} md:col-span-2`}
         />
 
         <select
@@ -75,7 +77,7 @@ export function WakamaAlertsTable({ rows }: WakamaAlertsTableProps) {
               severity: event.target.value as WakamaAlertsFiltersState["severity"],
             })
           }
-          className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+          className={DESIGN_TOKENS.controls.select}
         >
           <option value="ALL">Toutes severites</option>
           <option value="CRITICAL">CRITICAL</option>
@@ -92,7 +94,7 @@ export function WakamaAlertsTable({ rows }: WakamaAlertsTableProps) {
               type: event.target.value,
             })
           }
-          className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+          className={DESIGN_TOKENS.controls.select}
         >
           <option value="ALL">Tous types</option>
           {types.map((type) => (
@@ -110,40 +112,40 @@ export function WakamaAlertsTable({ rows }: WakamaAlertsTableProps) {
               source: event.target.value as WakamaAlertsFiltersState["source"],
             })
           }
-          className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+          className={DESIGN_TOKENS.controls.select}
         >
           <option value="ALL">Toutes sources</option>
           <option value="LIVE">LIVE</option>
           <option value="SEED_DEMO">SEED_DEMO</option>
         </select>
-      </div>
+      </AppTableFilters>
 
-      <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-surface/90">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-brand-border bg-slate-900/50 text-left text-xs uppercase tracking-wide text-brand-textMuted">
+      <AppTable>
+        <table className={APP_TABLE_CLASSNAMES.table}>
+          <thead className={APP_TABLE_CLASSNAMES.head}>
             <tr>
-              <th className="px-3 py-3">Alerte</th>
-              <th className="px-3 py-3">Severite</th>
-              <th className="px-3 py-3">Type</th>
-              <th className="px-3 py-3">Entite liee</th>
-              <th className="px-3 py-3">Date</th>
-              <th className="px-3 py-3">Source</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Alerte</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Severite</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Type</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Entite liee</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Date</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-brand-border/70 last:border-0">
-                <td className="px-3 py-3 text-slate-200">
-                  <p className="font-medium text-slate-100">{row.title}</p>
+              <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
+                  <p className="font-medium text-slate-900 dark:text-slate-100">{row.title}</p>
                   <p className="text-xs text-brand-textMuted">{row.message}</p>
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <WakamaAlertSeverityBadge severity={row.severity} />
                 </td>
-                <td className="px-3 py-3 text-slate-200">{row.type}</td>
-                <td className="px-3 py-3 text-slate-200">{row.linkedEntity}</td>
-                <td className="px-3 py-3 text-slate-200">{formatDate(row.createdAt)}</td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.type}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} font-mono`}>{row.linkedEntity}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{formatDate(row.createdAt)}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <DataSourceBadge source={row.source} />
                 </td>
               </tr>
@@ -152,14 +154,14 @@ export function WakamaAlertsTable({ rows }: WakamaAlertsTableProps) {
         </table>
 
         {filteredRows.length === 0 ? (
-          <div className="space-y-2 px-4 py-10 text-center">
-            <p className="text-sm text-slate-100">Aucune alerte ne correspond aux filtres.</p>
+          <div className={APP_TABLE_CLASSNAMES.emptyState}>
+            <p className="text-sm text-slate-900 dark:text-slate-100">Aucune alerte ne correspond aux filtres.</p>
             <p className="text-xs text-brand-textMuted">
               Ajustez les criteres pour afficher les signaux operationnels.
             </p>
           </div>
         ) : null}
-      </div>
+      </AppTable>
     </div>
   );
 }

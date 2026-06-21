@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { GuidedDemoPanel } from "@/components/demo/guided-demo-panel";
+import { PipelineStepper } from "@/components/demo/pipeline-stepper";
 import { PolicyNextActionCard } from "@/components/policies/policy-next-action-card";
 import { PolicyStatusBadge } from "@/components/policies/policy-status-badge";
 import { Card } from "@/components/ui/card";
+import { isScenarioEntityId } from "@/lib/demo-scenario";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { PageTitle } from "@/components/ui/page-title";
 import { RiskTierBadge } from "@/components/ui/risk-tier-badge";
@@ -78,6 +81,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
   const decision = linkedOffer?.farmerDecision ?? "PENDING";
 
   const currentPolicy = policyMap.get(policy.id) ?? policy;
+  const demoStepId = isScenarioEntityId(policy.id) ? "step-policy" : undefined;
 
   return (
     <div className="space-y-6">
@@ -85,6 +89,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
         title={`Police ${currentPolicy.policyNumber}`}
         description="Suivi operationnel Wakama sur police communiquee par l'assureur."
       />
+      {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -92,7 +97,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
             <p className="text-xs uppercase tracking-wide text-brand-textMuted">
               Policy ID / Number
             </p>
-            <p className="text-lg font-semibold text-slate-100">
+            <p className="text-lg font-semibold text-white">
               {currentPolicy.id} - {currentPolicy.policyNumber}
             </p>
           </div>
@@ -101,7 +106,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
             <DataSourceBadge source={currentPolicy.source} />
           </div>
         </div>
-        <div className="grid gap-3 text-sm text-slate-200 md:grid-cols-3">
+        <div className="grid gap-3 text-[13px] text-slate-300 md:grid-cols-3">
           <p>Demande liee: {application?.reference ?? currentPolicy.applicationId}</p>
           <p>Agriculteur: {farmer?.fullName ?? "N/A"}</p>
           <p>Statut: {currentPolicy.status}</p>
@@ -114,10 +119,10 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Couverture
           </h2>
-          <div className="mt-3 grid gap-2 text-sm text-slate-200 md:grid-cols-2">
+          <div className="mt-3 grid gap-2 text-[13px] text-slate-300 md:grid-cols-2">
             <p>Capital assure: {formatMAD(capitalInsured)}</p>
             <p>Prime TTC: {formatMAD(premiumTtc)}</p>
             <p>Date debut: {formatDate(startDate)}</p>
@@ -131,11 +136,11 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
         </Card>
 
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Offre commerciale liee
           </h2>
           {linkedOffer ? (
-            <div className="mt-3 space-y-2 text-sm text-slate-200">
+            <div className="mt-3 space-y-2 text-[13px] text-slate-300">
               <p>Offre: {linkedOffer.id}</p>
               <p>
                 Prime TTC:{" "}
@@ -148,7 +153,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
               <p>Jeton de passage guichet: {linkedOffer.agencyPickupToken ?? "N/A"}</p>
               <Link
                 href={`/fr/pricing/${linkedOffer.id}`}
-                className="inline-flex rounded-md border border-brand-border px-3 py-2 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
               >
                 Ouvrir la tarification
               </Link>
@@ -163,11 +168,11 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Risque lie
           </h2>
           {linkedRax ? (
-            <div className="mt-3 space-y-2 text-sm text-slate-200">
+            <div className="mt-3 space-y-2 text-[13px] text-slate-300">
               <div className="flex items-center gap-2">
                 <RiskTierBadge tier={linkedRax.riskTier} />
               </div>
@@ -175,7 +180,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
               <p>G/F/D: {formatScore(linkedRax.gravity ?? 0)} / {formatScore(linkedRax.frequency ?? 0)} / {formatScore(linkedRax.detection ?? 0)}</p>
               <Link
                 href={`/fr/rax/${linkedRax.id}`}
-                className="inline-flex rounded-md border border-brand-border px-3 py-2 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
               >
                 Ouvrir la fiche RAX/WRS
               </Link>
@@ -188,10 +193,10 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
         </Card>
 
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Monitoring readiness
           </h2>
-          <div className="mt-3 space-y-2 text-sm text-slate-200">
+          <div className="mt-3 space-y-2 text-[13px] text-slate-300">
             <p>Monitoring actif: {currentPolicy.status === "ACTIVE" ? "Oui" : "Non"}</p>
             <p>Alertes liees: {openAlertsCount}</p>
             <p>
@@ -201,13 +206,13 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/fr/monitoring"
-                className="inline-flex rounded-md border border-brand-border px-3 py-2 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
               >
                 Ouvrir monitoring
               </Link>
               <Link
                 href="/fr/claims"
-                className="inline-flex rounded-md border border-brand-border px-3 py-2 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
               >
                 Ouvrir claims
               </Link>
@@ -218,10 +223,10 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+          <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
             Integrite
           </h2>
-          <p className="mt-3 text-sm text-slate-200">
+          <p className="mt-3 text-[13px] text-slate-300">
             Le hash de la police communiquee par l&apos;assureur pourra etre ancre de maniere
             asynchrone. L&apos;ancrage Solana ne bloque pas le workflow metier.
           </p>
@@ -233,6 +238,7 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
           applicationId={currentPolicy.applicationId}
         />
       </div>
+      {demoStepId && <GuidedDemoPanel currentStepId={demoStepId} />}
     </div>
   );
 }

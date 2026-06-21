@@ -1,5 +1,6 @@
 import { BadgeDollarSign, CircleCheck, CircleEllipsis, FileStack, HandCoins } from "lucide-react";
 
+import { InsuranceReferencesPanel } from "@/components/insurance/insurance-references-panel";
 import { PricingFormulaCard } from "@/components/pricing/pricing-formula-card";
 import { PricingRow, PricingTable } from "@/components/pricing/pricing-table";
 import { PageTitle } from "@/components/ui/page-title";
@@ -102,6 +103,8 @@ export default async function PricingPage() {
         Wakama prepare une proposition technique ; l&apos;assureur conserve la validation
         commerciale et contractuelle.
       </p>
+
+      <InsuranceReferencesPanel context="pricing" />
 
       <PricingFormulaCard />
 

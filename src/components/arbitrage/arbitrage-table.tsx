@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
+import { APP_TABLE_CLASSNAMES, AppTable } from "@/components/ui/app-table";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 import { getAreaDeltaSeverity, getAuditModeLabel } from "@/lib/workflow";
 import { DataSource, InsuranceFieldAudit } from "@/types";
 
@@ -62,52 +64,52 @@ export function ArbitrageTable({ rows }: ArbitrageTableProps) {
         onReset={() => setFilters(defaultFilters)}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-surface/90">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-brand-border bg-slate-900/50 text-left text-xs uppercase tracking-wide text-brand-textMuted">
+      <AppTable>
+        <table className={APP_TABLE_CLASSNAMES.table}>
+          <thead className={APP_TABLE_CLASSNAMES.head}>
             <tr>
-              <th className="px-3 py-3">Audit / Reference</th>
-              <th className="px-3 py-3">Demande liee</th>
-              <th className="px-3 py-3">Agriculteur</th>
-              <th className="px-3 py-3">Surface declaree</th>
-              <th className="px-3 py-3">Surface mesuree</th>
-              <th className="px-3 py-3">Ecart %</th>
-              <th className="px-3 py-3">Actifs valides / rejetes</th>
-              <th className="px-3 py-3">Mode audit</th>
-              <th className="px-3 py-3">Source</th>
-              <th className="px-3 py-3">Action</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Audit / Reference</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Demande liee</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Agriculteur</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Surface declaree</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Surface mesuree</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Ecart %</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Actifs valides / rejetes</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Mode audit</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-brand-border/70 last:border-0">
-                <td className="px-3 py-3 font-medium text-slate-100">
+              <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} font-medium text-slate-900 dark:text-slate-100`}>
                   <p>{row.id}</p>
-                  <p className="text-xs text-brand-textMuted">{row.missionId ?? "Mission N/A"}</p>
+                  <p className="font-mono text-xs text-brand-textMuted">{row.missionId ?? "Mission N/A"}</p>
                 </td>
-                <td className="px-3 py-3 text-slate-200">{row.applicationReference}</td>
-                <td className="px-3 py-3 text-slate-200">{row.farmerName}</td>
-                <td className="px-3 py-3 text-slate-200">{row.declaredAreaHa} ha</td>
-                <td className="px-3 py-3 text-slate-200">{row.measuredAreaHa} ha</td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.applicationReference}</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.farmerName}</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{row.declaredAreaHa} ha</td>
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>{row.measuredAreaHa} ha</td>
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <div className="space-y-1">
-                    <p className="text-slate-200">{row.areaDeltaPercent.toFixed(1)}%</p>
+                    <p className="tabular-nums text-slate-300">{row.areaDeltaPercent.toFixed(1)}%</p>
                     <AreaDeltaBadge deltaPercent={row.areaDeltaPercent} />
                   </div>
                 </td>
-                <td className="px-3 py-3 text-slate-200">
+                <td className={`${APP_TABLE_CLASSNAMES.bodyCell} tabular-nums`}>
                   {row.assetsApprovedCount}/{row.assetsRejectedCount}
                 </td>
-                <td className="px-3 py-3 text-slate-200">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   {getAuditModeLabel(row.auditMode)}
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <DataSourceBadge source={row.source} />
                 </td>
-                <td className="px-3 py-3">
+                <td className={APP_TABLE_CLASSNAMES.bodyCell}>
                   <Link
                     href={`/fr/arbitrage/${row.id}`}
-                    className="rounded-md border border-brand-border px-2.5 py-1.5 text-xs text-slate-100 transition-colors hover:bg-slate-900"
+                    className={DESIGN_TOKENS.controls.tableAction}
                   >
                     Ouvrir
                   </Link>
@@ -118,21 +120,21 @@ export function ArbitrageTable({ rows }: ArbitrageTableProps) {
         </table>
 
         {filteredRows.length === 0 ? (
-          <div className="space-y-2 px-4 py-10 text-center">
-            <p className="text-sm text-slate-100">Aucun audit ne correspond aux filtres.</p>
+          <div className={APP_TABLE_CLASSNAMES.emptyState}>
+            <p className="text-sm text-slate-900 dark:text-slate-100">Aucun audit ne correspond aux filtres.</p>
             <p className="text-xs text-brand-textMuted">
               Ajustez les criteres pour afficher des dossiers d&apos;arbitrage.
             </p>
             <button
               type="button"
               onClick={() => setFilters(defaultFilters)}
-              className="mt-2 rounded-md border border-brand-border px-3 py-1.5 text-xs text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+              className={DESIGN_TOKENS.controls.resetButton}
             >
               Reinitialiser les filtres
             </button>
           </div>
         ) : null}
-      </div>
+      </AppTable>
     </div>
   );
 }

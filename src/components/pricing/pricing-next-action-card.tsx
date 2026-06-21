@@ -11,16 +11,16 @@ export function PricingNextActionCard({
 }: PricingNextActionCardProps) {
   if (decision === "ACCEPTED") {
     return (
-      <div className="space-y-3 rounded-lg border border-brand-border bg-slate-900/40 p-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <div className="space-y-3 rounded-[20px] border border-slate-400/10 bg-[#101726]/92 p-[18px_20px_20px]">
+        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
           Prochaine etape
         </h2>
-        <p className="text-sm text-brand-textMuted">
+        <p className="text-[13px] text-brand-textMuted">
           Accord producteur enregistre, passage vers emission potentielle par l&apos;assureur.
         </p>
         <Link
           href="/fr/policies"
-          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+          className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
         >
           Aller aux polices
         </Link>
@@ -30,16 +30,16 @@ export function PricingNextActionCard({
 
   if (decision === "REJECTED" || decision === "EXPIRED") {
     return (
-      <div className="space-y-3 rounded-lg border border-brand-border bg-slate-900/40 p-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <div className="space-y-3 rounded-[20px] border border-slate-400/10 bg-[#101726]/92 p-[18px_20px_20px]">
+        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
           Prochaine etape
         </h2>
-        <p className="text-sm text-brand-textMuted">
+        <p className="text-[13px] text-brand-textMuted">
           Retour dossier recommande avant nouvelle proposition technique.
         </p>
         <Link
           href={`/fr/applications/${applicationId}`}
-          className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+          className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
         >
           Revenir a la demande
         </Link>
@@ -48,16 +48,16 @@ export function PricingNextActionCard({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-brand-border bg-slate-900/40 p-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+    <div className="space-y-3 rounded-[20px] border border-slate-400/10 bg-[#101726]/92 p-[18px_20px_20px]">
+      <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
         Prochaine etape
       </h2>
-      <p className="text-sm text-brand-textMuted">
+      <p className="text-[13px] text-brand-textMuted">
         Attente accord farmer / validation assureur.
       </p>
       <Link
         href={`/fr/applications/${applicationId}`}
-        className="inline-flex rounded-md border border-brand-border px-3 py-2 text-sm text-slate-100 transition-colors hover:bg-slate-900"
+        className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
       >
         Suivre la demande
       </Link>

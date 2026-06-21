@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 
 import { WakamaAlertSeverityBadge } from "@/components/shared/wakama-alert-severity-badge";
 import { DataSourceBadge } from "@/components/ui/data-source-badge";
+import { APP_TABLE_CLASSNAMES, AppTable, AppTableFilters } from "@/components/ui/app-table";
+import { cn } from "@/lib/utils";
 import { DataSource } from "@/types";
 
 export interface FarmerRow {
@@ -32,6 +35,13 @@ const defaultFilters: FarmersFiltersState = {
   source: "ALL",
 };
 
+function maskDemoPhone(phone: string) {
+  const normalized = phone.trim();
+  if (!normalized) return "contact demo";
+  if (normalized.length <= 6) return "*** demo";
+  return `${normalized.slice(0, 4)} *** *** ${normalized.slice(-2)} demo`;
+}
+
 export function FarmersTable({ rows }: FarmersTableProps) {
   const [filters, setFilters] = useState(defaultFilters);
 
@@ -47,88 +57,141 @@ export function FarmersTable({ rows }: FarmersTableProps) {
     });
   }, [filters, rows]);
 
+  const hasActiveFilters = filters.search !== "" || filters.source !== "ALL";
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 rounded-xl border border-brand-border bg-brand-surface/90 p-4 md:grid-cols-4">
-        <input
-          value={filters.search}
-          onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-          placeholder="Recherche: nom, telephone, region, cooperative..."
-          className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet md:col-span-2"
-        />
+    <div className="space-y-3">
+      {/* Filter panel */}
+      <AppTableFilters className="md:grid-cols-[1fr_auto_auto]">
+        {/* Search */}
+        <div className="relative flex items-center">
+          <Search className="pointer-events-none absolute left-3.5 h-[14px] w-[14px] text-cyan-400" />
+          <input
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            placeholder="Recherche: nom, téléphone, région, coopérative…"
+            className={cn(
+              "w-full rounded-full border border-cyan-400/16 bg-[#0b1422]/75 py-2 pl-9 pr-4",
+              "font-sans text-[13px] text-white outline-none placeholder:text-[#5B6B86]",
+              "transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20",
+            )}
+          />
+        </div>
+
+        {/* Source select */}
         <select
           value={filters.source}
-          onChange={(event) =>
-            setFilters({ ...filters, source: event.target.value as FarmersFiltersState["source"] })
+          onChange={(e) =>
+            setFilters({ ...filters, source: e.target.value as FarmersFiltersState["source"] })
           }
-          className="rounded-md border border-brand-border bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-violet"
+          className={cn(
+            "rounded-full border border-slate-400/16 bg-[#0b1422]/75 px-4 py-2",
+            "font-mono text-[12px] text-slate-300 outline-none",
+            "transition focus:border-cyan-400/40",
+          )}
         >
           <option value="ALL">Toutes sources</option>
           <option value="LIVE">LIVE</option>
           <option value="SEED_DEMO">SEED_DEMO</option>
         </select>
+
+        {/* Reset */}
         <button
           type="button"
           onClick={() => setFilters(defaultFilters)}
-          className="rounded-md border border-brand-border px-3 py-2 text-sm text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-transparent px-4 py-2",
+            "font-mono text-[12px] text-slate-400 transition-colors",
+            "hover:border-cyan-400/30 hover:text-white",
+            hasActiveFilters ? "border-cyan-400/30 text-white" : "",
+          )}
         >
-          Reinitialiser filtres
+          {hasActiveFilters ? <X className="h-3 w-3" /> : <SlidersHorizontal className="h-3 w-3" />}
+          Filtres
         </button>
-      </div>
+      </AppTableFilters>
 
-      <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-surface/90">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-brand-border bg-slate-900/50 text-left text-xs uppercase tracking-wide text-brand-textMuted">
-            <tr>
-              <th className="px-3 py-3">Agriculteur</th>
-              <th className="px-3 py-3">Region / commune</th>
-              <th className="px-3 py-3">Cooperative</th>
-              <th className="px-3 py-3">Parcelles</th>
-              <th className="px-3 py-3">Alertes</th>
-              <th className="px-3 py-3">Niveau</th>
-              <th className="px-3 py-3">Source</th>
-              <th className="px-3 py-3">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRows.map((row) => (
-              <tr key={row.id} className="border-b border-brand-border/70 last:border-0">
-                <td className="px-3 py-3 text-slate-200">
-                  <p className="font-medium text-slate-100">{row.fullName}</p>
-                  <p className="text-xs text-brand-textMuted">{row.phone}</p>
-                </td>
-                <td className="px-3 py-3 text-slate-200">{row.region}</td>
-                <td className="px-3 py-3 text-slate-200">{row.cooperativeName}</td>
-                <td className="px-3 py-3 text-slate-200">{row.parcellesCount}</td>
-                <td className="px-3 py-3 text-slate-200">{row.alertsCount}</td>
-                <td className="px-3 py-3 text-slate-200">
-                  {row.highestAlertSeverity ? (
-                    <WakamaAlertSeverityBadge severity={row.highestAlertSeverity} />
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td className="px-3 py-3">
-                  <DataSourceBadge source={row.source} />
-                </td>
-                <td className="px-3 py-3">
-                  <span className="rounded-md border border-brand-border px-2.5 py-1.5 text-xs text-brand-textMuted">
-                    Detail bientot
-                  </span>
-                </td>
+      {/* Table */}
+      <AppTable>
+        <div className="overflow-x-auto">
+          <table className={APP_TABLE_CLASSNAMES.table}>
+            <thead className={APP_TABLE_CLASSNAMES.head}>
+              <tr>
+                <th className={APP_TABLE_CLASSNAMES.headCell}>Agriculteur</th>
+                <th className={APP_TABLE_CLASSNAMES.headCell}>Région</th>
+                <th className={APP_TABLE_CLASSNAMES.headCell}>Coopérative</th>
+                <th className={APP_TABLE_CLASSNAMES.headCell}>Parcelles</th>
+                <th className={APP_TABLE_CLASSNAMES.headCell}>Alertes</th>
+                <th className={APP_TABLE_CLASSNAMES.headCell}>Niveau</th>
+                <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
+                <th className={APP_TABLE_CLASSNAMES.headCell}></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredRows.map((row) => (
+                <tr key={row.id} className={APP_TABLE_CLASSNAMES.row}>
+                  <td className={APP_TABLE_CLASSNAMES.bodyCell}>
+                    <p className="font-medium text-white">{row.fullName}</p>
+                    <p
+                      className={cn(
+                        "font-mono text-[11px]",
+                        row.source === "SEED_DEMO" ? "text-amber-300/80" : "text-[#5B6B86]",
+                      )}
+                    >
+                      {row.source === "SEED_DEMO" ? maskDemoPhone(row.phone) : row.phone}
+                    </p>
+                  </td>
+                  <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.region}</td>
+                  <td className={APP_TABLE_CLASSNAMES.bodyCell}>{row.cooperativeName}</td>
+                  <td className={cn(APP_TABLE_CLASSNAMES.bodyCell, "font-mono tabular-nums")}>
+                    {row.parcellesCount}
+                  </td>
+                  <td
+                    className={cn(
+                      APP_TABLE_CLASSNAMES.bodyCell,
+                      "font-mono tabular-nums",
+                      row.alertsCount > 0 ? "text-amber-400" : "",
+                    )}
+                  >
+                    {row.alertsCount}
+                  </td>
+                  <td className={APP_TABLE_CLASSNAMES.bodyCell}>
+                    {row.highestAlertSeverity ? (
+                      <WakamaAlertSeverityBadge severity={row.highestAlertSeverity} />
+                    ) : (
+                      <span className="text-[#5B6B86]">—</span>
+                    )}
+                  </td>
+                  <td className={APP_TABLE_CLASSNAMES.bodyCell}>
+                    <DataSourceBadge source={row.source} />
+                  </td>
+                  <td className={APP_TABLE_CLASSNAMES.bodyCell}>
+                    <span className="inline-flex items-center rounded-full border border-slate-400/16 bg-transparent px-2.5 py-1 font-mono text-[11px] text-slate-400 transition-colors hover:border-cyan-400/30 hover:text-white">
+                      Détail
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {filteredRows.length === 0 ? (
-          <div className="space-y-2 px-4 py-10 text-center">
-            <p className="text-sm text-slate-100">Aucun agriculteur ne correspond aux filtres.</p>
-            <p className="text-xs text-brand-textMuted">
-              Ajustez les criteres pour afficher le portefeuille.
+          <div className={APP_TABLE_CLASSNAMES.emptyState}>
+            <p className="text-[13px] text-slate-300">Aucun agriculteur ne correspond aux filtres.</p>
+            <p className="font-mono text-[11px] text-[#5B6B86]">
+              Ajustez les critères pour afficher le portefeuille.
             </p>
           </div>
         ) : null}
+      </AppTable>
+
+      {/* Footer count */}
+      <div className="flex items-center justify-between px-1">
+        <p className="font-mono text-[11px] text-[#5B6B86]">
+          {filteredRows.length} agriculteur{filteredRows.length !== 1 ? "s" : ""} affichés
+          {filteredRows.length !== rows.length ? ` · ${rows.length} total` : ""}
+        </p>
       </div>
     </div>
   );

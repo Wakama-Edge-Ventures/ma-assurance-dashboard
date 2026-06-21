@@ -14,7 +14,7 @@ export function WakamaAlertSeverityBadge({ severity }: WakamaAlertSeverityBadgeP
     return <Badge variant="warning">Alerte</Badge>;
   }
   if (normalized === "INFO") {
-    return <Badge variant="muted">Info</Badge>;
+    return <Badge variant="info">Info</Badge>;
   }
   return <Badge variant="muted">Inconnu</Badge>;
 }

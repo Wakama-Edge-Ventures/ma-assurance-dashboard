@@ -1,10 +1,22 @@
 import { DataSource } from "@/types";
 
+const VALID_SOURCES = new Set<DataSource>([
+  "LIVE",
+  "SEED_DEMO",
+  "MANUAL_ESTIMATE",
+  "EXCEL_IMPORT",
+  "UNAVAILABLE",
+  "DEGRADED",
+  "MANUAL_ENTRY",
+]);
+
 export function normalizeSource(
   value: unknown,
   fallback: DataSource = "SEED_DEMO",
 ): DataSource {
-  if (value === "LIVE" || value === "SEED_DEMO") return value;
+  if (typeof value === "string" && VALID_SOURCES.has(value as DataSource)) {
+    return value as DataSource;
+  }
   return fallback;
 }
 

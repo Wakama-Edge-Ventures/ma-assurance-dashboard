@@ -17,22 +17,22 @@ export function ArbitrageNextActionCard({ audit }: ArbitrageNextActionCardProps)
 
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-200">
+      <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
         Prochaine action
       </h2>
-      <p className="mt-2 text-sm text-brand-textMuted">
+      <p className="mt-2 text-[13px] text-brand-textMuted">
         Acheminement conseille selon severite de l&apos;ecart surface.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
           href={primary.href}
-          className="rounded-md bg-brand-violet px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+          className="inline-flex items-center rounded-full border border-violet-400/28 bg-violet-500/14 px-3.5 py-1.5 font-mono text-[12.5px] text-violet-200 transition-colors hover:bg-violet-500/24"
         >
           {primary.label}
         </Link>
         <Link
           href={`/fr/applications/${audit.applicationId}`}
-          className="rounded-md border border-brand-border px-3 py-2 text-sm text-brand-textMuted transition-colors hover:bg-slate-900 hover:text-slate-100"
+          className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
         >
           Ouvrir demande liee
         </Link>

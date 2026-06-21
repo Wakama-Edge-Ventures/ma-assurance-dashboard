@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Sans, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import "./globals.css";
 
 const plexSans = IBM_Plex_Sans({
@@ -8,16 +10,22 @@ const plexSans = IBM_Plex_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["500", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "Wakama Assurance MA Dashboard",
+  title: "Wakama Assurance Dashboard",
   description:
-    "Dashboard B2B Wakama Morocco pour l'orchestration technique assurance agricole.",
+    "Dashboard B2B Wakama pour l'orchestration technique assurance agricole.",
 };
 
 export default function RootLayout({
@@ -28,9 +36,12 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${plexSans.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

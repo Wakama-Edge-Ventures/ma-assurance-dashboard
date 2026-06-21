@@ -1,0 +1,23 @@
+# Tasks — Spec 015 (UIX-1)
+
+- [x] T1 — Lire les fichiers de référence (AGENTS.md, audit, tokens, shell, IDJOR, types, api)
+- [x] T2 — Déplacer l'audit dans `docs/ui/`, créer la spec 015
+- [x] T3 — Étendre `design-tokens.ts` (sidebar.*, header.*, text.*, pill.*)
+- [x] T4 — Corriger `sidebar.tsx` (text-white, bg hex, nav active, wording)
+- [x] T5 — Corriger `header.tsx` (bg hex forcé en light, wording read-only)
+- [x] T6 — Corriger `dashboard-footer.tsx`
+- [x] T7 — Créer `ui/app-tabs.tsx`
+- [x] T8 — Créer `ui/app-accordion.tsx`
+- [x] T9 — Créer `ui/status-overview-card.tsx`
+- [x] T10 — Créer `ui/section-header.tsx`
+- [x] T11 — Créer `ui/data-panel.tsx`
+- [x] T12 — Corriger les couleurs codées en dur des sous-composants IDJOR partagés
+- [x] T13 — Regrouper les sections IDJOR en onglets (Documents & RAG / Configuration & gouvernance / Sécurité IA) + synthèse et audit hors onglets
+- [x] T14 — Corriger le wording "read-only" / "lecture seule" dans IDJOR et le header
+- [x] T15 — Scan grep ciblé de validation (0 occurrence non justifiée dans le périmètre)
+- [x] T16 — `npm run lint` (OK)
+- [x] T17 — `npm run build` (OK)
+- [x] T18 — Vérifier non-régression `evidence-bundle-panel.tsx` (modifié avant cette session, non touché ici) et backend (non modifié)
+- [x] T19 — Backend : docker postgres + prisma + seeds (identifiants obtenus)
+- [~] T20 — Validation manuelle login + dark/light + onglets IDJOR : login vérifié via API ; rendu visuel dark/light non vérifié (pas d'outil navigateur dans cet environnement)
+- [x] T21 — Rapport final
