@@ -310,21 +310,12 @@ type RagExtractionGovernanceCockpitState =
 
 const RAG_UPLOAD_INTAKE_MAX_BYTES = 10 * 1024 * 1024;
 
-const RAG_UPLOAD_INTAKE_ALLOWED_MIME_TYPES = new Set<string>([
-  "application/pdf",
-  "text/plain",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]);
-
 function validateRagUploadIntakeFile(file: File): string | null {
   if (file.size <= 0) {
     return "Le fichier selectionne est vide.";
   }
   if (file.size > RAG_UPLOAD_INTAKE_MAX_BYTES) {
     return "Le fichier depasse la taille maximale autorisee de 10 Mo.";
-  }
-  if (!RAG_UPLOAD_INTAKE_ALLOWED_MIME_TYPES.has(file.type)) {
-    return "Type de fichier non autorise. Formats acceptes: PDF, TXT, DOCX.";
   }
   return null;
 }
@@ -1329,6 +1320,81 @@ function ExtractionResultBlock({
                 </div>
               ) : null}
             </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!isChunkable && onLoadDocumentGovernanceCockpit && onLoadExtractionGovernanceCockpit ? (
+        <div className="mt-3 space-y-3 border-t border-slate-400/10 pt-3">
+          <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
+            Governance cockpit : synthese de preuve et d&apos;audit. Aucune decision
+            automatique.
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onLoadExtractionGovernanceCockpit(extraction.id)}
+              disabled={
+                ragExtractionGovernanceCockpitState?.status === "loading" &&
+                ragExtractionGovernanceCockpitState.extractionId === extraction.id
+              }
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
+            >
+              <ScrollText className="h-3 w-3" />
+              {ragExtractionGovernanceCockpitState?.status === "loading" &&
+              ragExtractionGovernanceCockpitState.extractionId === extraction.id
+                ? "Chargement..."
+                : "Voir cockpit extraction"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onLoadDocumentGovernanceCockpit(extraction.documentId)}
+              disabled={
+                ragDocumentGovernanceCockpitState?.status === "loading" &&
+                ragDocumentGovernanceCockpitState.documentId === extraction.documentId
+              }
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
+            >
+              <ScrollText className="h-3 w-3" />
+              {ragDocumentGovernanceCockpitState?.status === "loading" &&
+              ragDocumentGovernanceCockpitState.documentId === extraction.documentId
+                ? "Chargement..."
+                : "Voir cockpit document"}
+            </button>
+          </div>
+
+          {ragExtractionGovernanceCockpitState?.status === "error" &&
+          ragExtractionGovernanceCockpitState.extractionId === extraction.id ? (
+            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+              {ragExtractionGovernanceCockpitState.message}
+            </div>
+          ) : null}
+
+          {ragDocumentGovernanceCockpitState?.status === "error" &&
+          ragDocumentGovernanceCockpitState.documentId === extraction.documentId ? (
+            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+              {ragDocumentGovernanceCockpitState.message}
+            </div>
+          ) : null}
+
+          {hasMatchingExtractionCockpit &&
+          ragExtractionGovernanceCockpitState.status === "success" ? (
+            <GovernanceCockpitPanel
+              title="Cockpit extraction"
+              cockpit={ragExtractionGovernanceCockpitState.response}
+              maxHeightClass={maxHeightClass}
+            />
+          ) : null}
+
+          {hasMatchingDocumentCockpit &&
+          ragDocumentGovernanceCockpitState.status === "success" ? (
+            <GovernanceCockpitPanel
+              title="Cockpit document"
+              cockpit={ragDocumentGovernanceCockpitState.response}
+              maxHeightClass={maxHeightClass}
+            />
           ) : null}
         </div>
       ) : null}
@@ -2719,7 +2785,6 @@ export function IdjorFoundationPanel() {
                   <div className="flex flex-wrap items-center gap-3">
                     <input
                       type="file"
-                      accept=".pdf,.txt,.docx,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                       onChange={(event) =>
                         handleUploadFileChange(event.target.files?.[0] ?? null)
                       }
@@ -2744,7 +2809,8 @@ export function IdjorFoundationPanel() {
                   </div>
 
                   <p className="text-xs text-brand-textMuted">
-                    Taille maximale 10 Mo. Formats acceptes: PDF, TXT, DOCX.
+                    Taille maximale 10 Mo. PDF, TXT et DOCX sont extraits en texte natif. Les
+                    autres formats restent en quarantaine et seront marques non supportes.
                   </p>
 
                   {uploadFileError ? (
