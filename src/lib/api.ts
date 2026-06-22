@@ -76,6 +76,9 @@ import {
   InsuranceDcaApplication,
   InsuranceDcaSideEffects,
   InsuranceFieldAudit,
+  InsuranceInstitutionDecision,
+  InsuranceInstitutionDecisionStatus,
+  InsuranceInstitutionDecisionType,
 } from "@/types";
 
 export const API_BASE_URL =
@@ -3313,6 +3316,51 @@ export interface InsuranceIraxDecisionAssessment {
   sideEffects: InsuranceMissionConfigSideEffects;
 }
 
+export interface RecordInstitutionDecisionPayload {
+  decisionType: InsuranceInstitutionDecisionType;
+  decisionRationale: string;
+  conditions?: string[];
+  requiredActions?: string[];
+  authorityLevel?: string | null;
+  committeeNote?: string | null;
+}
+
+function mapInstitutionDecision(payload: unknown): InsuranceInstitutionDecision | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.institutionDecision);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    iraxDecisionAssessmentId: readString(obj, "iraxDecisionAssessmentId"),
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "DRAFT_REVIEW") as InsuranceInstitutionDecisionStatus,
+    decisionType: (readString(obj, "decisionType") ?? "PROCEED_TO_PRICING") as InsuranceInstitutionDecisionType,
+    decisionLabel: readString(obj, "decisionLabel") ?? "",
+    decisionRationale: readString(obj, "decisionRationale") ?? "",
+    conditions: obj.conditions ?? null,
+    requiredActions: readStringArray(obj, "requiredActions"),
+    pricingReadiness: asObject(obj.pricingReadiness),
+    offerPreparation: asObject(obj.offerPreparation),
+    committeeReview: asObject(obj.committeeReview),
+    authorityLevel: readString(obj, "authorityLevel"),
+    decidedByUserId: readString(obj, "decidedByUserId") ?? "",
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    decidedAt: readString(obj, "decidedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    protocolVersion: readString(obj, "protocolVersion") ?? "INSTITUTION_REVIEW_V1_2026",
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
 function mapIraxDecisionAssessment(payload: unknown): InsuranceIraxDecisionAssessment | null {
   const root = asObject(payload);
   const obj = asObject(root?.iraxDecisionAssessment);
@@ -3380,6 +3428,51 @@ export async function updateIraxDecisionAssessmentStatus(
     body: JSON.stringify({ status }),
   });
   return mapIraxDecisionAssessment(payload);
+}
+
+export async function getInstitutionDecision(
+  applicationId: string,
+): Promise<InsuranceInstitutionDecision | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/institution-decision`);
+  return mapInstitutionDecision(payload);
+}
+
+export async function recordInstitutionDecision(
+  applicationId: string,
+  payload: RecordInstitutionDecisionPayload,
+): Promise<InsuranceInstitutionDecision | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const response = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/institution-decision`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      decisionType: payload.decisionType,
+      decisionRationale: payload.decisionRationale,
+      conditions: payload.conditions,
+      requiredActions: payload.requiredActions,
+      authorityLevel: payload.authorityLevel,
+      committeeNote: payload.committeeNote,
+    }),
+  });
+  return mapInstitutionDecision(response);
+}
+
+export async function updateInstitutionDecisionStatus(
+  applicationId: string,
+  status: InsuranceInstitutionDecisionStatus,
+): Promise<InsuranceInstitutionDecision | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/institution-decision/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return mapInstitutionDecision(payload);
 }
 
 export async function getInsuranceMissionConfig(

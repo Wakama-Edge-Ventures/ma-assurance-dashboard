@@ -16,6 +16,7 @@ import {
   generateIraxScientificAssessment,
   getInsuranceApplicationById,
   getInsuranceFieldAgents,
+  getInstitutionDecision,
   getInsuranceMissionConfig,
   getInsuranceMissionConfigVersions,
   getIrax1FieldAssessment,
@@ -39,16 +40,23 @@ import {
   InsuranceRiskReviewStatus,
   Irax1FrapStatus,
   MissionDispatchResult,
+  recordInstitutionDecision,
   saveInsuranceMissionConfig,
   sendInsuranceMissionDispatch,
   updateInsuranceApplicationStatus,
+  updateInstitutionDecisionStatus,
   updateIrax1FieldAssessmentStatus,
   updateIraxConsolidatedAssessmentStatus,
   updateIraxDecisionAssessmentStatus,
   updateIraxPlanningStatus,
   updateIraxScientificAssessmentStatus,
 } from "@/lib/api";
-import { InsuranceFieldAudit } from "@/types";
+import {
+  InsuranceFieldAudit,
+  InsuranceInstitutionDecision,
+  InsuranceInstitutionDecisionStatus,
+  InsuranceInstitutionDecisionType,
+} from "@/types";
 import {
   formatBooleanFr,
   formatDcaStatusFr,
@@ -954,6 +962,63 @@ function formatIraxDNextStepFr(step: string | null | undefined): string {
   return IRAX_D_NEXT_STEP_LABELS_FR[step] ?? step;
 }
 
+const INSTITUTION_DECISION_STATUS_LABELS_FR: Record<InsuranceInstitutionDecisionStatus, string> = {
+  DRAFT_REVIEW: "Brouillon de revue",
+  UNDER_INSTITUTION_REVIEW: "En revue institutionnelle",
+  DECISION_RECORDED: "Décision enregistrée",
+  READY_FOR_PRICING: "Prêt pour pricing",
+  NEEDS_MORE_INFORMATION: "Informations complémentaires requises",
+  CLOSED_NO_OFFER: "Clôturé sans offre",
+};
+
+const INSTITUTION_DECISION_TYPE_LABELS_FR: Record<InsuranceInstitutionDecisionType, string> = {
+  PROCEED_TO_PRICING: "Poursuivre vers pricing",
+  REQUEST_MORE_INFORMATION: "Demander informations complémentaires",
+  DECLINE_TO_PROCEED: "Ne pas poursuivre",
+  DEFER_FOR_COMMITTEE: "Reporter au comité",
+};
+
+function formatInstitutionDecisionStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucune décision";
+  return INSTITUTION_DECISION_STATUS_LABELS_FR[status as InsuranceInstitutionDecisionStatus] ?? status;
+}
+
+function formatInstitutionDecisionTypeFr(type: string | null | undefined): string {
+  if (!type) return "—";
+  return INSTITUTION_DECISION_TYPE_LABELS_FR[type as InsuranceInstitutionDecisionType] ?? type;
+}
+
+function parseLineItems(value: string): string[] {
+  return value
+    .split(/\n|,/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatUnknownValue(value: unknown): string {
+  if (value === null || value === undefined) return "Aucune donnée disponible.";
+  if (Array.isArray(value)) return value.length ? value.join(" • ") : "Aucune donnée disponible.";
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
+  if (typeof value === "boolean") return value ? "Oui" : "Non";
+  return String(value);
+}
+
+function InstitutionDecisionValueBlock({ title, value }: { title: string; value: unknown }) {
+  const isObject = value !== null && typeof value === "object" && !Array.isArray(value);
+  return (
+    <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+      <p className="text-[10px] uppercase tracking-wide text-slate-500">{title}</p>
+      {isObject ? (
+        <pre className="overflow-x-auto whitespace-pre-wrap break-words text-[11px] text-slate-200">
+          {formatUnknownValue(value)}
+        </pre>
+      ) : (
+        <p className="text-slate-200">{formatUnknownValue(value)}</p>
+      )}
+    </div>
+  );
+}
+
 function getIraxDecisionLoadErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) {
     return "Service indisponible. Impossible de charger le CRDP IRAX-D.";
@@ -997,6 +1062,28 @@ function getIraxDecisionMutationErrorMessage(error: unknown): string {
 
 function hasIraxDecisionForbiddenSideEffects(sideEffects: InsuranceMissionConfigSideEffects): boolean {
   return hasMissionConfigForbiddenSideEffects(sideEffects);
+}
+
+function getInstitutionDecisionLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Impossible de charger la décision institutionnelle.";
+  }
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) à la décision institutionnelle.";
+  if (error.status === 404) return "Dossier introuvable (404) pour la décision institutionnelle.";
+  return error.message || "Erreur API pendant le chargement de la décision institutionnelle.";
+}
+
+function getInstitutionDecisionMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Action institutionnelle impossible.";
+  }
+  if (error.status === 400) return "Requête invalide (400) pour cette action institutionnelle.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action institutionnelle.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action institutionnelle.";
+  if (error.status === 409) return error.message || "Prérequis IRAX-D manquants ou décision déjà enregistrée.";
+  return error.message || "Erreur API pendant l'action institutionnelle.";
 }
 
 function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
@@ -1158,6 +1245,23 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     type: "success" | "error" | "critical";
     message: string;
   } | null>(null);
+  const [institutionDecision, setInstitutionDecision] = useState<InsuranceInstitutionDecision | null>(null);
+  const [institutionDecisionLoading, setInstitutionDecisionLoading] = useState(false);
+  const [institutionDecisionSaving, setInstitutionDecisionSaving] = useState(false);
+  const [institutionDecisionStatusSaving, setInstitutionDecisionStatusSaving] =
+    useState<InsuranceInstitutionDecisionStatus | null>(null);
+  const [institutionDecisionError, setInstitutionDecisionError] = useState<string | null>(null);
+  const [institutionDecisionFeedback, setInstitutionDecisionFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [institutionDecisionType, setInstitutionDecisionType] =
+    useState<InsuranceInstitutionDecisionType>("PROCEED_TO_PRICING");
+  const [institutionDecisionRationale, setInstitutionDecisionRationale] = useState("");
+  const [institutionDecisionConditions, setInstitutionDecisionConditions] = useState("");
+  const [institutionDecisionRequiredActions, setInstitutionDecisionRequiredActions] = useState("");
+  const [institutionDecisionAuthorityLevel, setInstitutionDecisionAuthorityLevel] = useState("");
+  const [institutionDecisionCommitteeNote, setInstitutionDecisionCommitteeNote] = useState("");
   const [missionConfigLoading, setMissionConfigLoading] = useState(false);
   const [missionConfigSaving, setMissionConfigSaving] = useState(false);
   const [missionConfigError, setMissionConfigError] = useState<string | null>(null);
@@ -1221,6 +1325,33 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
 
     void load();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadInstitutionDecision() {
+      setInstitutionDecisionLoading(true);
+      setInstitutionDecisionError(null);
+
+      try {
+        const decision = await getInstitutionDecision(applicationId);
+        if (!mounted) return;
+        setInstitutionDecision(decision);
+      } catch (loadError) {
+        if (!mounted) return;
+        setInstitutionDecisionError(getInstitutionDecisionLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) {
+          setInstitutionDecisionLoading(false);
+        }
+      }
+    }
+
+    void loadInstitutionDecision();
     return () => {
       mounted = false;
     };
@@ -1647,6 +1778,63 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
   }
 
+  async function handleRecordInstitutionDecision() {
+    if (institutionDecisionSaving) return;
+
+    setInstitutionDecisionFeedback(null);
+    setInstitutionDecisionSaving(true);
+
+    try {
+      const decision = await recordInstitutionDecision(applicationId, {
+        decisionType: institutionDecisionType,
+        decisionRationale: institutionDecisionRationale.trim(),
+        conditions: parseLineItems(institutionDecisionConditions),
+        requiredActions: parseLineItems(institutionDecisionRequiredActions),
+        authorityLevel: institutionDecisionAuthorityLevel.trim() || null,
+        committeeNote: institutionDecisionCommitteeNote.trim() || null,
+      });
+
+      setInstitutionDecision(decision);
+      setInstitutionDecisionError(null);
+      setInstitutionDecisionFeedback({
+        type: "success",
+        message: `Décision institutionnelle enregistrée: ${formatInstitutionDecisionTypeFr(
+          decision?.decisionType ?? institutionDecisionType,
+        )}.`,
+      });
+    } catch (mutationError) {
+      setInstitutionDecisionFeedback({
+        type: "error",
+        message: getInstitutionDecisionMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setInstitutionDecisionSaving(false);
+    }
+  }
+
+  async function handleUpdateInstitutionDecisionStatus(status: InsuranceInstitutionDecisionStatus) {
+    if (institutionDecisionStatusSaving) return;
+
+    setInstitutionDecisionFeedback(null);
+    setInstitutionDecisionStatusSaving(status);
+
+    try {
+      const decision = await updateInstitutionDecisionStatus(applicationId, status);
+      setInstitutionDecision(decision);
+      setInstitutionDecisionFeedback({
+        type: "success",
+        message: `Statut de revue institutionnelle mis à jour: ${formatInstitutionDecisionStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setInstitutionDecisionFeedback({
+        type: "error",
+        message: getInstitutionDecisionMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setInstitutionDecisionStatusSaving(null);
+    }
+  }
+
   async function handleRiskReviewAction(status: InsuranceRiskReviewStatus) {
     if (riskReviewActionLoading) return;
 
@@ -1997,6 +2185,10 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
   const canRunRiskReviewActions = application
     ? !NON_ACTIONABLE_RISK_REVIEW_STATUSES.includes(application.status)
     : false;
+  const canRecordInstitutionDecision =
+    iraxDecisionAssessment?.status === "ACCEPTED_FOR_INSTITUTION_REVIEW" && !institutionDecision;
+  const institutionDecisionPrerequisiteBlocked =
+    iraxDecisionAssessment?.status !== "ACCEPTED_FOR_INSTITUTION_REVIEW";
 
   if (loading) {
     return (
@@ -3369,6 +3561,221 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         <p className="text-[11px] text-slate-500">
           IRAX-D calcule un niveau de risque déterministe à partir du CRIP. Il ne décide pas. L&apos;institution
           reste seule décisionnaire.
+        </p>
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="amber">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="Institution Review"
+            title="Décision institutionnelle — Revue humaine"
+            subtitle="Cette décision est enregistrée par l'institution. Wakama fournit le calcul et la traçabilité, mais ne décide pas."
+            accent="amber"
+          />
+          <span className="rounded-full border border-amber-400/35 bg-amber-500/10 px-2.5 py-0.5 text-[11px] text-amber-100">
+            {formatInstitutionDecisionStatusFr(institutionDecision?.status)}
+          </span>
+        </div>
+
+        {institutionDecisionLoading ? (
+          <p className="text-xs text-slate-400">Chargement de la décision institutionnelle...</p>
+        ) : null}
+
+        {institutionDecisionError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {institutionDecisionError}
+          </p>
+        ) : null}
+
+        {institutionDecision ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              <DcaInfoTile label="Statut décision" value={formatInstitutionDecisionStatusFr(institutionDecision.status)} />
+              <DcaInfoTile label="Type de décision" value={formatInstitutionDecisionTypeFr(institutionDecision.decisionType)} />
+              <DcaInfoTile label="Decision label" value={institutionDecision.decisionLabel || "—"} />
+              <DcaInfoTile label="Authority level" value={institutionDecision.authorityLevel || "—"} />
+              <DcaInfoTile label="Décidé par" value={institutionDecision.decidedByUserId || "—"} mono />
+              <DcaInfoTile label="Décidé le" value={formatDate(institutionDecision.decidedAt)} />
+              <DcaInfoTile label="Revu par" value={institutionDecision.reviewedByUserId || "—"} mono />
+              <DcaInfoTile label="Revu le" value={formatDate(institutionDecision.reviewedAt)} />
+            </div>
+
+            <InstitutionDecisionValueBlock title="Rationale / justification" value={institutionDecision.decisionRationale} />
+            <div className="grid gap-3 md:grid-cols-2">
+              <InstitutionDecisionValueBlock title="Conditions" value={institutionDecision.conditions} />
+              <InstitutionDecisionValueBlock title="Required actions" value={institutionDecision.requiredActions} />
+              <InstitutionDecisionValueBlock title="Pricing readiness" value={institutionDecision.pricingReadiness} />
+              <InstitutionDecisionValueBlock title="Offer preparation" value={institutionDecision.offerPreparation} />
+              <InstitutionDecisionValueBlock title="Committee review" value={institutionDecision.committeeReview} />
+              <InstitutionDecisionValueBlock title="Side effects" value={institutionDecision.sideEffects} />
+            </div>
+
+            {institutionDecision.blockers.length > 0 ? (
+              <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                <p className="text-[10px] uppercase tracking-wide text-rose-300">Blocages</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {institutionDecision.blockers.map((blocker, index) => (
+                    <li key={index}>{blocker}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {institutionDecision.warnings.length > 0 ? (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <p className="text-[10px] uppercase tracking-wide text-amber-300">Avertissements</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {institutionDecision.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucune décision institutionnelle enregistrée. Un CRDP accepté est requis pour enregistrer une décision.
+          </div>
+        )}
+
+        <div className="space-y-3 rounded-xl border border-slate-400/10 bg-slate-900/35 px-4 py-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Sélection décision</span>
+              <select
+                value={institutionDecisionType}
+                onChange={(event) => setInstitutionDecisionType(event.target.value as InsuranceInstitutionDecisionType)}
+                disabled={institutionDecisionSaving || !canRecordInstitutionDecision}
+                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-amber-400/60 focus:ring-2 focus:ring-amber-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <option value="PROCEED_TO_PRICING">Poursuivre vers pricing</option>
+                <option value="REQUEST_MORE_INFORMATION">Demander informations complémentaires</option>
+                <option value="DECLINE_TO_PROCEED">Ne pas poursuivre</option>
+                <option value="DEFER_FOR_COMMITTEE">Reporter au comité</option>
+              </select>
+            </label>
+
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Authority level</span>
+              <input
+                type="text"
+                value={institutionDecisionAuthorityLevel}
+                onChange={(event) => setInstitutionDecisionAuthorityLevel(event.target.value)}
+                disabled={institutionDecisionSaving || !canRecordInstitutionDecision}
+                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-amber-400/60 focus:ring-2 focus:ring-amber-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+                placeholder="UNDERWRITING_MANAGER"
+              />
+            </label>
+          </div>
+
+          <label className="space-y-1 text-sm text-slate-300">
+            <span>Rationale / justification</span>
+            <textarea
+              value={institutionDecisionRationale}
+              onChange={(event) => setInstitutionDecisionRationale(event.target.value)}
+              disabled={institutionDecisionSaving || !canRecordInstitutionDecision}
+              className="min-h-24 w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-amber-400/60 focus:ring-2 focus:ring-amber-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+            />
+          </label>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Conditions</span>
+              <textarea
+                value={institutionDecisionConditions}
+                onChange={(event) => setInstitutionDecisionConditions(event.target.value)}
+                disabled={institutionDecisionSaving || !canRecordInstitutionDecision}
+                className="min-h-24 w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-amber-400/60 focus:ring-2 focus:ring-amber-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+                placeholder="Une ligne par condition"
+              />
+            </label>
+
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Required actions</span>
+              <textarea
+                value={institutionDecisionRequiredActions}
+                onChange={(event) => setInstitutionDecisionRequiredActions(event.target.value)}
+                disabled={institutionDecisionSaving || !canRecordInstitutionDecision}
+                className="min-h-24 w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-amber-400/60 focus:ring-2 focus:ring-amber-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+                placeholder="Une ligne par action"
+              />
+            </label>
+          </div>
+
+          <label className="space-y-1 text-sm text-slate-300">
+            <span>Committee note</span>
+            <textarea
+              value={institutionDecisionCommitteeNote}
+              onChange={(event) => setInstitutionDecisionCommitteeNote(event.target.value)}
+              disabled={institutionDecisionSaving || !canRecordInstitutionDecision}
+              className="min-h-20 w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-amber-400/60 focus:ring-2 focus:ring-amber-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+            />
+          </label>
+        </div>
+
+        {institutionDecisionPrerequisiteBlocked ? (
+          <p className="rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
+            Aucune décision institutionnelle ne peut être enregistrée tant que le CRDP IRAX-D n&apos;est pas accepté pour revue institutionnelle.
+          </p>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleRecordInstitutionDecision()}
+            disabled={institutionDecisionSaving || !canRecordInstitutionDecision}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {institutionDecisionSaving ? "Enregistrement..." : "Enregistrer décision institutionnelle"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void handleUpdateInstitutionDecisionStatus("READY_FOR_PRICING")}
+            disabled={!institutionDecision || institutionDecisionStatusSaving !== null}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {institutionDecisionStatusSaving === "READY_FOR_PRICING" ? "..." : "Marquer prêt pour pricing"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void handleUpdateInstitutionDecisionStatus("NEEDS_MORE_INFORMATION")}
+            disabled={!institutionDecision || institutionDecisionStatusSaving !== null}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {institutionDecisionStatusSaving === "NEEDS_MORE_INFORMATION" ? "..." : "Demander informations complémentaires"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void handleUpdateInstitutionDecisionStatus("CLOSED_NO_OFFER")}
+            disabled={!institutionDecision || institutionDecisionStatusSaving !== null}
+            className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {institutionDecisionStatusSaving === "CLOSED_NO_OFFER" ? "..." : "Clôturer sans offre"}
+          </button>
+        </div>
+
+        {institutionDecisionFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              institutionDecisionFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : institutionDecisionFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {institutionDecisionFeedback.message}
+          </p>
+        ) : null}
+
+        <p className="text-[11px] text-slate-500">
+          Aucun pricing automatique, aucune police, aucune quittance, aucun claim et aucun ancrage blockchain ne sont déclenchés ici.
+        </p>
+        <p className="text-[11px] text-slate-500">
+          Wakama fournit le calcul et la traçabilité. L&apos;institution reste seule décisionnaire.
         </p>
       </DcaSectionCard>
 

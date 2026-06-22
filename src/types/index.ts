@@ -892,6 +892,50 @@ export interface InsuranceFieldAudit {
   syncedAt?: string | null;
 }
 
+export type InsuranceInstitutionDecisionStatus =
+  | "DRAFT_REVIEW"
+  | "UNDER_INSTITUTION_REVIEW"
+  | "DECISION_RECORDED"
+  | "READY_FOR_PRICING"
+  | "NEEDS_MORE_INFORMATION"
+  | "CLOSED_NO_OFFER";
+
+export type InsuranceInstitutionDecisionType =
+  | "PROCEED_TO_PRICING"
+  | "REQUEST_MORE_INFORMATION"
+  | "DECLINE_TO_PROCEED"
+  | "DEFER_FOR_COMMITTEE";
+
+export interface InsuranceInstitutionDecision {
+  id: string;
+  applicationId: string;
+  iraxDecisionAssessmentId: string | null;
+  institutionId: string;
+  country: string;
+  version: number;
+  status: InsuranceInstitutionDecisionStatus;
+  decisionType: InsuranceInstitutionDecisionType;
+  decisionLabel: string;
+  decisionRationale: string;
+  conditions: unknown;
+  requiredActions: string[];
+  pricingReadiness: Record<string, unknown> | null;
+  offerPreparation: Record<string, unknown> | null;
+  committeeReview: Record<string, unknown> | null;
+  authorityLevel: string | null;
+  decidedByUserId: string;
+  reviewedByUserId: string | null;
+  decidedAt: string | null;
+  reviewedAt: string | null;
+  sourceLabel: string;
+  protocolVersion: string;
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
 export interface RaxEvaluation {
   id: string;
   applicationId: string;
