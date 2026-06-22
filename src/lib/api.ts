@@ -2716,6 +2716,202 @@ export async function updateInsuranceApplicationStatus(
   };
 }
 
+// ── IRAX-P: Planning & Orchestration ────────────────────────────────────────
+// IRAX-P prepares an investigation plan. It never approves, rejects, prices,
+// or declares an application insurable, and it never triggers a mission,
+// field audit, RAX/IRAX-D calculation, evidence bundle, or blockchain anchor.
+
+export interface InsuranceIraxDataQuality {
+  farmerProfileCompleteness: string;
+  parcelCompleteness: string;
+  ndviStatus: string;
+  documentsStatus: string;
+  claimsHistoryStatus: string;
+  geoCountryCoherence: string;
+}
+
+export interface InsuranceIraxCoherenceChecks {
+  farmerCountryMatchesApplication: boolean | "UNKNOWN";
+  parcelleCountryMatchesApplication: boolean | "UNKNOWN";
+  gpsWithinPlausibleCountryBounds: boolean | "UNKNOWN";
+  surfacePlausible: boolean;
+  cropPresent: boolean;
+  consentPresent: boolean;
+  issues: string[];
+}
+
+export interface InsuranceIraxRiskSegmentation {
+  segment: string;
+  reasons: string[];
+  confidence: string;
+  sourceLabel: string;
+}
+
+export interface InsuranceIraxFieldInvestigationPlan {
+  requiresFieldMission: boolean;
+  missionPriority: string;
+  objectives: string[];
+  gpsChecks: string[];
+  photoRequirements: string[];
+  documentChecks: string[];
+  farmerInterviewQuestions: string[];
+  expectedAgentOutputs: string[];
+}
+
+export interface InsuranceIraxBackOfficeInvestigationPlan {
+  ndviNeeded: boolean;
+  weatherNeeded: boolean;
+  hydroNeeded: boolean;
+  agronomyNeeded: boolean;
+  missingSignals: string[];
+}
+
+export interface InsuranceIraxDocumentChecklist {
+  expected: string[];
+  prepared: string[];
+  uploaded: string[];
+  missing: string[];
+  status: string;
+}
+
+export interface InsuranceIraxPlanning {
+  id: string;
+  applicationId: string;
+  institutionId: string | null;
+  country: string;
+  version: number;
+  status: string;
+  sourceLabel: string;
+  algorithmVersion: string;
+  dataQuality: InsuranceIraxDataQuality;
+  coherenceChecks: InsuranceIraxCoherenceChecks;
+  riskSegmentation: InsuranceIraxRiskSegmentation;
+  fieldInvestigationPlan: InsuranceIraxFieldInvestigationPlan;
+  backOfficeInvestigationPlan: InsuranceIraxBackOfficeInvestigationPlan;
+  documentChecklist: InsuranceIraxDocumentChecklist;
+  requiredSignals: string[];
+  blockers: string[];
+  warnings: string[];
+  nextRecommendedStep: string;
+  sideEffects: InsuranceMissionConfigSideEffects;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export type InsuranceIraxPlanningStatus = "REVIEWED" | "APPROVED_FOR_FIELD_PLANNING" | "NEEDS_MORE_INFO";
+
+function readBooleanOrUnknown(record: unknown, key: string): boolean | "UNKNOWN" {
+  const value = readBooleanLike(record, key);
+  return value === null ? "UNKNOWN" : value;
+}
+
+function mapIraxPlanning(payload: unknown): InsuranceIraxPlanning | null {
+  const root = asObject(payload);
+  const raw = asObject(root?.iraxPlanning);
+  if (!raw) return null;
+
+  const dataQuality = asObject(raw.dataQuality);
+  const coherenceChecks = asObject(raw.coherenceChecks);
+  const riskSegmentation = asObject(raw.riskSegmentation);
+  const fieldPlan = asObject(raw.fieldInvestigationPlan);
+  const backOfficePlan = asObject(raw.backOfficeInvestigationPlan);
+  const documentChecklist = asObject(raw.documentChecklist);
+
+  return {
+    id: readString(raw, "id") ?? "",
+    applicationId: readString(raw, "applicationId") ?? "",
+    institutionId: readString(raw, "institutionId"),
+    country: readString(raw, "country") ?? "MA",
+    version: readNumberLike(raw, "version") ?? 1,
+    status: readString(raw, "status") ?? "GENERATED",
+    sourceLabel: readString(raw, "sourceLabel") ?? "LIVE",
+    algorithmVersion: readString(raw, "algorithmVersion") ?? "IRAX_P_V1_2026",
+    dataQuality: {
+      farmerProfileCompleteness: readString(dataQuality, "farmerProfileCompleteness") ?? "UNAVAILABLE",
+      parcelCompleteness: readString(dataQuality, "parcelCompleteness") ?? "UNAVAILABLE",
+      ndviStatus: readString(dataQuality, "ndviStatus") ?? "UNAVAILABLE",
+      documentsStatus: readString(dataQuality, "documentsStatus") ?? "MISSING",
+      claimsHistoryStatus: readString(dataQuality, "claimsHistoryStatus") ?? "UNAVAILABLE",
+      geoCountryCoherence: readString(dataQuality, "geoCountryCoherence") ?? "UNKNOWN",
+    },
+    coherenceChecks: {
+      farmerCountryMatchesApplication: readBooleanOrUnknown(coherenceChecks, "farmerCountryMatchesApplication"),
+      parcelleCountryMatchesApplication: readBooleanOrUnknown(coherenceChecks, "parcelleCountryMatchesApplication"),
+      gpsWithinPlausibleCountryBounds: readBooleanOrUnknown(coherenceChecks, "gpsWithinPlausibleCountryBounds"),
+      surfacePlausible: readBooleanLike(coherenceChecks, "surfacePlausible") ?? false,
+      cropPresent: readBooleanLike(coherenceChecks, "cropPresent") ?? false,
+      consentPresent: readBooleanLike(coherenceChecks, "consentPresent") ?? false,
+      issues: readStringArray(coherenceChecks, "issues"),
+    },
+    riskSegmentation: {
+      segment: readString(riskSegmentation, "segment") ?? "STANDARD_REVIEW",
+      reasons: readStringArray(riskSegmentation, "reasons"),
+      confidence: readString(riskSegmentation, "confidence") ?? "LOW",
+      sourceLabel: readString(riskSegmentation, "sourceLabel") ?? "LIVE",
+    },
+    fieldInvestigationPlan: {
+      requiresFieldMission: readBooleanLike(fieldPlan, "requiresFieldMission") ?? false,
+      missionPriority: readString(fieldPlan, "missionPriority") ?? "STANDARD",
+      objectives: readStringArray(fieldPlan, "objectives"),
+      gpsChecks: readStringArray(fieldPlan, "gpsChecks"),
+      photoRequirements: readStringArray(fieldPlan, "photoRequirements"),
+      documentChecks: readStringArray(fieldPlan, "documentChecks"),
+      farmerInterviewQuestions: readStringArray(fieldPlan, "farmerInterviewQuestions"),
+      expectedAgentOutputs: readStringArray(fieldPlan, "expectedAgentOutputs"),
+    },
+    backOfficeInvestigationPlan: {
+      ndviNeeded: readBooleanLike(backOfficePlan, "ndviNeeded") ?? false,
+      weatherNeeded: readBooleanLike(backOfficePlan, "weatherNeeded") ?? false,
+      hydroNeeded: readBooleanLike(backOfficePlan, "hydroNeeded") ?? false,
+      agronomyNeeded: readBooleanLike(backOfficePlan, "agronomyNeeded") ?? false,
+      missingSignals: readStringArray(backOfficePlan, "missingSignals"),
+    },
+    documentChecklist: {
+      expected: readStringArray(documentChecklist, "expected"),
+      prepared: readStringArray(documentChecklist, "prepared"),
+      uploaded: readStringArray(documentChecklist, "uploaded"),
+      missing: readStringArray(documentChecklist, "missing"),
+      status: readString(documentChecklist, "status") ?? "MISSING",
+    },
+    requiredSignals: readStringArray(raw, "requiredSignals"),
+    blockers: readStringArray(raw, "blockers"),
+    warnings: readStringArray(raw, "warnings"),
+    nextRecommendedStep: readString(raw, "nextRecommendedStep") ?? "REQUEST_MORE_INFO",
+    sideEffects: mapMissionConfigSideEffects(root?.sideEffects),
+    createdAt: readString(raw, "createdAt"),
+    updatedAt: readString(raw, "updatedAt"),
+  };
+}
+
+export async function getIraxPlanning(applicationId: string): Promise<InsuranceIraxPlanning | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax-p`);
+  return mapIraxPlanning(payload);
+}
+
+export async function generateIraxPlanning(applicationId: string): Promise<InsuranceIraxPlanning | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax-p/generate`, {
+    method: "POST",
+  });
+  return mapIraxPlanning(payload);
+}
+
+export async function updateIraxPlanningStatus(
+  applicationId: string,
+  status: InsuranceIraxPlanningStatus,
+): Promise<InsuranceIraxPlanning | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax-p/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return mapIraxPlanning(payload);
+}
+
 export async function getInsuranceMissionConfig(
   applicationId: string,
 ): Promise<InsuranceMissionConfig | null> {

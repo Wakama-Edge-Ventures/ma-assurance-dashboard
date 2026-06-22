@@ -9,11 +9,15 @@ import {
   createInsuranceMissionDispatchDraft,
   CreateInsuranceMissionDispatchDraftResult,
   FieldAgent,
+  generateIraxPlanning,
   getInsuranceApplicationById,
   getInsuranceFieldAgents,
   getInsuranceMissionConfig,
   getInsuranceMissionConfigVersions,
+  getIraxPlanning,
   InsuranceApplicationByIdResult,
+  InsuranceIraxPlanning,
+  InsuranceIraxPlanningStatus,
   InsuranceMissionConfig,
   InsuranceMissionConfigPayload,
   InsuranceMissionConfigSideEffects,
@@ -22,6 +26,7 @@ import {
   saveInsuranceMissionConfig,
   sendInsuranceMissionDispatch,
   updateInsuranceApplicationStatus,
+  updateIraxPlanningStatus,
 } from "@/lib/api";
 import { InsuranceFieldAudit } from "@/types";
 import {
@@ -508,6 +513,53 @@ function getMissionConfigSaveErrorMessage(error: unknown): string {
   return error.message || "Erreur API pendant l'enregistrement du brouillon.";
 }
 
+function getIraxPlanningLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Impossible de charger le plan IRAX-P.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) au plan IRAX-P.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404) pour le plan IRAX-P.";
+  }
+  return error.message || "Erreur API pendant le chargement du plan IRAX-P.";
+}
+
+function getIraxPlanningMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Action IRAX-P impossible.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) pour cette action IRAX-P.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404) pour le plan IRAX-P.";
+  }
+  return error.message || "Erreur API pendant l'action IRAX-P.";
+}
+
+function hasIraxPlanningForbiddenSideEffects(sideEffects: InsuranceMissionConfigSideEffects): boolean {
+  return hasMissionConfigForbiddenSideEffects(sideEffects);
+}
+
+function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
+  if (value === "UNKNOWN") {
+    return <span className="text-slate-500">Non disponible</span>;
+  }
+  return value ? (
+    <span className="text-emerald-300">Cohérent</span>
+  ) : (
+    <span className="text-rose-300">Incohérence détectée</span>
+  );
+}
+
 function getMissionDispatchMutationErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) {
     return "Service indisponible. Préparation du dispatch impossible.";
@@ -603,6 +655,15 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     type: "success" | "error" | "critical";
     message: string;
   } | null>(null);
+  const [iraxPlanning, setIraxPlanning] = useState<InsuranceIraxPlanning | null>(null);
+  const [iraxPlanningLoading, setIraxPlanningLoading] = useState(false);
+  const [iraxPlanningGenerating, setIraxPlanningGenerating] = useState(false);
+  const [iraxPlanningStatusSaving, setIraxPlanningStatusSaving] = useState<InsuranceIraxPlanningStatus | null>(null);
+  const [iraxPlanningError, setIraxPlanningError] = useState<string | null>(null);
+  const [iraxPlanningFeedback, setIraxPlanningFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
   const [missionConfigLoading, setMissionConfigLoading] = useState(false);
   const [missionConfigSaving, setMissionConfigSaving] = useState(false);
   const [missionConfigError, setMissionConfigError] = useState<string | null>(null);
@@ -675,6 +736,90 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     const response = await getInsuranceApplicationById(applicationId);
     setResult(response);
     setError(null);
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadIraxPlanning() {
+      setIraxPlanningLoading(true);
+      setIraxPlanningError(null);
+
+      try {
+        const plan = await getIraxPlanning(applicationId);
+        if (!mounted) return;
+        setIraxPlanning(plan);
+      } catch (loadError) {
+        if (!mounted) return;
+        setIraxPlanningError(getIraxPlanningLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) {
+          setIraxPlanningLoading(false);
+        }
+      }
+    }
+
+    void loadIraxPlanning();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  async function handleGenerateIraxPlanning() {
+    if (iraxPlanningGenerating) return;
+
+    setIraxPlanningFeedback(null);
+    setIraxPlanningGenerating(true);
+
+    try {
+      const plan = await generateIraxPlanning(applicationId);
+      setIraxPlanning(plan);
+      setIraxPlanningError(null);
+
+      if (plan && hasIraxPlanningForbiddenSideEffects(plan.sideEffects)) {
+        setIraxPlanningFeedback({
+          type: "critical",
+          message:
+            "Erreur critique: un effet secondaire interdit a été détecté (mission/audit terrain/RAX/tarification/police/sinistre/blockchain). Plan non validé.",
+        });
+        return;
+      }
+
+      setIraxPlanningFeedback({
+        type: "success",
+        message: `Plan IRAX-P généré (version ${plan?.version ?? 1}).`,
+      });
+    } catch (mutationError) {
+      setIraxPlanningFeedback({
+        type: "error",
+        message: getIraxPlanningMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIraxPlanningGenerating(false);
+    }
+  }
+
+  async function handleUpdateIraxPlanningStatus(status: InsuranceIraxPlanningStatus) {
+    if (iraxPlanningStatusSaving) return;
+
+    setIraxPlanningFeedback(null);
+    setIraxPlanningStatusSaving(status);
+
+    try {
+      const plan = await updateIraxPlanningStatus(applicationId, status);
+      setIraxPlanning(plan);
+      setIraxPlanningFeedback({
+        type: "success",
+        message: `Statut IRAX-P mis à jour: ${status}.`,
+      });
+    } catch (mutationError) {
+      setIraxPlanningFeedback({
+        type: "error",
+        message: getIraxPlanningMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIraxPlanningStatusSaving(null);
+    }
   }
 
   async function handleRiskReviewAction(status: InsuranceRiskReviewStatus) {
@@ -1416,6 +1561,235 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         {application.sideEffects.sourceNote && (
           <p className="text-[11px] text-slate-500">Fallback frontend actif</p>
         )}
+      </DcaSectionCard>
+
+      {/* ── IRAX-P — Planification & orchestration du risque ── */}
+      <DcaSectionCard accent="amber">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IRAX-P — Pré-orchestration"
+            title="Planification & orchestration du risque"
+            subtitle={`Pays : ${getCountryLabel(iraxPlanning?.country ?? dcaCountry)} — moteur ${
+              iraxPlanning?.algorithmVersion ?? "IRAX_P_V1_2026"
+            }`}
+            accent="amber"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {iraxPlanning ? (
+              <>
+                <span className="rounded-full border border-amber-400/35 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-100">
+                  Version {iraxPlanning.version}
+                </span>
+                <span className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-0.5 text-[11px] text-cyan-200">
+                  {iraxPlanning.status}
+                </span>
+              </>
+            ) : (
+              <span className="rounded-full border border-slate-400/20 bg-slate-800/50 px-2.5 py-0.5 text-[11px] text-slate-500">
+                Aucun plan généré
+              </span>
+            )}
+          </div>
+        </div>
+
+        <p className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+          IRAX-P prépare le plan d&apos;investigation. L&apos;institution reste seule décisionnaire.
+        </p>
+
+        {iraxPlanningLoading ? <p className="text-xs text-slate-400">Chargement du plan IRAX-P...</p> : null}
+        {iraxPlanningError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {iraxPlanningError}
+          </p>
+        ) : null}
+
+        {iraxPlanning ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-3">
+              <DcaInfoTile label="Segment de revue" value={iraxPlanning.riskSegmentation.segment} />
+              <DcaInfoTile label="Confiance" value={iraxPlanning.riskSegmentation.confidence} />
+              <DcaInfoTile label="Prochaine étape recommandée" value={iraxPlanning.nextRecommendedStep} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <DcaInfoTile
+                label="Complétude profil agriculteur"
+                value={iraxPlanning.dataQuality.farmerProfileCompleteness}
+              />
+              <DcaInfoTile label="Complétude parcelle" value={iraxPlanning.dataQuality.parcelCompleteness} />
+              <DcaInfoTile label="Statut NDVI" value={iraxPlanning.dataQuality.ndviStatus} />
+              <DcaInfoTile label="Documents" value={iraxPlanning.dataQuality.documentsStatus} />
+              <DcaInfoTile label="Historique sinistres" value={iraxPlanning.dataQuality.claimsHistoryStatus} />
+              <DcaInfoTile label="Cohérence géo/pays" value={iraxPlanning.dataQuality.geoCountryCoherence} />
+            </div>
+
+            <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500">Cohérences vérifiées</p>
+              <p>
+                Pays agriculteur ↔ dossier :{" "}
+                <IraxCoherenceValue value={iraxPlanning.coherenceChecks.farmerCountryMatchesApplication} />
+              </p>
+              <p>
+                Pays parcelle ↔ dossier :{" "}
+                <IraxCoherenceValue value={iraxPlanning.coherenceChecks.parcelleCountryMatchesApplication} />
+              </p>
+              <p>
+                GPS dans les bornes du pays :{" "}
+                <IraxCoherenceValue value={iraxPlanning.coherenceChecks.gpsWithinPlausibleCountryBounds} />
+              </p>
+            </div>
+
+            {iraxPlanning.riskSegmentation.reasons.length > 0 ? (
+              <div className="rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Raisons du segment</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxPlanning.riskSegmentation.reasons.map((reason, index) => (
+                    <li key={index}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                  Plan terrain IRAX1{" "}
+                  {iraxPlanning.fieldInvestigationPlan.requiresFieldMission
+                    ? `(priorité ${iraxPlanning.fieldInvestigationPlan.missionPriority})`
+                    : "(non requis)"}
+                </p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxPlanning.fieldInvestigationPlan.objectives.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Plan back-office IRAX2</p>
+                <div className="flex flex-wrap gap-2">
+                  <SideEffectPill label="NDVI requis" active={iraxPlanning.backOfficeInvestigationPlan.ndviNeeded} />
+                  <SideEffectPill
+                    label="Météo requise"
+                    active={iraxPlanning.backOfficeInvestigationPlan.weatherNeeded}
+                  />
+                  <SideEffectPill label="Hydro requis" active={iraxPlanning.backOfficeInvestigationPlan.hydroNeeded} />
+                  <SideEffectPill
+                    label="Agronomie requise"
+                    active={iraxPlanning.backOfficeInvestigationPlan.agronomyNeeded}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                Checklist documents — {iraxPlanning.documentChecklist.status}
+              </p>
+              <p>Attendus : {iraxPlanning.documentChecklist.expected.join(", ") || "—"}</p>
+              <p>Préparés : {iraxPlanning.documentChecklist.prepared.join(", ") || "—"}</p>
+              <p>Manquants : {iraxPlanning.documentChecklist.missing.join(", ") || "Aucun"}</p>
+            </div>
+
+            {iraxPlanning.blockers.length > 0 ? (
+              <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                <p className="text-[10px] uppercase tracking-wide text-rose-300">Blocages</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxPlanning.blockers.map((blocker, index) => (
+                    <li key={index}>{blocker}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {iraxPlanning.warnings.length > 0 ? (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <p className="text-[10px] uppercase tracking-wide text-amber-300">Avertissements</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxPlanning.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="rounded-xl border border-slate-400/10 bg-slate-900/35 px-4 py-3 space-y-2">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500">Effets secondaires IRAX-P</p>
+              <div className="flex flex-wrap gap-2">
+                <SideEffectPill label="Mission" active={iraxPlanning.sideEffects.missionCreated} />
+                <SideEffectPill label="Audit terrain" active={iraxPlanning.sideEffects.fieldAuditCreated} />
+                <SideEffectPill label="RAX" active={iraxPlanning.sideEffects.raxCalculated} />
+                <SideEffectPill label="Tarification" active={iraxPlanning.sideEffects.pricingCalculated} />
+                <SideEffectPill label={policyLabelCapitalized} active={iraxPlanning.sideEffects.policyCreated} />
+                <SideEffectPill label={claimLabelCapitalized} active={iraxPlanning.sideEffects.claimCreated} />
+                <SideEffectPill label="Blockchain" active={iraxPlanning.sideEffects.blockchainAnchored} />
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateIraxPlanning()}
+            disabled={iraxPlanningGenerating || iraxPlanningLoading}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {iraxPlanningGenerating
+              ? "Génération..."
+              : iraxPlanning
+                ? "Régénérer le plan IRAX-P"
+                : "Générer le plan IRAX-P"}
+          </button>
+
+          {iraxPlanning ? (
+            <>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxPlanningStatus("REVIEWED")}
+                disabled={iraxPlanningStatusSaving !== null}
+                className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxPlanningStatusSaving === "REVIEWED" ? "..." : "Marquer revu"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxPlanningStatus("APPROVED_FOR_FIELD_PLANNING")}
+                disabled={iraxPlanningStatusSaving !== null}
+                className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxPlanningStatusSaving === "APPROVED_FOR_FIELD_PLANNING"
+                  ? "..."
+                  : "Approuver pour planification terrain"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxPlanningStatus("NEEDS_MORE_INFO")}
+                disabled={iraxPlanningStatusSaving !== null}
+                className="rounded-full border border-orange-400/35 bg-orange-500/10 px-3 py-1.5 text-xs text-orange-100 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxPlanningStatusSaving === "NEEDS_MORE_INFO" ? "..." : "Demander des informations"}
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        {iraxPlanningFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              iraxPlanningFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : iraxPlanningFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {iraxPlanningFeedback.message}
+          </p>
+        ) : null}
+
+        <p className="text-[11px] text-slate-500">
+          IRAX-P prépare le plan d&apos;investigation. L&apos;institution reste seule décisionnaire.
+        </p>
       </DcaSectionCard>
 
       {/* ── 8. Revue back-office audit terrain ── */}
