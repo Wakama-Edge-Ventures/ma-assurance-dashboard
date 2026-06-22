@@ -1023,6 +1023,133 @@ export interface InsurancePolicyContract {
   updatedAt: string | null;
 }
 
+export type InsuranceEvidenceBundleStatus =
+  | "BUNDLE_GENERATED"
+  | "UNDER_EVIDENCE_REVIEW"
+  | "READY_FOR_ANCHORING"
+  | "NEEDS_EVIDENCE_COMPLETION"
+  | "BLOCKED_INTEGRITY_ISSUE";
+
+export interface InsuranceEvidenceBundle {
+  id: string;
+  applicationId: string;
+  policyContractId: string | null;
+  pricingOfferId: string | null;
+  institutionDecisionId: string | null;
+  iraxPlanningId: string | null;
+  iraxFieldAssessmentId: string | null;
+  iraxScientificAssessmentId: string | null;
+  iraxConsolidatedAssessmentId: string | null;
+  iraxDecisionAssessmentId: string | null;
+  institutionId: string;
+  country: string;
+  version: number;
+  status: InsuranceEvidenceBundleStatus;
+  sourceLabel: string;
+  protocolVersion: string;
+  evidenceIndex: unknown;
+  chainSummary: Record<string, unknown> | null;
+  componentHashes: Record<string, unknown> | null;
+  integrityChecks: Record<string, unknown> | null;
+  privacyRedaction: Record<string, unknown> | null;
+  storageManifest: Record<string, unknown> | null;
+  anchoringReadiness: Record<string, unknown> | null;
+  bundleHash: string;
+  merkleRoot: string | null;
+  limitations: string[];
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  generatedByUserId: string | null;
+  reviewedByUserId: string | null;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export type InsuranceClaimCaseStatus =
+  | "CLAIM_REPORTED"
+  | "UNDER_CLAIM_REVIEW"
+  | "NEEDS_MORE_EVIDENCE"
+  | "READY_FOR_LOSS_ASSESSMENT"
+  | "ACCEPTED_FOR_SETTLEMENT_REVIEW"
+  | "CLOSED_NO_SETTLEMENT"
+  | "CANCELLED";
+
+export interface InsuranceClaimCase {
+  id: string;
+  applicationId: string;
+  policyContractId: string;
+  evidenceBundleId: string | null;
+  institutionId: string;
+  country: string;
+  version: number;
+  claimReference: string;
+  status: InsuranceClaimCaseStatus;
+  sourceLabel: string;
+  claimProtocolVersion: string;
+  claimType: string;
+  eventDate: string | null;
+  reportedAt: string;
+  reportedByUserId: string | null;
+  claimDeclaration: Record<string, unknown> | null;
+  policySnapshot: Record<string, unknown> | null;
+  lossAssessmentPlan: Record<string, unknown> | null;
+  evidenceRequirements: Record<string, unknown> | null;
+  triageAssessment: Record<string, unknown> | null;
+  coverageContext: Record<string, unknown> | null;
+  reserveEstimate: Record<string, unknown> | null;
+  reviewNotes: unknown;
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  assignedReviewerId: string | null;
+  reviewedAt: string | null;
+  closedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export type InsuranceMonitoringSnapshotStatus =
+  | "MONITORING_SNAPSHOT_GENERATED"
+  | "UNDER_MONITORING_REVIEW"
+  | "ALERTS_REQUIRING_ATTENTION"
+  | "NO_ACTION_REQUIRED"
+  | "NEEDS_DATA_REFRESH";
+
+export interface InsuranceMonitoringSnapshot {
+  id: string;
+  applicationId: string;
+  policyContractId: string | null;
+  evidenceBundleId: string | null;
+  institutionId: string;
+  country: string;
+  version: number;
+  status: InsuranceMonitoringSnapshotStatus;
+  sourceLabel: string;
+  monitoringProtocolVersion: string;
+  policySurveillance: Record<string, unknown> | null;
+  parcelSurveillance: Record<string, unknown> | null;
+  climateSurveillance: Record<string, unknown> | null;
+  vegetationSurveillance: Record<string, unknown> | null;
+  hydrologySurveillance: Record<string, unknown> | null;
+  claimsSurveillance: Record<string, unknown> | null;
+  complianceSurveillance: Record<string, unknown> | null;
+  dataQuality: Record<string, unknown> | null;
+  alerts: unknown[];
+  recommendedActions: string[];
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  generatedByUserId: string | null;
+  reviewedByUserId: string | null;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
 export interface RaxEvaluation {
   id: string;
   applicationId: string;

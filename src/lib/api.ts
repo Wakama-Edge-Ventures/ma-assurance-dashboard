@@ -81,6 +81,12 @@ import {
   InsuranceInstitutionDecisionType,
   InsurancePolicyContract,
   InsurancePolicyContractStatus,
+  InsuranceEvidenceBundle,
+  InsuranceEvidenceBundleStatus,
+  InsuranceClaimCase,
+  InsuranceClaimCaseStatus,
+  InsuranceMonitoringSnapshot,
+  InsuranceMonitoringSnapshotStatus,
   InsurancePricingOffer,
   InsurancePricingOfferStatus,
 } from "@/types";
@@ -3624,6 +3630,257 @@ export async function updatePolicyContractStatus(
     body: JSON.stringify({ status }),
   });
   return mapPolicyContract(payload);
+}
+
+function mapEvidenceBundle(payload: unknown): InsuranceEvidenceBundle | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.evidenceBundle);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    policyContractId: readString(obj, "policyContractId"),
+    pricingOfferId: readString(obj, "pricingOfferId"),
+    institutionDecisionId: readString(obj, "institutionDecisionId"),
+    iraxPlanningId: readString(obj, "iraxPlanningId"),
+    iraxFieldAssessmentId: readString(obj, "iraxFieldAssessmentId"),
+    iraxScientificAssessmentId: readString(obj, "iraxScientificAssessmentId"),
+    iraxConsolidatedAssessmentId: readString(obj, "iraxConsolidatedAssessmentId"),
+    iraxDecisionAssessmentId: readString(obj, "iraxDecisionAssessmentId"),
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "BUNDLE_GENERATED") as InsuranceEvidenceBundleStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    protocolVersion: readString(obj, "protocolVersion") ?? "IBDO_EVIDENCE_BUNDLE_V1_2026",
+    evidenceIndex: obj.evidenceIndex ?? [],
+    chainSummary: asObject(obj.chainSummary),
+    componentHashes: asObject(obj.componentHashes),
+    integrityChecks: asObject(obj.integrityChecks),
+    privacyRedaction: asObject(obj.privacyRedaction),
+    storageManifest: asObject(obj.storageManifest),
+    anchoringReadiness: asObject(obj.anchoringReadiness),
+    bundleHash: readString(obj, "bundleHash") ?? "",
+    merkleRoot: readString(obj, "merkleRoot"),
+    limitations: readStringArray(obj, "limitations"),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    generatedByUserId: readString(obj, "generatedByUserId"),
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+export async function getEvidenceBundle(
+  applicationId: string,
+): Promise<InsuranceEvidenceBundle | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/evidence-bundle`);
+  return mapEvidenceBundle(payload);
+}
+
+export async function generateEvidenceBundle(
+  applicationId: string,
+): Promise<InsuranceEvidenceBundle | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/evidence-bundle/generate`, {
+    method: "POST",
+  });
+  return mapEvidenceBundle(payload);
+}
+
+export async function updateEvidenceBundleStatus(
+  applicationId: string,
+  status: InsuranceEvidenceBundleStatus,
+): Promise<InsuranceEvidenceBundle | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/evidence-bundle/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return mapEvidenceBundle(payload);
+}
+
+function mapClaimCase(obj: Record<string, unknown> | null): InsuranceClaimCase | null {
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    policyContractId: readString(obj, "policyContractId") ?? "",
+    evidenceBundleId: readString(obj, "evidenceBundleId"),
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    claimReference: readString(obj, "claimReference") ?? "",
+    status: (readString(obj, "status") ?? "CLAIM_REPORTED") as InsuranceClaimCaseStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    claimProtocolVersion: readString(obj, "claimProtocolVersion") ?? "CLAIM_CASE_V1_2026",
+    claimType: readString(obj, "claimType") ?? "",
+    eventDate: readString(obj, "eventDate"),
+    reportedAt: readString(obj, "reportedAt") ?? "",
+    reportedByUserId: readString(obj, "reportedByUserId"),
+    claimDeclaration: asObject(obj.claimDeclaration),
+    policySnapshot: asObject(obj.policySnapshot),
+    lossAssessmentPlan: asObject(obj.lossAssessmentPlan),
+    evidenceRequirements: asObject(obj.evidenceRequirements),
+    triageAssessment: asObject(obj.triageAssessment),
+    coverageContext: asObject(obj.coverageContext),
+    reserveEstimate: asObject(obj.reserveEstimate),
+    reviewNotes: obj.reviewNotes ?? [],
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    assignedReviewerId: readString(obj, "assignedReviewerId"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    closedAt: readString(obj, "closedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+export interface CreateClaimCasePayload {
+  claimType: string;
+  eventDate?: string | null;
+  reportedDamage?: string | null;
+  notes?: string | null;
+}
+
+export async function listClaimCases(applicationId: string): Promise<InsuranceClaimCase[]> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/claims`);
+  const root = asObject(payload);
+  const claims = Array.isArray(root?.claims) ? root.claims : [];
+  return claims
+    .map((claim) => mapClaimCase(asObject(claim)))
+    .filter((claim): claim is InsuranceClaimCase => claim !== null);
+}
+
+export async function createClaimCase(
+  applicationId: string,
+  payload: CreateClaimCasePayload,
+): Promise<InsuranceClaimCase | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const response = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/claims`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const root = asObject(response);
+  return mapClaimCase(asObject(root?.claim));
+}
+
+export async function getClaimCase(
+  applicationId: string,
+  claimId: string,
+): Promise<InsuranceClaimCase | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const safeClaimId = encodeURIComponent(claimId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/claims/${safeClaimId}`);
+  const root = asObject(payload);
+  return mapClaimCase(asObject(root?.claim));
+}
+
+export async function updateClaimCaseStatus(
+  applicationId: string,
+  claimId: string,
+  status: InsuranceClaimCaseStatus,
+): Promise<InsuranceClaimCase | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const safeClaimId = encodeURIComponent(claimId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/claims/${safeClaimId}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    },
+  );
+  const root = asObject(payload);
+  return mapClaimCase(asObject(root?.claim));
+}
+
+function mapMonitoringSnapshot(payload: unknown): InsuranceMonitoringSnapshot | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.monitoring);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    policyContractId: readString(obj, "policyContractId"),
+    evidenceBundleId: readString(obj, "evidenceBundleId"),
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "MONITORING_SNAPSHOT_GENERATED") as InsuranceMonitoringSnapshotStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    monitoringProtocolVersion: readString(obj, "monitoringProtocolVersion") ?? "IDDO_MONITORING_V1_2026",
+    policySurveillance: asObject(obj.policySurveillance),
+    parcelSurveillance: asObject(obj.parcelSurveillance),
+    climateSurveillance: asObject(obj.climateSurveillance),
+    vegetationSurveillance: asObject(obj.vegetationSurveillance),
+    hydrologySurveillance: asObject(obj.hydrologySurveillance),
+    claimsSurveillance: asObject(obj.claimsSurveillance),
+    complianceSurveillance: asObject(obj.complianceSurveillance),
+    dataQuality: asObject(obj.dataQuality),
+    alerts: Array.isArray(obj.alerts) ? obj.alerts : [],
+    recommendedActions: readStringArray(obj, "recommendedActions"),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    generatedByUserId: readString(obj, "generatedByUserId"),
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+export async function getMonitoringSnapshot(
+  applicationId: string,
+): Promise<InsuranceMonitoringSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/monitoring`);
+  return mapMonitoringSnapshot(payload);
+}
+
+export async function generateMonitoringSnapshot(
+  applicationId: string,
+): Promise<InsuranceMonitoringSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/monitoring/generate`, {
+    method: "POST",
+  });
+  return mapMonitoringSnapshot(payload);
+}
+
+export async function updateMonitoringSnapshotStatus(
+  applicationId: string,
+  status: InsuranceMonitoringSnapshotStatus,
+): Promise<InsuranceMonitoringSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/monitoring/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return mapMonitoringSnapshot(payload);
 }
 
 export async function getInsuranceMissionConfig(

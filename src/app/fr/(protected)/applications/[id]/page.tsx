@@ -7,14 +7,18 @@ import {
   ApiError,
   assignInsuranceMissionDispatch,
   calculateIraxDecisionAssessment,
+  createClaimCase,
   createInsuranceMissionDispatchDraft,
   createIrax1Mission,
   CreateInsuranceMissionDispatchDraftResult,
   FieldAgent,
+  generateEvidenceBundle,
   generateIraxConsolidatedAssessment,
+  generateMonitoringSnapshot,
   generatePricingOffer,
   generateIraxPlanning,
   generateIraxScientificAssessment,
+  getEvidenceBundle,
   getInsuranceApplicationById,
   getInsuranceFieldAgents,
   getInstitutionDecision,
@@ -25,8 +29,10 @@ import {
   getIraxDecisionAssessment,
   getIraxPlanning,
   getIraxScientificAssessment,
+  getMonitoringSnapshot,
   getPolicyContract,
   getPricingOffer,
+  listClaimCases,
   InsuranceApplicationByIdResult,
   InsuranceIrax1FieldAssessment,
   InsuranceIraxConsolidatedAssessment,
@@ -47,6 +53,9 @@ import {
   recordInstitutionDecision,
   saveInsuranceMissionConfig,
   sendInsuranceMissionDispatch,
+  updateClaimCaseStatus,
+  updateEvidenceBundleStatus,
+  updateMonitoringSnapshotStatus,
   updatePolicyContractStatus,
   updatePricingOfferStatus,
   updateInsuranceApplicationStatus,
@@ -58,10 +67,16 @@ import {
   updateIraxScientificAssessmentStatus,
 } from "@/lib/api";
 import {
+  InsuranceClaimCase,
+  InsuranceClaimCaseStatus,
+  InsuranceEvidenceBundle,
+  InsuranceEvidenceBundleStatus,
   InsuranceFieldAudit,
   InsuranceInstitutionDecision,
   InsuranceInstitutionDecisionStatus,
   InsuranceInstitutionDecisionType,
+  InsuranceMonitoringSnapshot,
+  InsuranceMonitoringSnapshotStatus,
   InsurancePolicyContract,
   InsurancePolicyContractStatus,
   InsurancePricingOffer,
@@ -1028,6 +1043,47 @@ function formatPolicyContractStatusFr(status: string | null | undefined): string
   return POLICY_CONTRACT_STATUS_LABELS_FR[status as InsurancePolicyContractStatus] ?? status;
 }
 
+const EVIDENCE_BUNDLE_STATUS_LABELS_FR: Record<InsuranceEvidenceBundleStatus, string> = {
+  BUNDLE_GENERATED: "Bundle généré",
+  UNDER_EVIDENCE_REVIEW: "En revue des preuves",
+  READY_FOR_ANCHORING: "Prêt pour ancrage futur",
+  NEEDS_EVIDENCE_COMPLETION: "Complément de preuve requis",
+  BLOCKED_INTEGRITY_ISSUE: "Bloqué — problème d'intégrité",
+};
+
+const CLAIM_CASE_STATUS_LABELS_FR: Record<InsuranceClaimCaseStatus, string> = {
+  CLAIM_REPORTED: "Sinistre déclaré",
+  UNDER_CLAIM_REVIEW: "En revue de sinistre",
+  NEEDS_MORE_EVIDENCE: "Preuves complémentaires requises",
+  READY_FOR_LOSS_ASSESSMENT: "Prêt pour évaluation des pertes",
+  ACCEPTED_FOR_SETTLEMENT_REVIEW: "Accepté pour revue de règlement",
+  CLOSED_NO_SETTLEMENT: "Clôturé sans règlement",
+  CANCELLED: "Annulé",
+};
+
+const MONITORING_SNAPSHOT_STATUS_LABELS_FR: Record<InsuranceMonitoringSnapshotStatus, string> = {
+  MONITORING_SNAPSHOT_GENERATED: "Surveillance générée",
+  UNDER_MONITORING_REVIEW: "En revue de surveillance",
+  ALERTS_REQUIRING_ATTENTION: "Alertes à traiter",
+  NO_ACTION_REQUIRED: "Aucune action requise",
+  NEEDS_DATA_REFRESH: "Rafraîchissement de données requis",
+};
+
+function formatEvidenceBundleStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucun bundle";
+  return EVIDENCE_BUNDLE_STATUS_LABELS_FR[status as InsuranceEvidenceBundleStatus] ?? status;
+}
+
+function formatClaimCaseStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucun sinistre";
+  return CLAIM_CASE_STATUS_LABELS_FR[status as InsuranceClaimCaseStatus] ?? status;
+}
+
+function formatMonitoringSnapshotStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucune surveillance";
+  return MONITORING_SNAPSHOT_STATUS_LABELS_FR[status as InsuranceMonitoringSnapshotStatus] ?? status;
+}
+
 function parseLineItems(value: string): string[] {
   return value
     .split(/\n|,/g)
@@ -1160,6 +1216,58 @@ function getPolicyContractMutationErrorMessage(error: unknown): string {
   if (error.status === 404) return "Dossier introuvable (404) pour cette action contrat.";
   if (error.status === 409) return error.message || "L'offre doit être approuvée pour émettre le contrat.";
   return error.message || "Erreur API pendant l'action contrat.";
+}
+
+function getEvidenceBundleLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger le bundle de preuves.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) au bundle de preuves.";
+  if (error.status === 404) return "Dossier introuvable (404) pour le bundle de preuves.";
+  return error.message || "Erreur API pendant le chargement du bundle de preuves.";
+}
+
+function getEvidenceBundleMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action IBDO impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action IBDO.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action IBDO.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action IBDO.";
+  return error.message || "Erreur API pendant l'action IBDO.";
+}
+
+function getClaimCaseLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger les sinistres.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) aux sinistres.";
+  if (error.status === 404) return "Dossier introuvable (404) pour les sinistres.";
+  return error.message || "Erreur API pendant le chargement des sinistres.";
+}
+
+function getClaimCaseMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action sinistre impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action sinistre.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action sinistre.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action sinistre.";
+  if (error.status === 409) return error.message || "Un contrat de police actif est requis pour déclarer un sinistre.";
+  return error.message || "Erreur API pendant l'action sinistre.";
+}
+
+function getMonitoringSnapshotLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger la surveillance.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) à la surveillance.";
+  if (error.status === 404) return "Dossier introuvable (404) pour la surveillance.";
+  return error.message || "Erreur API pendant le chargement de la surveillance.";
+}
+
+function getMonitoringSnapshotMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action IDDO impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action IDDO.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action IDDO.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action IDDO.";
+  return error.message || "Erreur API pendant l'action IDDO.";
 }
 
 function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
@@ -1357,6 +1465,36 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     type: "success" | "error" | "critical";
     message: string;
   } | null>(null);
+  const [evidenceBundle, setEvidenceBundle] = useState<InsuranceEvidenceBundle | null>(null);
+  const [evidenceBundleLoading, setEvidenceBundleLoading] = useState(false);
+  const [evidenceBundleGenerating, setEvidenceBundleGenerating] = useState(false);
+  const [evidenceBundleStatusSaving, setEvidenceBundleStatusSaving] =
+    useState<InsuranceEvidenceBundleStatus | null>(null);
+  const [evidenceBundleError, setEvidenceBundleError] = useState<string | null>(null);
+  const [evidenceBundleFeedback, setEvidenceBundleFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [claimCases, setClaimCases] = useState<InsuranceClaimCase[]>([]);
+  const [claimCasesLoading, setClaimCasesLoading] = useState(false);
+  const [claimCaseCreating, setClaimCaseCreating] = useState(false);
+  const [claimCaseStatusSaving, setClaimCaseStatusSaving] = useState<string | null>(null);
+  const [claimCasesError, setClaimCasesError] = useState<string | null>(null);
+  const [claimCaseFeedback, setClaimCaseFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [claimCaseForm, setClaimCaseForm] = useState({ claimType: "", eventDate: "", notes: "" });
+  const [monitoringSnapshot, setMonitoringSnapshot] = useState<InsuranceMonitoringSnapshot | null>(null);
+  const [monitoringSnapshotLoading, setMonitoringSnapshotLoading] = useState(false);
+  const [monitoringSnapshotGenerating, setMonitoringSnapshotGenerating] = useState(false);
+  const [monitoringSnapshotStatusSaving, setMonitoringSnapshotStatusSaving] =
+    useState<InsuranceMonitoringSnapshotStatus | null>(null);
+  const [monitoringSnapshotError, setMonitoringSnapshotError] = useState<string | null>(null);
+  const [monitoringSnapshotFeedback, setMonitoringSnapshotFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
   const [missionConfigLoading, setMissionConfigLoading] = useState(false);
   const [missionConfigSaving, setMissionConfigSaving] = useState(false);
   const [missionConfigError, setMissionConfigError] = useState<string | null>(null);
@@ -1470,6 +1608,81 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
 
     void loadPolicyContract();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadEvidenceBundle() {
+      setEvidenceBundleLoading(true);
+      setEvidenceBundleError(null);
+
+      try {
+        const bundle = await getEvidenceBundle(applicationId);
+        if (!mounted) return;
+        setEvidenceBundle(bundle);
+      } catch (loadError) {
+        if (!mounted) return;
+        setEvidenceBundleError(getEvidenceBundleLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setEvidenceBundleLoading(false);
+      }
+    }
+
+    void loadEvidenceBundle();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadClaimCases() {
+      setClaimCasesLoading(true);
+      setClaimCasesError(null);
+
+      try {
+        const claims = await listClaimCases(applicationId);
+        if (!mounted) return;
+        setClaimCases(claims);
+      } catch (loadError) {
+        if (!mounted) return;
+        setClaimCasesError(getClaimCaseLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setClaimCasesLoading(false);
+      }
+    }
+
+    void loadClaimCases();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadMonitoringSnapshot() {
+      setMonitoringSnapshotLoading(true);
+      setMonitoringSnapshotError(null);
+
+      try {
+        const snapshot = await getMonitoringSnapshot(applicationId);
+        if (!mounted) return;
+        setMonitoringSnapshot(snapshot);
+      } catch (loadError) {
+        if (!mounted) return;
+        setMonitoringSnapshotError(getMonitoringSnapshotLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setMonitoringSnapshotLoading(false);
+      }
+    }
+
+    void loadMonitoringSnapshot();
     return () => {
       mounted = false;
     };
@@ -2074,6 +2287,160 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
   }
 
+  async function handleGenerateEvidenceBundle() {
+    if (evidenceBundleGenerating) return;
+
+    setEvidenceBundleFeedback(null);
+    setEvidenceBundleGenerating(true);
+
+    try {
+      const bundle = await generateEvidenceBundle(applicationId);
+      setEvidenceBundle(bundle);
+      setEvidenceBundleError(null);
+      setEvidenceBundleFeedback({
+        type: "success",
+        message: `Bundle de preuves généré (${formatEvidenceBundleStatusFr(bundle?.status)}).`,
+      });
+    } catch (mutationError) {
+      setEvidenceBundleFeedback({
+        type: "error",
+        message: getEvidenceBundleMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setEvidenceBundleGenerating(false);
+    }
+  }
+
+  async function handleUpdateEvidenceBundleStatus(status: InsuranceEvidenceBundleStatus) {
+    if (evidenceBundleStatusSaving) return;
+
+    setEvidenceBundleFeedback(null);
+    setEvidenceBundleStatusSaving(status);
+
+    try {
+      const bundle = await updateEvidenceBundleStatus(applicationId, status);
+      setEvidenceBundle(bundle);
+      setEvidenceBundleFeedback({
+        type: "success",
+        message: `Statut bundle mis à jour: ${formatEvidenceBundleStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setEvidenceBundleFeedback({
+        type: "error",
+        message: getEvidenceBundleMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setEvidenceBundleStatusSaving(null);
+    }
+  }
+
+  async function handleCreateClaimCase() {
+    if (claimCaseCreating) return;
+    if (!claimCaseForm.claimType.trim()) {
+      setClaimCaseFeedback({ type: "error", message: "Le type de sinistre est requis." });
+      return;
+    }
+
+    setClaimCaseFeedback(null);
+    setClaimCaseCreating(true);
+
+    try {
+      const claim = await createClaimCase(applicationId, {
+        claimType: claimCaseForm.claimType.trim(),
+        eventDate: claimCaseForm.eventDate.trim() || null,
+        notes: claimCaseForm.notes.trim() || null,
+      });
+      if (claim) {
+        setClaimCases((previous) => [claim, ...previous]);
+      }
+      setClaimCasesError(null);
+      setClaimCaseForm({ claimType: "", eventDate: "", notes: "" });
+      setClaimCaseFeedback({
+        type: "success",
+        message: `Dossier sinistre créé: ${claim?.claimReference ?? ""}.`,
+      });
+    } catch (mutationError) {
+      setClaimCaseFeedback({
+        type: "error",
+        message: getClaimCaseMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setClaimCaseCreating(false);
+    }
+  }
+
+  async function handleUpdateClaimCaseStatus(claimId: string, status: InsuranceClaimCaseStatus) {
+    if (claimCaseStatusSaving) return;
+
+    setClaimCaseFeedback(null);
+    setClaimCaseStatusSaving(`${claimId}:${status}`);
+
+    try {
+      const claim = await updateClaimCaseStatus(applicationId, claimId, status);
+      if (claim) {
+        setClaimCases((previous) => previous.map((item) => (item.id === claimId ? claim : item)));
+      }
+      setClaimCaseFeedback({
+        type: "success",
+        message: `Statut sinistre mis à jour: ${formatClaimCaseStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setClaimCaseFeedback({
+        type: "error",
+        message: getClaimCaseMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setClaimCaseStatusSaving(null);
+    }
+  }
+
+  async function handleGenerateMonitoringSnapshot() {
+    if (monitoringSnapshotGenerating) return;
+
+    setMonitoringSnapshotFeedback(null);
+    setMonitoringSnapshotGenerating(true);
+
+    try {
+      const snapshot = await generateMonitoringSnapshot(applicationId);
+      setMonitoringSnapshot(snapshot);
+      setMonitoringSnapshotError(null);
+      setMonitoringSnapshotFeedback({
+        type: "success",
+        message: `Surveillance générée (${formatMonitoringSnapshotStatusFr(snapshot?.status)}).`,
+      });
+    } catch (mutationError) {
+      setMonitoringSnapshotFeedback({
+        type: "error",
+        message: getMonitoringSnapshotMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setMonitoringSnapshotGenerating(false);
+    }
+  }
+
+  async function handleUpdateMonitoringSnapshotStatus(status: InsuranceMonitoringSnapshotStatus) {
+    if (monitoringSnapshotStatusSaving) return;
+
+    setMonitoringSnapshotFeedback(null);
+    setMonitoringSnapshotStatusSaving(status);
+
+    try {
+      const snapshot = await updateMonitoringSnapshotStatus(applicationId, status);
+      setMonitoringSnapshot(snapshot);
+      setMonitoringSnapshotFeedback({
+        type: "success",
+        message: `Statut surveillance mis à jour: ${formatMonitoringSnapshotStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setMonitoringSnapshotFeedback({
+        type: "error",
+        message: getMonitoringSnapshotMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setMonitoringSnapshotStatusSaving(null);
+    }
+  }
+
   async function handleRiskReviewAction(status: InsuranceRiskReviewStatus) {
     if (riskReviewActionLoading) return;
 
@@ -2433,6 +2800,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     institutionDecision?.status !== "READY_FOR_PRICING" || institutionDecision?.decisionType !== "PROCEED_TO_PRICING";
   const policyContractPrerequisiteBlocked =
     pricingOffer?.status !== "OFFER_APPROVED_FOR_CONTRACT";
+  const claimCasePrerequisiteBlocked = !policyContract;
 
   if (loading) {
     return (
@@ -4244,6 +4612,364 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             }`}
           >
             {policyContractFeedback.message}
+          </p>
+        ) : null}
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="cyan">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IBDO"
+            title="IBDO — Evidence Bundle & intégrité des preuves"
+            subtitle="IBDO consolide les preuves et calcule des empreintes d'intégrité. Aucun ancrage blockchain n'est déclenché automatiquement."
+            accent="cyan"
+          />
+          <span className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-0.5 text-[11px] text-cyan-100">
+            {formatEvidenceBundleStatusFr(evidenceBundle?.status)}
+          </span>
+        </div>
+
+        {evidenceBundleLoading ? <p className="text-xs text-slate-400">Chargement du bundle de preuves...</p> : null}
+        {evidenceBundleError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {evidenceBundleError}
+          </p>
+        ) : null}
+
+        {evidenceBundle ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              <DcaInfoTile label="Statut bundle" value={formatEvidenceBundleStatusFr(evidenceBundle.status)} />
+              <DcaInfoTile label="Protocol version" value={evidenceBundle.protocolVersion || "—"} />
+              <DcaInfoTile label="Bundle hash" value={evidenceBundle.bundleHash || "—"} mono />
+              <DcaInfoTile label="Version" value={evidenceBundle.version} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <InstitutionDecisionValueBlock title="Evidence index" value={evidenceBundle.evidenceIndex} />
+              <InstitutionDecisionValueBlock title="Chain summary" value={evidenceBundle.chainSummary} />
+              <InstitutionDecisionValueBlock title="Component hashes" value={evidenceBundle.componentHashes} />
+              <InstitutionDecisionValueBlock title="Integrity checks" value={evidenceBundle.integrityChecks} />
+              <InstitutionDecisionValueBlock title="Privacy redaction" value={evidenceBundle.privacyRedaction} />
+              <InstitutionDecisionValueBlock title="Storage manifest" value={evidenceBundle.storageManifest} />
+              <InstitutionDecisionValueBlock title="Anchoring readiness" value={evidenceBundle.anchoringReadiness} />
+              <InstitutionDecisionValueBlock title="Limitations" value={evidenceBundle.limitations} />
+              <InstitutionDecisionValueBlock title="Side effects" value={evidenceBundle.sideEffects} />
+            </div>
+          </>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucun bundle de preuves généré pour ce dossier.
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateEvidenceBundle()}
+            disabled={evidenceBundleGenerating || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-4 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {evidenceBundleGenerating ? "..." : "Générer / Actualiser bundle"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateEvidenceBundleStatus("UNDER_EVIDENCE_REVIEW")}
+            disabled={!evidenceBundle || evidenceBundleStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {evidenceBundleStatusSaving === "UNDER_EVIDENCE_REVIEW" ? "..." : "Démarrer revue preuves"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateEvidenceBundleStatus("READY_FOR_ANCHORING")}
+            disabled={!evidenceBundle || evidenceBundleStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {evidenceBundleStatusSaving === "READY_FOR_ANCHORING" ? "..." : "Marquer prêt pour ancrage futur"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateEvidenceBundleStatus("NEEDS_EVIDENCE_COMPLETION")}
+            disabled={!evidenceBundle || evidenceBundleStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {evidenceBundleStatusSaving === "NEEDS_EVIDENCE_COMPLETION" ? "..." : "Demander complément preuve"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateEvidenceBundleStatus("BLOCKED_INTEGRITY_ISSUE")}
+            disabled={!evidenceBundle || evidenceBundleStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {evidenceBundleStatusSaving === "BLOCKED_INTEGRITY_ISSUE" ? "..." : "Bloquer problème intégrité"}
+          </button>
+        </div>
+
+        {evidenceBundleFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              evidenceBundleFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : evidenceBundleFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {evidenceBundleFeedback.message}
+          </p>
+        ) : null}
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="amber">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="Sinistres"
+            title="Sinistres — Dossier claim"
+            subtitle="Le dossier sinistre prépare la revue humaine. Aucun paiement, aucune indemnisation et aucune quittance ne sont créés automatiquement."
+            accent="amber"
+          />
+        </div>
+
+        {claimCasesLoading ? <p className="text-xs text-slate-400">Chargement des sinistres...</p> : null}
+        {claimCasesError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {claimCasesError}
+          </p>
+        ) : null}
+
+        {claimCases.length > 0 ? (
+          <div className="space-y-3">
+            {claimCases.map((claim) => (
+              <div
+                key={claim.id}
+                className="space-y-3 rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-slate-200">
+                    {claim.claimReference} — {claim.claimType}
+                  </p>
+                  <span className="rounded-full border border-amber-400/35 bg-amber-500/10 px-2.5 py-0.5 text-[11px] text-amber-100">
+                    {formatClaimCaseStatusFr(claim.status)}
+                  </span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <InstitutionDecisionValueBlock title="Policy snapshot" value={claim.policySnapshot} />
+                  <InstitutionDecisionValueBlock title="Loss assessment plan" value={claim.lossAssessmentPlan} />
+                  <InstitutionDecisionValueBlock title="Evidence requirements" value={claim.evidenceRequirements} />
+                  <InstitutionDecisionValueBlock title="Triage assessment" value={claim.triageAssessment} />
+                  <InstitutionDecisionValueBlock title="Coverage context" value={claim.coverageContext} />
+                  <InstitutionDecisionValueBlock title="Reserve estimate" value={claim.reserveEstimate} />
+                  <InstitutionDecisionValueBlock title="Side effects" value={claim.sideEffects} />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateClaimCaseStatus(claim.id, "UNDER_CLAIM_REVIEW")}
+                    disabled={claimCaseStatusSaving !== null || !canOperateInstitutionFlow}
+                    className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+                  >
+                    {claimCaseStatusSaving === `${claim.id}:UNDER_CLAIM_REVIEW` ? "..." : "Démarrer revue sinistre"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateClaimCaseStatus(claim.id, "NEEDS_MORE_EVIDENCE")}
+                    disabled={claimCaseStatusSaving !== null || !canOperateInstitutionFlow}
+                    className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+                  >
+                    {claimCaseStatusSaving === `${claim.id}:NEEDS_MORE_EVIDENCE` ? "..." : "Demander preuves complémentaires"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateClaimCaseStatus(claim.id, "READY_FOR_LOSS_ASSESSMENT")}
+                    disabled={claimCaseStatusSaving !== null || !canOperateInstitutionFlow}
+                    className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+                  >
+                    {claimCaseStatusSaving === `${claim.id}:READY_FOR_LOSS_ASSESSMENT` ? "..." : "Prêt pour évaluation pertes"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateClaimCaseStatus(claim.id, "ACCEPTED_FOR_SETTLEMENT_REVIEW")}
+                    disabled={claimCaseStatusSaving !== null || !canOperateInstitutionFlow}
+                    className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+                  >
+                    {claimCaseStatusSaving === `${claim.id}:ACCEPTED_FOR_SETTLEMENT_REVIEW` ? "..." : "Accepter pour revue règlement"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateClaimCaseStatus(claim.id, "CLOSED_NO_SETTLEMENT")}
+                    disabled={claimCaseStatusSaving !== null || !canOperateInstitutionFlow}
+                    className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+                  >
+                    {claimCaseStatusSaving === `${claim.id}:CLOSED_NO_SETTLEMENT` ? "..." : "Clôturer sans règlement"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateClaimCaseStatus(claim.id, "CANCELLED")}
+                    disabled={claimCaseStatusSaving !== null || !canOperateInstitutionFlow}
+                    className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+                  >
+                    {claimCaseStatusSaving === `${claim.id}:CANCELLED` ? "..." : "Annuler"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucun dossier sinistre pour ce dossier.
+          </div>
+        )}
+
+        <div className="grid gap-3 rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 md:grid-cols-3">
+          <input
+            type="text"
+            value={claimCaseForm.claimType}
+            onChange={(event) => setClaimCaseForm((prev) => ({ ...prev, claimType: event.target.value }))}
+            placeholder="Type de sinistre (ex. DROUGHT)"
+            className="rounded-lg border border-slate-400/20 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500"
+          />
+          <input
+            type="date"
+            value={claimCaseForm.eventDate}
+            onChange={(event) => setClaimCaseForm((prev) => ({ ...prev, eventDate: event.target.value }))}
+            className="rounded-lg border border-slate-400/20 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-100"
+          />
+          <input
+            type="text"
+            value={claimCaseForm.notes}
+            onChange={(event) => setClaimCaseForm((prev) => ({ ...prev, notes: event.target.value }))}
+            placeholder="Note / dommage déclaré"
+            className="rounded-lg border border-slate-400/20 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleCreateClaimCase()}
+            disabled={claimCaseCreating || !canOperateInstitutionFlow || claimCasePrerequisiteBlocked}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {claimCaseCreating ? "..." : "Créer dossier sinistre"}
+          </button>
+        </div>
+
+        {claimCasePrerequisiteBlocked ? (
+          <p className="rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
+            La déclaration de sinistre reste bloquée tant qu&apos;aucun contrat de police n&apos;est émis.
+          </p>
+        ) : null}
+
+        {claimCaseFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              claimCaseFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : claimCaseFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {claimCaseFeedback.message}
+          </p>
+        ) : null}
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="violet">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IDDO"
+            title="IDDO — Surveillance post-contrat"
+            subtitle="IDDO surveille les signaux post-contrat et recommande des actions humaines. Il ne modifie jamais automatiquement la police ou les sinistres."
+            accent="violet"
+          />
+          <span className="rounded-full border border-violet-400/35 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-100">
+            {formatMonitoringSnapshotStatusFr(monitoringSnapshot?.status)}
+          </span>
+        </div>
+
+        {monitoringSnapshotLoading ? <p className="text-xs text-slate-400">Chargement de la surveillance...</p> : null}
+        {monitoringSnapshotError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {monitoringSnapshotError}
+          </p>
+        ) : null}
+
+        {monitoringSnapshot ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <InstitutionDecisionValueBlock title="Policy surveillance" value={monitoringSnapshot.policySurveillance} />
+            <InstitutionDecisionValueBlock title="Parcel surveillance" value={monitoringSnapshot.parcelSurveillance} />
+            <InstitutionDecisionValueBlock title="Climate surveillance" value={monitoringSnapshot.climateSurveillance} />
+            <InstitutionDecisionValueBlock title="Vegetation surveillance" value={monitoringSnapshot.vegetationSurveillance} />
+            <InstitutionDecisionValueBlock title="Hydrology surveillance" value={monitoringSnapshot.hydrologySurveillance} />
+            <InstitutionDecisionValueBlock title="Claims surveillance" value={monitoringSnapshot.claimsSurveillance} />
+            <InstitutionDecisionValueBlock title="Compliance surveillance" value={monitoringSnapshot.complianceSurveillance} />
+            <InstitutionDecisionValueBlock title="Data quality" value={monitoringSnapshot.dataQuality} />
+            <InstitutionDecisionValueBlock title="Alerts" value={monitoringSnapshot.alerts} />
+            <InstitutionDecisionValueBlock title="Recommended actions" value={monitoringSnapshot.recommendedActions} />
+            <InstitutionDecisionValueBlock title="Side effects" value={monitoringSnapshot.sideEffects} />
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucune surveillance générée pour ce dossier.
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateMonitoringSnapshot()}
+            disabled={monitoringSnapshotGenerating || !canOperateInstitutionFlow}
+            className="rounded-full border border-violet-400/35 bg-violet-500/10 px-4 py-1.5 text-xs text-violet-100 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {monitoringSnapshotGenerating ? "..." : "Générer / Actualiser surveillance"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateMonitoringSnapshotStatus("UNDER_MONITORING_REVIEW")}
+            disabled={!monitoringSnapshot || monitoringSnapshotStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {monitoringSnapshotStatusSaving === "UNDER_MONITORING_REVIEW" ? "..." : "Démarrer revue monitoring"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateMonitoringSnapshotStatus("ALERTS_REQUIRING_ATTENTION")}
+            disabled={!monitoringSnapshot || monitoringSnapshotStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {monitoringSnapshotStatusSaving === "ALERTS_REQUIRING_ATTENTION" ? "..." : "Marquer alertes à traiter"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateMonitoringSnapshotStatus("NO_ACTION_REQUIRED")}
+            disabled={!monitoringSnapshot || monitoringSnapshotStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {monitoringSnapshotStatusSaving === "NO_ACTION_REQUIRED" ? "..." : "Aucune action requise"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateMonitoringSnapshotStatus("NEEDS_DATA_REFRESH")}
+            disabled={!monitoringSnapshot || monitoringSnapshotStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {monitoringSnapshotStatusSaving === "NEEDS_DATA_REFRESH" ? "..." : "Demander rafraîchissement données"}
+          </button>
+        </div>
+
+        {monitoringSnapshotFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              monitoringSnapshotFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : monitoringSnapshotFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {monitoringSnapshotFeedback.message}
           </p>
         ) : null}
       </DcaSectionCard>
