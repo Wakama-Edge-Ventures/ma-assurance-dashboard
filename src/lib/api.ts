@@ -3277,6 +3277,111 @@ export async function updateIraxConsolidatedAssessmentStatus(
   return mapIraxConsolidatedAssessment(payload);
 }
 
+export type InsuranceIraxDecisionAssessmentStatus =
+  | "UNDER_RISK_REVIEW"
+  | "NEEDS_MORE_DATA"
+  | "ACCEPTED_FOR_INSTITUTION_REVIEW"
+  | "BLOCKED_INSUFFICIENT_DATA";
+
+export interface InsuranceIraxDecisionAssessment {
+  id: string;
+  applicationId: string;
+  iraxConsolidatedAssessmentId: string | null;
+  institutionId: string | null;
+  country: string;
+  version: number;
+  status: string;
+  sourceLabel: string;
+  algorithmVersion: string;
+  inputReadiness: Record<string, unknown> | null;
+  deterministicInputs: Record<string, unknown> | null;
+  severityAssessment: Record<string, unknown> | null;
+  frequencyAssessment: Record<string, unknown> | null;
+  detectabilityAssessment: Record<string, unknown> | null;
+  raxCalculation: Record<string, unknown> | null;
+  wrsCalculation: Record<string, unknown> | null;
+  riskTier: Record<string, unknown> | null;
+  calculationTrace: string[];
+  limitations: Record<string, unknown> | null;
+  blockers: string[];
+  warnings: string[];
+  nextRecommendedStep: string;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  sideEffects: InsuranceMissionConfigSideEffects;
+}
+
+function mapIraxDecisionAssessment(payload: unknown): InsuranceIraxDecisionAssessment | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.iraxDecisionAssessment);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    iraxConsolidatedAssessmentId: readString(obj, "iraxConsolidatedAssessmentId"),
+    institutionId: readString(obj, "institutionId"),
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: readString(obj, "status") ?? "IRAX_D_CALCULATED",
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    algorithmVersion: readString(obj, "algorithmVersion") ?? "IRAX_D_RAX_V1_2026",
+    inputReadiness: asObject(obj.inputReadiness),
+    deterministicInputs: asObject(obj.deterministicInputs),
+    severityAssessment: asObject(obj.severityAssessment),
+    frequencyAssessment: asObject(obj.frequencyAssessment),
+    detectabilityAssessment: asObject(obj.detectabilityAssessment),
+    raxCalculation: asObject(obj.raxCalculation),
+    wrsCalculation: asObject(obj.wrsCalculation),
+    riskTier: asObject(obj.riskTier),
+    calculationTrace: readStringArray(obj, "calculationTrace"),
+    limitations: asObject(obj.limitations),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    nextRecommendedStep: readString(obj, "nextRecommendedStep") ?? "WAITING_FOR_CRIP",
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+    sideEffects: mapMissionConfigSideEffects(root?.sideEffects),
+  };
+}
+
+export async function getIraxDecisionAssessment(
+  applicationId: string,
+): Promise<InsuranceIraxDecisionAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax-d/crdp`);
+  return mapIraxDecisionAssessment(payload);
+}
+
+export async function calculateIraxDecisionAssessment(
+  applicationId: string,
+): Promise<InsuranceIraxDecisionAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax-d/calculate`, {
+    method: "POST",
+  });
+  return mapIraxDecisionAssessment(payload);
+}
+
+export async function updateIraxDecisionAssessmentStatus(
+  applicationId: string,
+  status: InsuranceIraxDecisionAssessmentStatus,
+): Promise<InsuranceIraxDecisionAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax-d/crdp/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return mapIraxDecisionAssessment(payload);
+}
+
 export async function getInsuranceMissionConfig(
   applicationId: string,
 ): Promise<InsuranceMissionConfig | null> {

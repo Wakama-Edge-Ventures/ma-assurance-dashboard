@@ -6,6 +6,7 @@ import {
   acceptInsuranceFieldAuditForReview,
   ApiError,
   assignInsuranceMissionDispatch,
+  calculateIraxDecisionAssessment,
   createInsuranceMissionDispatchDraft,
   createIrax1Mission,
   CreateInsuranceMissionDispatchDraftResult,
@@ -19,12 +20,15 @@ import {
   getInsuranceMissionConfigVersions,
   getIrax1FieldAssessment,
   getIraxConsolidatedAssessment,
+  getIraxDecisionAssessment,
   getIraxPlanning,
   getIraxScientificAssessment,
   InsuranceApplicationByIdResult,
   InsuranceIrax1FieldAssessment,
   InsuranceIraxConsolidatedAssessment,
   InsuranceIraxConsolidatedAssessmentStatus,
+  InsuranceIraxDecisionAssessment,
+  InsuranceIraxDecisionAssessmentStatus,
   InsuranceIraxPlanning,
   InsuranceIraxPlanningStatus,
   InsuranceIraxScientificAssessment,
@@ -40,6 +44,7 @@ import {
   updateInsuranceApplicationStatus,
   updateIrax1FieldAssessmentStatus,
   updateIraxConsolidatedAssessmentStatus,
+  updateIraxDecisionAssessmentStatus,
   updateIraxPlanningStatus,
   updateIraxScientificAssessmentStatus,
 } from "@/lib/api";
@@ -923,6 +928,77 @@ function hasIraxConsolidatedForbiddenSideEffects(sideEffects: InsuranceMissionCo
   return hasMissionConfigForbiddenSideEffects(sideEffects);
 }
 
+const IRAX_D_STATUS_LABELS_FR: Record<string, string> = {
+  IRAX_D_CALCULATED: "CRDP calculé",
+  UNDER_RISK_REVIEW: "En revue de risque",
+  NEEDS_MORE_DATA: "Données complémentaires requises",
+  ACCEPTED_FOR_INSTITUTION_REVIEW: "Accepté — pour revue institutionnelle",
+  BLOCKED_INSUFFICIENT_DATA: "Bloqué — données insuffisantes",
+};
+
+const IRAX_D_NEXT_STEP_LABELS_FR: Record<string, string> = {
+  WAITING_FOR_CRIP: "En attente du CRIP IRAX3",
+  REQUEST_MORE_DATA: "Données complémentaires requises",
+  READY_FOR_INSTITUTION_REVIEW: "Prêt pour la revue institutionnelle",
+  NEEDS_RISK_REVIEW: "Revue de risque requise",
+  BLOCKED_INSUFFICIENT_DATA: "Bloqué — données insuffisantes",
+};
+
+function formatIraxDStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucun CRDP";
+  return IRAX_D_STATUS_LABELS_FR[status] ?? status;
+}
+
+function formatIraxDNextStepFr(step: string | null | undefined): string {
+  if (!step) return "—";
+  return IRAX_D_NEXT_STEP_LABELS_FR[step] ?? step;
+}
+
+function getIraxDecisionLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Impossible de charger le CRDP IRAX-D.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) au CRDP IRAX-D.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404) pour le CRDP IRAX-D.";
+  }
+  return error.message || "Erreur API pendant le chargement du CRDP IRAX-D.";
+}
+
+function getIraxDecisionMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Action IRAX-D impossible.";
+  }
+  if (error.status === 400) {
+    return "Requête invalide (400) pour cette action IRAX-D.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) pour cette action IRAX-D.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404), ou aucun CRDP existant pour cette action IRAX-D.";
+  }
+  if (error.status === 409) {
+    return (
+      error.message ||
+      "IRAX-D nécessite un CRIP IRAX3 accepté pour IRAX-D (action impossible dans l'état actuel)."
+    );
+  }
+  return error.message || "Erreur API pendant l'action IRAX-D.";
+}
+
+function hasIraxDecisionForbiddenSideEffects(sideEffects: InsuranceMissionConfigSideEffects): boolean {
+  return hasMissionConfigForbiddenSideEffects(sideEffects);
+}
+
 function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
   if (value === "UNKNOWN") {
     return <span className="text-slate-500">Non disponible</span>;
@@ -1068,6 +1144,17 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     useState<InsuranceIraxConsolidatedAssessmentStatus | null>(null);
   const [iraxConsolidatedError, setIraxConsolidatedError] = useState<string | null>(null);
   const [iraxConsolidatedFeedback, setIraxConsolidatedFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [iraxDecisionAssessment, setIraxDecisionAssessment] =
+    useState<InsuranceIraxDecisionAssessment | null>(null);
+  const [iraxDecisionLoading, setIraxDecisionLoading] = useState(false);
+  const [iraxDecisionCalculating, setIraxDecisionCalculating] = useState(false);
+  const [iraxDecisionStatusSaving, setIraxDecisionStatusSaving] =
+    useState<InsuranceIraxDecisionAssessmentStatus | null>(null);
+  const [iraxDecisionError, setIraxDecisionError] = useState<string | null>(null);
+  const [iraxDecisionFeedback, setIraxDecisionFeedback] = useState<{
     type: "success" | "error" | "critical";
     message: string;
   } | null>(null);
@@ -1473,6 +1560,90 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       });
     } finally {
       setIraxConsolidatedStatusSaving(null);
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadIraxDecisionAssessment() {
+      setIraxDecisionLoading(true);
+      setIraxDecisionError(null);
+
+      try {
+        const crdp = await getIraxDecisionAssessment(applicationId);
+        if (!mounted) return;
+        setIraxDecisionAssessment(crdp);
+      } catch (loadError) {
+        if (!mounted) return;
+        setIraxDecisionError(getIraxDecisionLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) {
+          setIraxDecisionLoading(false);
+        }
+      }
+    }
+
+    void loadIraxDecisionAssessment();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  async function handleCalculateIraxDecisionAssessment() {
+    if (iraxDecisionCalculating) return;
+
+    setIraxDecisionFeedback(null);
+    setIraxDecisionCalculating(true);
+
+    try {
+      const crdp = await calculateIraxDecisionAssessment(applicationId);
+      setIraxDecisionAssessment(crdp);
+      setIraxDecisionError(null);
+
+      if (crdp && hasIraxDecisionForbiddenSideEffects(crdp.sideEffects)) {
+        setIraxDecisionFeedback({
+          type: "critical",
+          message:
+            "Erreur critique: un effet secondaire interdit a été détecté (mission/pricing/police/sinistre/evidence/blockchain). CRDP non validé.",
+        });
+        return;
+      }
+
+      setIraxDecisionFeedback({
+        type: "success",
+        message: `CRDP IRAX-D calculé (version ${crdp?.version ?? 1}).`,
+      });
+    } catch (mutationError) {
+      setIraxDecisionFeedback({
+        type: "error",
+        message: getIraxDecisionMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIraxDecisionCalculating(false);
+    }
+  }
+
+  async function handleUpdateIraxDecisionAssessmentStatus(status: InsuranceIraxDecisionAssessmentStatus) {
+    if (iraxDecisionStatusSaving) return;
+
+    setIraxDecisionFeedback(null);
+    setIraxDecisionStatusSaving(status);
+
+    try {
+      const crdp = await updateIraxDecisionAssessmentStatus(applicationId, status);
+      setIraxDecisionAssessment(crdp);
+      setIraxDecisionFeedback({
+        type: "success",
+        message: `Statut CRDP IRAX-D mis à jour: ${formatIraxDStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setIraxDecisionFeedback({
+        type: "error",
+        message: getIraxDecisionMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIraxDecisionStatusSaving(null);
     }
   }
 
@@ -3025,6 +3196,179 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         <p className="text-[11px] text-slate-500">
           IRAX3 consolide les vérités déclarative, terrain et scientifique. Il prépare IRAX-D sans décider.
           L&apos;institution reste seule décisionnaire.
+        </p>
+      </DcaSectionCard>
+
+      {/* ── IRAX-D — Calcul déterministe du risque ── */}
+      <DcaSectionCard accent="emerald">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IRAX-D — Calcul déterministe du risque"
+            title="IRAX-D — Calcul déterministe du risque"
+            subtitle={`CRDP — Calculated Risk Deterministic Package — algorithme ${iraxDecisionAssessment?.algorithmVersion ?? "IRAX_D_RAX_V1_2026"}`}
+            accent="emerald"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {iraxDecisionAssessment ? (
+              <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-200">
+                {formatIraxDStatusFr(iraxDecisionAssessment.status)}
+              </span>
+            ) : (
+              <span className="rounded-full border border-slate-400/20 bg-slate-800/50 px-2.5 py-0.5 text-[11px] text-slate-500">
+                Aucun CRDP
+              </span>
+            )}
+          </div>
+        </div>
+
+        <p className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+          IRAX-D calcule un niveau de risque déterministe à partir du CRIP. Il ne décide pas. L&apos;institution
+          reste seule décisionnaire.
+        </p>
+
+        {iraxDecisionLoading ? <p className="text-xs text-slate-400">Chargement du CRDP IRAX-D...</p> : null}
+        {iraxDecisionError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {iraxDecisionError}
+          </p>
+        ) : null}
+
+        {iraxDecisionAssessment ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-4">
+              <DcaInfoTile label="Pays" value={iraxDecisionAssessment.country} />
+              <DcaInfoTile label="Source" value={iraxDecisionAssessment.sourceLabel} />
+              <DcaInfoTile label="Version" value={String(iraxDecisionAssessment.version)} />
+              <DcaInfoTile
+                label="Prochaine étape recommandée"
+                value={formatIraxDNextStepFr(iraxDecisionAssessment.nextRecommendedStep)}
+              />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <Irax3JsonSection title="1. Préparation des entrées" value={iraxDecisionAssessment.inputReadiness} />
+              <Irax3JsonSection
+                title="2. Entrées déterministes"
+                value={iraxDecisionAssessment.deterministicInputs}
+              />
+              <Irax3JsonSection title="3. Sévérité (gravité)" value={iraxDecisionAssessment.severityAssessment} />
+              <Irax3JsonSection title="4. Fréquence" value={iraxDecisionAssessment.frequencyAssessment} />
+              <Irax3JsonSection title="5. Détectabilité" value={iraxDecisionAssessment.detectabilityAssessment} />
+              <Irax3JsonSection title="6. Calcul RAX (R = G x F x D)" value={iraxDecisionAssessment.raxCalculation} />
+              <Irax3JsonSection title="7. Calcul WRS" value={iraxDecisionAssessment.wrsCalculation} />
+              <Irax3JsonSection title="8. Niveau de risque (tier)" value={iraxDecisionAssessment.riskTier} />
+              <Irax3JsonSection title="10. Limitations" value={iraxDecisionAssessment.limitations} />
+            </div>
+
+            <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500">9. Trace de calcul</p>
+              <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+                {iraxDecisionAssessment.calculationTrace.map((step, index) => (
+                  <li key={index}>{step}</li>
+                ))}
+              </ol>
+            </div>
+
+            {iraxDecisionAssessment.blockers.length > 0 ? (
+              <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                <p className="text-[10px] uppercase tracking-wide text-rose-300">Blocages</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxDecisionAssessment.blockers.map((blocker, index) => (
+                    <li key={index}>{blocker}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {iraxDecisionAssessment.warnings.length > 0 ? (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <p className="text-[10px] uppercase tracking-wide text-amber-300">Avertissements</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxDecisionAssessment.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <DcaInfoTile label="Calculé le" value={formatDate(iraxDecisionAssessment.generatedAt)} />
+              <DcaInfoTile label="Revu le" value={formatDate(iraxDecisionAssessment.reviewedAt)} />
+            </div>
+          </>
+        ) : (
+          <p className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-2 text-xs text-slate-400">
+            IRAX-D nécessite un CRIP IRAX3 accepté pour IRAX-D.
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleCalculateIraxDecisionAssessment()}
+            disabled={iraxDecisionCalculating || iraxDecisionLoading}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-4 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {iraxDecisionCalculating ? "Traitement..." : "Calculer / Actualiser IRAX-D"}
+          </button>
+
+          {iraxDecisionAssessment ? (
+            <>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxDecisionAssessmentStatus("UNDER_RISK_REVIEW")}
+                disabled={iraxDecisionStatusSaving !== null}
+                className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxDecisionStatusSaving === "UNDER_RISK_REVIEW" ? "..." : "Démarrer revue risque"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxDecisionAssessmentStatus("NEEDS_MORE_DATA")}
+                disabled={iraxDecisionStatusSaving !== null}
+                className="rounded-full border border-orange-400/35 bg-orange-500/10 px-3 py-1.5 text-xs text-orange-100 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxDecisionStatusSaving === "NEEDS_MORE_DATA" ? "..." : "Demander données complémentaires"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxDecisionAssessmentStatus("ACCEPTED_FOR_INSTITUTION_REVIEW")}
+                disabled={iraxDecisionStatusSaving !== null}
+                className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxDecisionStatusSaving === "ACCEPTED_FOR_INSTITUTION_REVIEW"
+                  ? "..."
+                  : "Accepter pour revue institutionnelle"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxDecisionAssessmentStatus("BLOCKED_INSUFFICIENT_DATA")}
+                disabled={iraxDecisionStatusSaving !== null}
+                className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxDecisionStatusSaving === "BLOCKED_INSUFFICIENT_DATA" ? "..." : "Bloquer données insuffisantes"}
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        {iraxDecisionFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              iraxDecisionFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : iraxDecisionFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {iraxDecisionFeedback.message}
+          </p>
+        ) : null}
+
+        <p className="text-[11px] text-slate-500">
+          IRAX-D calcule un niveau de risque déterministe à partir du CRIP. Il ne décide pas. L&apos;institution
+          reste seule décisionnaire.
         </p>
       </DcaSectionCard>
 
