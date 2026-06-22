@@ -15,6 +15,7 @@ import { AuthRequiredCard } from "@/components/ui/auth-required-card";
 import { useTenant } from "@/components/tenant/useTenant";
 import { DisclosureNote } from "@/components/ui/disclosure-note";
 import { EmptyLiveDataCard } from "@/components/ui/empty-live-data-card";
+import { getCountryLabel } from "@/lib/country-labels";
 
 import { ApplicationsTable } from "./applications-table";
 
@@ -121,7 +122,7 @@ function buildSeedFallbackRows(): InsuranceDcaApplication[] {
   });
 }
 
-type CountryFilter = "ALL" | "CI" | "MA";
+type CountryFilter = "ALL" | string;
 
 export function ApplicationsLivePanel() {
   const { tenant } = useTenant();
@@ -167,8 +168,10 @@ export function ApplicationsLivePanel() {
           } else if (loadError.status === 400) {
             setError("Requete invalide sur GET /v1/insurance/applications.");
           } else if (loadError.status >= 500) {
-            setRows(buildSeedFallbackRows());
-            setUsingSeedFallback(true);
+            if (tenant.country === "MA") {
+              setRows(buildSeedFallbackRows());
+              setUsingSeedFallback(true);
+            }
             setError(
               "API DCA live indisponible (5xx). Fallback SEED_DEMO affiché temporairement.",
             );
@@ -176,8 +179,10 @@ export function ApplicationsLivePanel() {
             setError(loadError.message || "Erreur API lors de la lecture des DCA.");
           }
         } else {
-          setRows(buildSeedFallbackRows());
-          setUsingSeedFallback(true);
+          if (tenant.country === "MA") {
+            setRows(buildSeedFallbackRows());
+            setUsingSeedFallback(true);
+          }
           setError("Service indisponible. Fallback SEED_DEMO affiché temporairement.");
         }
       } finally {
@@ -192,6 +197,15 @@ export function ApplicationsLivePanel() {
       mounted = false;
     };
   }, []);
+
+  const availableCountries = useMemo(() => {
+    const countries = new Set<string>();
+    for (const row of rows) {
+      const country = row.applicationCountry ?? row.farmerCountry ?? row.parcelleCountry ?? null;
+      if (country) countries.add(country);
+    }
+    return Array.from(countries).sort();
+  }, [rows]);
 
   const filteredRows = useMemo(() => {
     if (countryFilter === "ALL") return rows;
@@ -241,27 +255,28 @@ export function ApplicationsLivePanel() {
         DELETE.
       </p>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] uppercase tracking-wide text-slate-500">Pays:</span>
-        {([
-          { value: "ALL", label: "Tous" },
-          { value: "CI", label: "Côte d’Ivoire" },
-          { value: "MA", label: "Maroc" },
-        ] as const).map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => setCountryFilter(option.value)}
-            className={
-              countryFilter === option.value
-                ? "rounded-full border border-cyan-400/40 bg-cyan-500/15 px-2.5 py-1 text-[11px] text-cyan-100"
-                : "rounded-full border border-slate-400/18 bg-slate-900/50 px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200"
-            }
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      {availableCountries.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] uppercase tracking-wide text-slate-500">Pays:</span>
+          {[{ value: "ALL", label: "Tous" }, ...availableCountries.map((country) => ({
+            value: country,
+            label: getCountryLabel(country),
+          }))].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setCountryFilter(option.value)}
+              className={
+                countryFilter === option.value
+                  ? "rounded-full border border-cyan-400/40 bg-cyan-500/15 px-2.5 py-1 text-[11px] text-cyan-100"
+                  : "rounded-full border border-slate-400/18 bg-slate-900/50 px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200"
+              }
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {sourceDistribution.length > 0 ? (
         <div className="flex flex-wrap gap-2">

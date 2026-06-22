@@ -24,6 +24,7 @@ import { DisclosureNote } from "@/components/ui/disclosure-note";
 import { DegradedStateCard } from "@/components/ui/degraded-state-card";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { EvidenceBundlePanel } from "@/components/insurance/evidence-bundle-panel";
+import { useTenant } from "@/components/tenant/useTenant";
 import { DataSource } from "@/types";
 
 type Row = Record<string, unknown>;
@@ -590,6 +591,8 @@ const DEFAULT_SIMULATED_AUDIT_FORM: SimulatedAuditForm = {
 };
 
 export function RaxLivePanel() {
+  const { tenant } = useTenant();
+  const isMoroccoContext = tenant.country === "MA";
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [persisting, setPersisting] = useState(false);
@@ -624,6 +627,17 @@ export function RaxLivePanel() {
   async function load() {
     setLoading(true);
     setError(null);
+
+    if (!isMoroccoContext) {
+      setCrops([]);
+      setProvinces([]);
+      setCommunes([]);
+      setApplications([]);
+      setAuthRequired(false);
+      setForbidden(false);
+      setLoading(false);
+      return;
+    }
 
     const [cropsRes, applicationsRes, provincesRes, communesRes] = await Promise.all([
       getMoroccoCrops(),
@@ -1086,6 +1100,15 @@ export function RaxLivePanel() {
     return (
       <div className="rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4 text-xs text-slate-400">
         Chargement du calcul RAX live...
+      </div>
+    );
+  }
+
+  if (!isMoroccoContext) {
+    return (
+      <div className="rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4 text-xs text-slate-400">
+        Référentiels Côte d&apos;Ivoire non configurés dans cette version. Le calcul RAX technique
+        live n&apos;est disponible que pour le contexte Maroc pour le moment.
       </div>
     );
   }

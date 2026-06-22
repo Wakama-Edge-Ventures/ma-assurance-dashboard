@@ -10,7 +10,11 @@ import {
   formatSideEffectsSourceFr,
   formatSourceFr,
 } from "@/lib/dto-mappers";
-import { getCountryLabel } from "@/lib/country-labels";
+import {
+  getCountryLabel,
+  getIdentityDocumentLabel,
+  getPrivacyConsentLabel,
+} from "@/lib/country-labels";
 
 interface ApplicationsTableProps {
   rows: InsuranceDcaApplication[];
@@ -52,7 +56,7 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
             <th className="px-3 py-2">Statut</th>
             <th className="px-3 py-2">Source</th>
             <th className="px-3 py-2">Soumission</th>
-            <th className="px-3 py-2">Consentement CNDP</th>
+            <th className="px-3 py-2">Consentement</th>
             <th className="px-3 py-2">Effets secondaires</th>
             <th className="px-3 py-2">Détail</th>
           </tr>
@@ -91,8 +95,8 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
                 <td className="px-3 py-3">
                   <p>{farmerName}</p>
                   <p className="text-[11px] text-slate-500">
-                    Tél: {row.farmer.phoneMasked ?? "Non disponible"} | CIN:{" "}
-                    {row.farmer.cinMasked ?? "Non disponible"}
+                    Tél: {row.farmer.phoneMasked ?? "Non disponible"} |{" "}
+                    {getIdentityDocumentLabel(dcaCountry)}: {row.farmer.cinMasked ?? "Non disponible"}
                   </p>
                 </td>
                 <td className="px-3 py-3">
@@ -115,7 +119,10 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
                   <p className="text-[11px] text-slate-500">Code interne: {row.source}</p>
                 </td>
                 <td className="px-3 py-3">{formatDate(row.submittedAt ?? row.createdAt)}</td>
-                <td className="px-3 py-3">{formatBooleanFr(row.consentCndp)}</td>
+                <td className="px-3 py-3">
+                  <p>{formatBooleanFr(row.consentCndp)}</p>
+                  <p className="text-[11px] text-slate-500">{getPrivacyConsentLabel(dcaCountry)}</p>
+                </td>
                 <td className="px-3 py-3">
                   <p>Mission: {row.sideEffects.missionCreated ? "Créée" : "Non créée"}</p>
                   <p>{policyLabel}: {row.sideEffects.policyCreated ? "Créée" : "Non créée"}</p>
