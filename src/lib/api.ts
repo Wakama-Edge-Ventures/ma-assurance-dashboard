@@ -317,6 +317,13 @@ function readStringArray(record: unknown, key: string): string[] {
   return value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()));
 }
 
+function readObjectArray(record: unknown, key: string): Record<string, unknown>[] {
+  if (!record || typeof record !== "object") return [];
+  const value = (record as Record<string, unknown>)[key];
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is Record<string, unknown> => Boolean(asObject(item)));
+}
+
 function readArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
@@ -3156,6 +3163,118 @@ export async function updateIraxScientificAssessmentStatus(
     body: JSON.stringify({ status }),
   });
   return mapIraxScientificAssessment(payload);
+}
+
+export type InsuranceIraxConsolidatedAssessmentStatus =
+  | "UNDER_CONSOLIDATION_REVIEW"
+  | "ACCEPTED_FOR_IRAX_D"
+  | "NEEDS_MORE_FIELD_DATA"
+  | "NEEDS_MORE_SCIENTIFIC_DATA"
+  | "REJECTED_INSUFFICIENT_EVIDENCE";
+
+export interface InsuranceIraxConsolidatedAssessment {
+  id: string;
+  applicationId: string;
+  iraxPlanningId: string | null;
+  iraxFieldAssessmentId: string | null;
+  iraxScientificAssessmentId: string | null;
+  institutionId: string | null;
+  country: string;
+  version: number;
+  status: string;
+  sourceLabel: string;
+  protocolVersion: string;
+  inputReadiness: Record<string, unknown> | null;
+  crossEngineConsistency: Record<string, unknown> | null;
+  contradictionMatrix: Record<string, unknown>[];
+  consolidatedRiskSignals: Record<string, unknown> | null;
+  evidenceSynthesis: Record<string, unknown> | null;
+  missingDataAnalysis: Record<string, unknown> | null;
+  blockerSynthesis: Record<string, unknown> | null;
+  warningSynthesis: Record<string, unknown> | null;
+  iraxDPreparation: Record<string, unknown> | null;
+  consolidatedReport: Record<string, unknown> | null;
+  requiredNextActions: string[];
+  blockers: string[];
+  warnings: string[];
+  nextRecommendedStep: string;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  sideEffects: InsuranceMissionConfigSideEffects;
+}
+
+function mapIraxConsolidatedAssessment(payload: unknown): InsuranceIraxConsolidatedAssessment | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.iraxConsolidatedAssessment);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    iraxPlanningId: readString(obj, "iraxPlanningId"),
+    iraxFieldAssessmentId: readString(obj, "iraxFieldAssessmentId"),
+    iraxScientificAssessmentId: readString(obj, "iraxScientificAssessmentId"),
+    institutionId: readString(obj, "institutionId"),
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: readString(obj, "status") ?? "CRIP_GENERATED",
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    protocolVersion: readString(obj, "protocolVersion") ?? "IRAX3_CRIP_V1_2026",
+    inputReadiness: asObject(obj.inputReadiness),
+    crossEngineConsistency: asObject(obj.crossEngineConsistency),
+    contradictionMatrix: readObjectArray(obj, "contradictionMatrix"),
+    consolidatedRiskSignals: asObject(obj.consolidatedRiskSignals),
+    evidenceSynthesis: asObject(obj.evidenceSynthesis),
+    missingDataAnalysis: asObject(obj.missingDataAnalysis),
+    blockerSynthesis: asObject(obj.blockerSynthesis),
+    warningSynthesis: asObject(obj.warningSynthesis),
+    iraxDPreparation: asObject(obj.iraxDPreparation),
+    consolidatedReport: asObject(obj.consolidatedReport),
+    requiredNextActions: readStringArray(obj, "requiredNextActions"),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    nextRecommendedStep: readString(obj, "nextRecommendedStep") ?? "WAITING_FOR_FIELD_ASSESSMENT",
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+    sideEffects: mapMissionConfigSideEffects(root?.sideEffects),
+  };
+}
+
+export async function getIraxConsolidatedAssessment(
+  applicationId: string,
+): Promise<InsuranceIraxConsolidatedAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax3/crip`);
+  return mapIraxConsolidatedAssessment(payload);
+}
+
+export async function generateIraxConsolidatedAssessment(
+  applicationId: string,
+): Promise<InsuranceIraxConsolidatedAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax3/generate`, {
+    method: "POST",
+  });
+  return mapIraxConsolidatedAssessment(payload);
+}
+
+export async function updateIraxConsolidatedAssessmentStatus(
+  applicationId: string,
+  status: InsuranceIraxConsolidatedAssessmentStatus,
+): Promise<InsuranceIraxConsolidatedAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax3/crip/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return mapIraxConsolidatedAssessment(payload);
 }
 
 export async function getInsuranceMissionConfig(

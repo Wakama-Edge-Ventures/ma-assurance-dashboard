@@ -10,6 +10,7 @@ import {
   createIrax1Mission,
   CreateInsuranceMissionDispatchDraftResult,
   FieldAgent,
+  generateIraxConsolidatedAssessment,
   generateIraxPlanning,
   generateIraxScientificAssessment,
   getInsuranceApplicationById,
@@ -17,10 +18,13 @@ import {
   getInsuranceMissionConfig,
   getInsuranceMissionConfigVersions,
   getIrax1FieldAssessment,
+  getIraxConsolidatedAssessment,
   getIraxPlanning,
   getIraxScientificAssessment,
   InsuranceApplicationByIdResult,
   InsuranceIrax1FieldAssessment,
+  InsuranceIraxConsolidatedAssessment,
+  InsuranceIraxConsolidatedAssessmentStatus,
   InsuranceIraxPlanning,
   InsuranceIraxPlanningStatus,
   InsuranceIraxScientificAssessment,
@@ -35,6 +39,7 @@ import {
   sendInsuranceMissionDispatch,
   updateInsuranceApplicationStatus,
   updateIrax1FieldAssessmentStatus,
+  updateIraxConsolidatedAssessmentStatus,
   updateIraxPlanningStatus,
   updateIraxScientificAssessmentStatus,
 } from "@/lib/api";
@@ -774,6 +779,150 @@ function hasIraxScientificForbiddenSideEffects(sideEffects: InsuranceMissionConf
   return hasMissionConfigForbiddenSideEffects(sideEffects);
 }
 
+const IRAX3_STATUS_LABELS_FR: Record<string, string> = {
+  CRIP_GENERATED: "CRIP généré",
+  UNDER_CONSOLIDATION_REVIEW: "En revue de consolidation",
+  ACCEPTED_FOR_IRAX_D: "Accepté — prêt pour IRAX-D",
+  NEEDS_MORE_FIELD_DATA: "Données terrain complémentaires requises",
+  NEEDS_MORE_SCIENTIFIC_DATA: "Données scientifiques complémentaires requises",
+  REJECTED_INSUFFICIENT_EVIDENCE: "Rejeté — preuves insuffisantes",
+};
+
+const IRAX3_NEXT_STEP_LABELS_FR: Record<string, string> = {
+  WAITING_FOR_FIELD_ASSESSMENT: "En attente de l'évaluation terrain IRAX1",
+  WAITING_FOR_SCIENTIFIC_ASSESSMENT: "En attente de l'évaluation scientifique IRAX2",
+  REQUEST_FIELD_CORRECTION: "Correction terrain requise",
+  REQUEST_SCIENTIFIC_COMPLETION: "Complément scientifique requis",
+  READY_FOR_IRAX_D: "Prêt pour IRAX-D",
+  BLOCKED_INSUFFICIENT_EVIDENCE: "Bloqué — preuves insuffisantes",
+  NEEDS_CONSOLIDATION_REVIEW: "Revue de consolidation requise",
+};
+
+function formatIrax3StatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucun CRIP";
+  return IRAX3_STATUS_LABELS_FR[status] ?? status;
+}
+
+function formatIrax3NextStepFr(step: string | null | undefined): string {
+  if (!step) return "—";
+  return IRAX3_NEXT_STEP_LABELS_FR[step] ?? step;
+}
+
+function Irax3JsonSection({ title, value }: { title: string; value: Record<string, unknown> | null }) {
+  if (!value) {
+    return (
+      <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+        <p className="text-[10px] uppercase tracking-wide text-slate-500">{title}</p>
+        <p className="text-slate-500">Aucune donnée disponible.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+      <p className="text-[10px] uppercase tracking-wide text-slate-500">{title}</p>
+      <dl className="mt-1 space-y-0.5">
+        {Object.entries(value).map(([key, entryValue]) => (
+          <div key={key} className="flex flex-wrap justify-between gap-2">
+            <dt className="text-slate-500">{key}</dt>
+            <dd className="text-right text-slate-200">
+              {key.toLowerCase().includes("availability") || key === "status" ? (
+                <Irax2AvailabilityBadge value={entryValue} />
+              ) : Array.isArray(entryValue) ? (
+                entryValue.length > 0 ? (
+                  entryValue.join(", ")
+                ) : (
+                  "Aucun"
+                )
+              ) : entryValue === null || entryValue === undefined ? (
+                "—"
+              ) : typeof entryValue === "object" ? (
+                JSON.stringify(entryValue)
+              ) : (
+                String(entryValue)
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function Irax3ContradictionMatrix({ contradictions }: { contradictions: Record<string, unknown>[] }) {
+  if (contradictions.length === 0) {
+    return (
+      <div className="space-y-1 rounded-lg border border-emerald-400/15 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-200">
+        <p className="text-[10px] uppercase tracking-wide text-emerald-400">3. Matrice des contradictions</p>
+        <p>Aucune contradiction détectée entre les sources.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1 rounded-lg border border-rose-400/20 bg-rose-500/5 px-3 py-2 text-xs text-slate-200">
+      <p className="text-[10px] uppercase tracking-wide text-rose-300">3. Matrice des contradictions</p>
+      <ul className="mt-1 space-y-1.5">
+        {contradictions.map((entry, index) => (
+          <li key={index} className="rounded border border-rose-400/15 bg-slate-900/40 px-2 py-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-mono text-[11px] text-slate-300">
+                {String(entry.sourceA ?? "?")} ↔ {String(entry.sourceB ?? "?")} ({String(entry.topic ?? "?")})
+              </span>
+              <span className="rounded-full border border-rose-400/30 bg-rose-500/10 px-2 py-0.5 text-[10px] uppercase text-rose-200">
+                {String(entry.severity ?? "UNKNOWN")}
+              </span>
+            </div>
+            <p className="mt-1 text-slate-300">{String(entry.description ?? "")}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function getIraxConsolidatedLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Impossible de charger le CRIP IRAX3.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) au CRIP IRAX3.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404) pour le CRIP IRAX3.";
+  }
+  return error.message || "Erreur API pendant le chargement du CRIP IRAX3.";
+}
+
+function getIraxConsolidatedMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Action IRAX3 impossible.";
+  }
+  if (error.status === 400) {
+    return "Requête invalide (400) pour cette action IRAX3.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) pour cette action IRAX3.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404), ou aucun plan IRAX-P existant pour cette action IRAX3.";
+  }
+  if (error.status === 409) {
+    return error.message || "Action IRAX3 impossible dans l'état actuel (409).";
+  }
+  return error.message || "Erreur API pendant l'action IRAX3.";
+}
+
+function hasIraxConsolidatedForbiddenSideEffects(sideEffects: InsuranceMissionConfigSideEffects): boolean {
+  return hasMissionConfigForbiddenSideEffects(sideEffects);
+}
+
 function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
   if (value === "UNKNOWN") {
     return <span className="text-slate-500">Non disponible</span>;
@@ -908,6 +1057,17 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     useState<InsuranceIraxScientificAssessmentStatus | null>(null);
   const [iraxScientificError, setIraxScientificError] = useState<string | null>(null);
   const [iraxScientificFeedback, setIraxScientificFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [iraxConsolidatedAssessment, setIraxConsolidatedAssessment] =
+    useState<InsuranceIraxConsolidatedAssessment | null>(null);
+  const [iraxConsolidatedLoading, setIraxConsolidatedLoading] = useState(false);
+  const [iraxConsolidatedGenerating, setIraxConsolidatedGenerating] = useState(false);
+  const [iraxConsolidatedStatusSaving, setIraxConsolidatedStatusSaving] =
+    useState<InsuranceIraxConsolidatedAssessmentStatus | null>(null);
+  const [iraxConsolidatedError, setIraxConsolidatedError] = useState<string | null>(null);
+  const [iraxConsolidatedFeedback, setIraxConsolidatedFeedback] = useState<{
     type: "success" | "error" | "critical";
     message: string;
   } | null>(null);
@@ -1229,6 +1389,90 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       });
     } finally {
       setIraxScientificStatusSaving(null);
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadIraxConsolidatedAssessment() {
+      setIraxConsolidatedLoading(true);
+      setIraxConsolidatedError(null);
+
+      try {
+        const crip = await getIraxConsolidatedAssessment(applicationId);
+        if (!mounted) return;
+        setIraxConsolidatedAssessment(crip);
+      } catch (loadError) {
+        if (!mounted) return;
+        setIraxConsolidatedError(getIraxConsolidatedLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) {
+          setIraxConsolidatedLoading(false);
+        }
+      }
+    }
+
+    void loadIraxConsolidatedAssessment();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  async function handleGenerateIraxConsolidatedAssessment() {
+    if (iraxConsolidatedGenerating) return;
+
+    setIraxConsolidatedFeedback(null);
+    setIraxConsolidatedGenerating(true);
+
+    try {
+      const crip = await generateIraxConsolidatedAssessment(applicationId);
+      setIraxConsolidatedAssessment(crip);
+      setIraxConsolidatedError(null);
+
+      if (crip && hasIraxConsolidatedForbiddenSideEffects(crip.sideEffects)) {
+        setIraxConsolidatedFeedback({
+          type: "critical",
+          message:
+            "Erreur critique: un effet secondaire interdit a été détecté (mission/RAX/pricing/police/sinistre/evidence/blockchain). CRIP non validé.",
+        });
+        return;
+      }
+
+      setIraxConsolidatedFeedback({
+        type: "success",
+        message: `CRIP IRAX3 généré (version ${crip?.version ?? 1}).`,
+      });
+    } catch (mutationError) {
+      setIraxConsolidatedFeedback({
+        type: "error",
+        message: getIraxConsolidatedMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIraxConsolidatedGenerating(false);
+    }
+  }
+
+  async function handleUpdateIraxConsolidatedAssessmentStatus(status: InsuranceIraxConsolidatedAssessmentStatus) {
+    if (iraxConsolidatedStatusSaving) return;
+
+    setIraxConsolidatedFeedback(null);
+    setIraxConsolidatedStatusSaving(status);
+
+    try {
+      const crip = await updateIraxConsolidatedAssessmentStatus(applicationId, status);
+      setIraxConsolidatedAssessment(crip);
+      setIraxConsolidatedFeedback({
+        type: "success",
+        message: `Statut CRIP IRAX3 mis à jour: ${formatIrax3StatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setIraxConsolidatedFeedback({
+        type: "error",
+        message: getIraxConsolidatedMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIraxConsolidatedStatusSaving(null);
     }
   }
 
@@ -2604,6 +2848,183 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
 
         <p className="text-[11px] text-slate-500">
           IRAX2 produit le SRAP scientifique. Il ne décide pas. L&apos;institution reste seule décisionnaire.
+        </p>
+      </DcaSectionCard>
+
+      {/* ── IRAX3 — Consolidation des risques ── */}
+      <DcaSectionCard accent="emerald">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IRAX3 — Consolidation des risques"
+            title="IRAX3 — Consolidation des risques"
+            subtitle={`CRIP — Consolidated Risk Intelligence Package — protocole ${iraxConsolidatedAssessment?.protocolVersion ?? "IRAX3_CRIP_V1_2026"}`}
+            accent="emerald"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {iraxConsolidatedAssessment ? (
+              <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-200">
+                {formatIrax3StatusFr(iraxConsolidatedAssessment.status)}
+              </span>
+            ) : (
+              <span className="rounded-full border border-slate-400/20 bg-slate-800/50 px-2.5 py-0.5 text-[11px] text-slate-500">
+                Aucun CRIP
+              </span>
+            )}
+          </div>
+        </div>
+
+        <p className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+          IRAX3 consolide les vérités déclarative, terrain et scientifique. Il prépare IRAX-D sans décider.
+        </p>
+
+        {iraxConsolidatedLoading ? <p className="text-xs text-slate-400">Chargement du CRIP IRAX3...</p> : null}
+        {iraxConsolidatedError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {iraxConsolidatedError}
+          </p>
+        ) : null}
+
+        {iraxConsolidatedAssessment ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-4">
+              <DcaInfoTile label="Pays" value={iraxConsolidatedAssessment.country} />
+              <DcaInfoTile label="Source" value={iraxConsolidatedAssessment.sourceLabel} />
+              <DcaInfoTile label="Version" value={String(iraxConsolidatedAssessment.version)} />
+              <DcaInfoTile
+                label="Prochaine étape recommandée"
+                value={formatIrax3NextStepFr(iraxConsolidatedAssessment.nextRecommendedStep)}
+              />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <Irax3JsonSection title="1. Préparation des entrées" value={iraxConsolidatedAssessment.inputReadiness} />
+              <Irax3JsonSection
+                title="2. Cohérence inter-moteurs"
+                value={iraxConsolidatedAssessment.crossEngineConsistency}
+              />
+              <Irax3ContradictionMatrix contradictions={iraxConsolidatedAssessment.contradictionMatrix} />
+              <Irax3JsonSection
+                title="4. Signaux de risque consolidés"
+                value={iraxConsolidatedAssessment.consolidatedRiskSignals}
+              />
+              <Irax3JsonSection title="5. Synthèse des preuves" value={iraxConsolidatedAssessment.evidenceSynthesis} />
+              <Irax3JsonSection
+                title="6. Analyse des données manquantes"
+                value={iraxConsolidatedAssessment.missingDataAnalysis}
+              />
+              <Irax3JsonSection title="7. Synthèse des blocages" value={iraxConsolidatedAssessment.blockerSynthesis} />
+              <Irax3JsonSection title="8. Synthèse des alertes" value={iraxConsolidatedAssessment.warningSynthesis} />
+              <Irax3JsonSection title="9. Préparation IRAX-D" value={iraxConsolidatedAssessment.iraxDPreparation} />
+              <Irax3JsonSection title="10. Rapport consolidé" value={iraxConsolidatedAssessment.consolidatedReport} />
+            </div>
+
+            <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500">Actions suivantes requises</p>
+              <p>{iraxConsolidatedAssessment.requiredNextActions.join(" • ") || "Aucune"}</p>
+            </div>
+
+            {iraxConsolidatedAssessment.blockers.length > 0 ? (
+              <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                <p className="text-[10px] uppercase tracking-wide text-rose-300">Blocages</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxConsolidatedAssessment.blockers.map((blocker, index) => (
+                    <li key={index}>{blocker}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {iraxConsolidatedAssessment.warnings.length > 0 ? (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <p className="text-[10px] uppercase tracking-wide text-amber-300">Avertissements</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxConsolidatedAssessment.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <DcaInfoTile label="Généré le" value={formatDate(iraxConsolidatedAssessment.generatedAt)} />
+              <DcaInfoTile label="Revu le" value={formatDate(iraxConsolidatedAssessment.reviewedAt)} />
+            </div>
+          </>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateIraxConsolidatedAssessment()}
+            disabled={iraxConsolidatedGenerating || iraxConsolidatedLoading}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-4 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {iraxConsolidatedGenerating ? "Traitement..." : "Générer / Actualiser CRIP"}
+          </button>
+
+          {iraxConsolidatedAssessment ? (
+            <>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxConsolidatedAssessmentStatus("UNDER_CONSOLIDATION_REVIEW")}
+                disabled={iraxConsolidatedStatusSaving !== null}
+                className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxConsolidatedStatusSaving === "UNDER_CONSOLIDATION_REVIEW" ? "..." : "Démarrer revue de consolidation"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxConsolidatedAssessmentStatus("NEEDS_MORE_FIELD_DATA")}
+                disabled={iraxConsolidatedStatusSaving !== null}
+                className="rounded-full border border-orange-400/35 bg-orange-500/10 px-3 py-1.5 text-xs text-orange-100 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxConsolidatedStatusSaving === "NEEDS_MORE_FIELD_DATA" ? "..." : "Demander correction terrain"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxConsolidatedAssessmentStatus("NEEDS_MORE_SCIENTIFIC_DATA")}
+                disabled={iraxConsolidatedStatusSaving !== null}
+                className="rounded-full border border-orange-400/35 bg-orange-500/10 px-3 py-1.5 text-xs text-orange-100 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxConsolidatedStatusSaving === "NEEDS_MORE_SCIENTIFIC_DATA" ? "..." : "Demander complément scientifique"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxConsolidatedAssessmentStatus("ACCEPTED_FOR_IRAX_D")}
+                disabled={iraxConsolidatedStatusSaving !== null}
+                className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxConsolidatedStatusSaving === "ACCEPTED_FOR_IRAX_D" ? "..." : "Accepter pour IRAX-D"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxConsolidatedAssessmentStatus("REJECTED_INSUFFICIENT_EVIDENCE")}
+                disabled={iraxConsolidatedStatusSaving !== null}
+                className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxConsolidatedStatusSaving === "REJECTED_INSUFFICIENT_EVIDENCE" ? "..." : "Rejeter preuves insuffisantes"}
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        {iraxConsolidatedFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              iraxConsolidatedFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : iraxConsolidatedFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {iraxConsolidatedFeedback.message}
+          </p>
+        ) : null}
+
+        <p className="text-[11px] text-slate-500">
+          IRAX3 consolide les vérités déclarative, terrain et scientifique. Il prépare IRAX-D sans décider.
+          L&apos;institution reste seule décisionnaire.
         </p>
       </DcaSectionCard>
 
