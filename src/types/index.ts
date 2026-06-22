@@ -1270,6 +1270,101 @@ export interface InsuranceGovernanceComplianceSnapshot {
   updatedAt: string | null;
 }
 
+export type InsuranceRetexClosureReportStatus =
+  | "RETEX_REPORT_GENERATED"
+  | "UNDER_RETEX_REVIEW"
+  | "LESSONS_REVIEW_REQUIRED"
+  | "READY_FOR_INSTITUTION_CLOSURE_REVIEW"
+  | "NEEDS_FOLLOW_UP_ACTIONS"
+  | "ARCHIVE_PACKAGE_READY"
+  | "CLOSED_FOR_LEARNING_ONLY";
+
+export interface InsuranceRetexClosureReport {
+  id: string;
+  applicationId: string;
+  policyContractId: string | null;
+  evidenceBundleId: string | null;
+  monitoringSnapshotId: string | null;
+  fraudForensicReviewId: string | null;
+  operationsCockpitSnapshotId: string | null;
+  governanceComplianceSnapshotId: string | null;
+  institutionId: string;
+  country: string;
+  version: number;
+  status: InsuranceRetexClosureReportStatus;
+  sourceLabel: string;
+  protocolVersion: string;
+  closureScope: Record<string, unknown> | null;
+  chainTimeline: unknown[];
+  outcomeSummary: Record<string, unknown> | null;
+  lessonsLearned: Record<string, unknown> | null;
+  operationalFindings: Record<string, unknown> | null;
+  riskFindings: Record<string, unknown> | null;
+  claimsFindings: Record<string, unknown> | null;
+  monitoringFindings: Record<string, unknown> | null;
+  governanceFindings: Record<string, unknown> | null;
+  evidenceFindings: Record<string, unknown> | null;
+  unresolvedItems: string[];
+  correctiveActions: string[];
+  futureRecommendations: string[];
+  closureReadiness: Record<string, unknown> | null;
+  archiveReadiness: Record<string, unknown> | null;
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  generatedByUserId: string | null;
+  reviewedByUserId: string | null;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export type InsuranceExecutiveCockpitSnapshotStatus =
+  | "EXECUTIVE_COCKPIT_GENERATED"
+  | "UNDER_EXECUTIVE_REVIEW"
+  | "EXECUTIVE_ACTIONS_REQUIRED"
+  | "READY_FOR_STEERING_COMMITTEE"
+  | "NO_EXECUTIVE_ACTION_REQUIRED"
+  | "NEEDS_EXECUTIVE_REFRESH";
+
+export interface InsuranceExecutiveCockpitSnapshot {
+  id: string;
+  institutionId: string;
+  country: string;
+  scopeType: string;
+  applicationId: string | null;
+  version: number;
+  status: InsuranceExecutiveCockpitSnapshotStatus;
+  sourceLabel: string;
+  protocolVersion: string;
+  executiveSummary: Record<string, unknown> | null;
+  fullChainMap: unknown[];
+  portfolioKpis: Record<string, unknown> | null;
+  riskKpis: Record<string, unknown> | null;
+  policyKpis: Record<string, unknown> | null;
+  claimsKpis: Record<string, unknown> | null;
+  evidenceKpis: Record<string, unknown> | null;
+  monitoringKpis: Record<string, unknown> | null;
+  operationsKpis: Record<string, unknown> | null;
+  governanceKpis: Record<string, unknown> | null;
+  forensicKpis: Record<string, unknown> | null;
+  retexKpis: Record<string, unknown> | null;
+  readinessScorecard: Record<string, unknown> | null;
+  dataQualityScorecard: Record<string, unknown> | null;
+  exceptionBoard: unknown[];
+  recommendedHumanActions: string[];
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  generatedByUserId: string | null;
+  reviewedByUserId: string | null;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
 export interface RaxEvaluation {
   id: string;
   applicationId: string;

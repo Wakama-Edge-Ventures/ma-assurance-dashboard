@@ -93,6 +93,10 @@ import {
   InsuranceOperationsCockpitSnapshotStatus,
   InsuranceGovernanceComplianceSnapshot,
   InsuranceGovernanceComplianceSnapshotStatus,
+  InsuranceRetexClosureReport,
+  InsuranceRetexClosureReportStatus,
+  InsuranceExecutiveCockpitSnapshot,
+  InsuranceExecutiveCockpitSnapshotStatus,
   InsurancePricingOffer,
   InsurancePricingOfferStatus,
 } from "@/types";
@@ -4130,6 +4134,178 @@ export async function generateInstitutionGovernanceCompliance(): Promise<Insuran
     method: "POST",
   });
   return mapGovernanceComplianceSnapshot(payload);
+}
+
+function mapRetexClosureReport(payload: unknown): InsuranceRetexClosureReport | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.retexClosure);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    policyContractId: readString(obj, "policyContractId"),
+    evidenceBundleId: readString(obj, "evidenceBundleId"),
+    monitoringSnapshotId: readString(obj, "monitoringSnapshotId"),
+    fraudForensicReviewId: readString(obj, "fraudForensicReviewId"),
+    operationsCockpitSnapshotId: readString(obj, "operationsCockpitSnapshotId"),
+    governanceComplianceSnapshotId: readString(obj, "governanceComplianceSnapshotId"),
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "RETEX_REPORT_GENERATED") as InsuranceRetexClosureReportStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    protocolVersion: readString(obj, "protocolVersion") ?? "IRETEX_CLOSURE_REVIEW_V1_2026",
+    closureScope: asObject(obj.closureScope),
+    chainTimeline: Array.isArray(obj.chainTimeline) ? obj.chainTimeline : [],
+    outcomeSummary: asObject(obj.outcomeSummary),
+    lessonsLearned: asObject(obj.lessonsLearned),
+    operationalFindings: asObject(obj.operationalFindings),
+    riskFindings: asObject(obj.riskFindings),
+    claimsFindings: asObject(obj.claimsFindings),
+    monitoringFindings: asObject(obj.monitoringFindings),
+    governanceFindings: asObject(obj.governanceFindings),
+    evidenceFindings: asObject(obj.evidenceFindings),
+    unresolvedItems: readStringArray(obj, "unresolvedItems"),
+    correctiveActions: readStringArray(obj, "correctiveActions"),
+    futureRecommendations: readStringArray(obj, "futureRecommendations"),
+    closureReadiness: asObject(obj.closureReadiness),
+    archiveReadiness: asObject(obj.archiveReadiness),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    generatedByUserId: readString(obj, "generatedByUserId"),
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+export async function getRetexClosureReport(
+  applicationId: string,
+): Promise<InsuranceRetexClosureReport | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/retex-closure`);
+  return mapRetexClosureReport(payload);
+}
+
+export async function generateRetexClosureReport(
+  applicationId: string,
+): Promise<InsuranceRetexClosureReport | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/retex-closure/generate`,
+    { method: "POST" },
+  );
+  return mapRetexClosureReport(payload);
+}
+
+export async function updateRetexClosureReportStatus(
+  applicationId: string,
+  status: InsuranceRetexClosureReportStatus,
+): Promise<InsuranceRetexClosureReport | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/retex-closure/status`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
+  );
+  return mapRetexClosureReport(payload);
+}
+
+function mapExecutiveCockpitSnapshot(payload: unknown): InsuranceExecutiveCockpitSnapshot | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.executiveCockpit);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    scopeType: readString(obj, "scopeType") ?? "APPLICATION",
+    applicationId: readString(obj, "applicationId"),
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "EXECUTIVE_COCKPIT_GENERATED") as InsuranceExecutiveCockpitSnapshotStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    protocolVersion: readString(obj, "protocolVersion") ?? "IDJOR_EXECUTIVE_COCKPIT_V1_2026",
+    executiveSummary: asObject(obj.executiveSummary),
+    fullChainMap: Array.isArray(obj.fullChainMap) ? obj.fullChainMap : [],
+    portfolioKpis: asObject(obj.portfolioKpis),
+    riskKpis: asObject(obj.riskKpis),
+    policyKpis: asObject(obj.policyKpis),
+    claimsKpis: asObject(obj.claimsKpis),
+    evidenceKpis: asObject(obj.evidenceKpis),
+    monitoringKpis: asObject(obj.monitoringKpis),
+    operationsKpis: asObject(obj.operationsKpis),
+    governanceKpis: asObject(obj.governanceKpis),
+    forensicKpis: asObject(obj.forensicKpis),
+    retexKpis: asObject(obj.retexKpis),
+    readinessScorecard: asObject(obj.readinessScorecard),
+    dataQualityScorecard: asObject(obj.dataQualityScorecard),
+    exceptionBoard: Array.isArray(obj.exceptionBoard) ? obj.exceptionBoard : [],
+    recommendedHumanActions: readStringArray(obj, "recommendedHumanActions"),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    generatedByUserId: readString(obj, "generatedByUserId"),
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+export async function getExecutiveCockpit(
+  applicationId: string,
+): Promise<InsuranceExecutiveCockpitSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/executive-cockpit`);
+  return mapExecutiveCockpitSnapshot(payload);
+}
+
+export async function generateExecutiveCockpit(
+  applicationId: string,
+): Promise<InsuranceExecutiveCockpitSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/executive-cockpit/generate`,
+    { method: "POST" },
+  );
+  return mapExecutiveCockpitSnapshot(payload);
+}
+
+export async function updateExecutiveCockpitStatus(
+  applicationId: string,
+  status: InsuranceExecutiveCockpitSnapshotStatus,
+): Promise<InsuranceExecutiveCockpitSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/executive-cockpit/status`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
+  );
+  return mapExecutiveCockpitSnapshot(payload);
+}
+
+export async function getInstitutionExecutiveCockpit(): Promise<InsuranceExecutiveCockpitSnapshot | null> {
+  const payload = await apiFetch<unknown>(`/v1/insurance/executive-cockpit`);
+  return mapExecutiveCockpitSnapshot(payload);
+}
+
+export async function generateInstitutionExecutiveCockpit(): Promise<InsuranceExecutiveCockpitSnapshot | null> {
+  const payload = await apiFetch<unknown>(`/v1/insurance/executive-cockpit/generate`, {
+    method: "POST",
+  });
+  return mapExecutiveCockpitSnapshot(payload);
 }
 
 export async function getInsuranceMissionConfig(

@@ -18,6 +18,8 @@ import {
   generateFraudForensicReview,
   generateOperationsCockpit,
   generateGovernanceCompliance,
+  generateRetexClosureReport,
+  generateExecutiveCockpit,
   generatePricingOffer,
   generateIraxPlanning,
   generateIraxScientificAssessment,
@@ -36,6 +38,8 @@ import {
   getFraudForensicReview,
   getOperationsCockpit,
   getGovernanceCompliance,
+  getRetexClosureReport,
+  getExecutiveCockpit,
   getPolicyContract,
   getPricingOffer,
   listClaimCases,
@@ -65,6 +69,8 @@ import {
   updateFraudForensicReviewStatus,
   updateOperationsCockpitStatus,
   updateGovernanceComplianceStatus,
+  updateRetexClosureReportStatus,
+  updateExecutiveCockpitStatus,
   updatePolicyContractStatus,
   updatePricingOfferStatus,
   updateInsuranceApplicationStatus,
@@ -92,6 +98,10 @@ import {
   InsuranceOperationsCockpitSnapshotStatus,
   InsuranceGovernanceComplianceSnapshot,
   InsuranceGovernanceComplianceSnapshotStatus,
+  InsuranceRetexClosureReport,
+  InsuranceRetexClosureReportStatus,
+  InsuranceExecutiveCockpitSnapshot,
+  InsuranceExecutiveCockpitSnapshotStatus,
   InsurancePolicyContract,
   InsurancePolicyContractStatus,
   InsurancePricingOffer,
@@ -1141,6 +1151,35 @@ function formatGovernanceComplianceStatusFr(status: string | null | undefined): 
   return GOVERNANCE_COMPLIANCE_STATUS_LABELS_FR[status as InsuranceGovernanceComplianceSnapshotStatus] ?? status;
 }
 
+const RETEX_CLOSURE_STATUS_LABELS_FR: Record<InsuranceRetexClosureReportStatus, string> = {
+  RETEX_REPORT_GENERATED: "Rapport RETEX généré",
+  UNDER_RETEX_REVIEW: "En revue RETEX",
+  LESSONS_REVIEW_REQUIRED: "Revue des lessons requise",
+  READY_FOR_INSTITUTION_CLOSURE_REVIEW: "Prêt pour revue clôture institution",
+  NEEDS_FOLLOW_UP_ACTIONS: "Actions de suivi requises",
+  ARCHIVE_PACKAGE_READY: "Package archive prêt",
+  CLOSED_FOR_LEARNING_ONLY: "Clos pour apprentissage uniquement",
+};
+
+function formatRetexClosureStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucun rapport IRETEX";
+  return RETEX_CLOSURE_STATUS_LABELS_FR[status as InsuranceRetexClosureReportStatus] ?? status;
+}
+
+const EXECUTIVE_COCKPIT_STATUS_LABELS_FR: Record<InsuranceExecutiveCockpitSnapshotStatus, string> = {
+  EXECUTIVE_COCKPIT_GENERATED: "Cockpit exécutif généré",
+  UNDER_EXECUTIVE_REVIEW: "En revue exécutive",
+  EXECUTIVE_ACTIONS_REQUIRED: "Actions exécutives requises",
+  READY_FOR_STEERING_COMMITTEE: "Prêt comité de pilotage",
+  NO_EXECUTIVE_ACTION_REQUIRED: "Aucune action exécutive",
+  NEEDS_EXECUTIVE_REFRESH: "Rafraîchissement requis",
+};
+
+function formatExecutiveCockpitStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucun cockpit exécutif";
+  return EXECUTIVE_COCKPIT_STATUS_LABELS_FR[status as InsuranceExecutiveCockpitSnapshotStatus] ?? status;
+}
+
 function parseLineItems(value: string): string[] {
   return value
     .split(/\n|,/g)
@@ -1376,6 +1415,40 @@ function getGovernanceComplianceMutationErrorMessage(error: unknown): string {
   if (error.status === 403) return "Accès refusé (403) pour cette action ICGO.";
   if (error.status === 404) return "Dossier introuvable (404) pour cette action ICGO.";
   return error.message || "Erreur API pendant l'action ICGO.";
+}
+
+function getRetexClosureLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger le rapport IRETEX.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) au rapport IRETEX.";
+  if (error.status === 404) return "Dossier introuvable (404) pour le rapport IRETEX.";
+  return error.message || "Erreur API pendant le chargement du rapport IRETEX.";
+}
+
+function getRetexClosureMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action IRETEX impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action IRETEX.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action IRETEX.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action IRETEX.";
+  return error.message || "Erreur API pendant l'action IRETEX.";
+}
+
+function getExecutiveCockpitLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger le cockpit exécutif.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) au cockpit exécutif.";
+  if (error.status === 404) return "Dossier introuvable (404) pour le cockpit exécutif.";
+  return error.message || "Erreur API pendant le chargement du cockpit exécutif.";
+}
+
+function getExecutiveCockpitMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action cockpit exécutif impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action cockpit exécutif.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action cockpit exécutif.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action cockpit exécutif.";
+  return error.message || "Erreur API pendant l'action cockpit exécutif.";
 }
 
 function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
@@ -1632,6 +1705,26 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     useState<InsuranceGovernanceComplianceSnapshotStatus | null>(null);
   const [governanceComplianceError, setGovernanceComplianceError] = useState<string | null>(null);
   const [governanceComplianceFeedback, setGovernanceComplianceFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [retexClosure, setRetexClosure] = useState<InsuranceRetexClosureReport | null>(null);
+  const [retexClosureLoading, setRetexClosureLoading] = useState(false);
+  const [retexClosureGenerating, setRetexClosureGenerating] = useState(false);
+  const [retexClosureStatusSaving, setRetexClosureStatusSaving] =
+    useState<InsuranceRetexClosureReportStatus | null>(null);
+  const [retexClosureError, setRetexClosureError] = useState<string | null>(null);
+  const [retexClosureFeedback, setRetexClosureFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [executiveCockpit, setExecutiveCockpit] = useState<InsuranceExecutiveCockpitSnapshot | null>(null);
+  const [executiveCockpitLoading, setExecutiveCockpitLoading] = useState(false);
+  const [executiveCockpitGenerating, setExecutiveCockpitGenerating] = useState(false);
+  const [executiveCockpitStatusSaving, setExecutiveCockpitStatusSaving] =
+    useState<InsuranceExecutiveCockpitSnapshotStatus | null>(null);
+  const [executiveCockpitError, setExecutiveCockpitError] = useState<string | null>(null);
+  const [executiveCockpitFeedback, setExecutiveCockpitFeedback] = useState<{
     type: "success" | "error" | "critical";
     message: string;
   } | null>(null);
@@ -1898,6 +1991,56 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
 
     void loadGovernanceCompliance();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadRetexClosure() {
+      setRetexClosureLoading(true);
+      setRetexClosureError(null);
+
+      try {
+        const report = await getRetexClosureReport(applicationId);
+        if (!mounted) return;
+        setRetexClosure(report);
+      } catch (loadError) {
+        if (!mounted) return;
+        setRetexClosureError(getRetexClosureLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setRetexClosureLoading(false);
+      }
+    }
+
+    void loadRetexClosure();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadExecutiveCockpit() {
+      setExecutiveCockpitLoading(true);
+      setExecutiveCockpitError(null);
+
+      try {
+        const snapshot = await getExecutiveCockpit(applicationId);
+        if (!mounted) return;
+        setExecutiveCockpit(snapshot);
+      } catch (loadError) {
+        if (!mounted) return;
+        setExecutiveCockpitError(getExecutiveCockpitLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setExecutiveCockpitLoading(false);
+      }
+    }
+
+    void loadExecutiveCockpit();
     return () => {
       mounted = false;
     };
@@ -2794,6 +2937,100 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       });
     } finally {
       setGovernanceComplianceStatusSaving(null);
+    }
+  }
+
+  async function handleGenerateRetexClosure() {
+    if (retexClosureGenerating) return;
+
+    setRetexClosureFeedback(null);
+    setRetexClosureGenerating(true);
+
+    try {
+      const report = await generateRetexClosureReport(applicationId);
+      setRetexClosure(report);
+      setRetexClosureError(null);
+      setRetexClosureFeedback({
+        type: "success",
+        message: `IRETEX généré (${formatRetexClosureStatusFr(report?.status)}). Cette action ne ferme pas automatiquement la police, le sinistre ou l'application.`,
+      });
+    } catch (mutationError) {
+      setRetexClosureFeedback({
+        type: "error",
+        message: getRetexClosureMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setRetexClosureGenerating(false);
+    }
+  }
+
+  async function handleUpdateRetexClosureStatus(status: InsuranceRetexClosureReportStatus) {
+    if (retexClosureStatusSaving) return;
+
+    setRetexClosureFeedback(null);
+    setRetexClosureStatusSaving(status);
+
+    try {
+      const report = await updateRetexClosureReportStatus(applicationId, status);
+      setRetexClosure(report);
+      setRetexClosureFeedback({
+        type: "success",
+        message: `Statut IRETEX mis à jour: ${formatRetexClosureStatusFr(status)}. Cette action ne ferme pas automatiquement la police, le sinistre ou l'application.`,
+      });
+    } catch (mutationError) {
+      setRetexClosureFeedback({
+        type: "error",
+        message: getRetexClosureMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setRetexClosureStatusSaving(null);
+    }
+  }
+
+  async function handleGenerateExecutiveCockpit() {
+    if (executiveCockpitGenerating) return;
+
+    setExecutiveCockpitFeedback(null);
+    setExecutiveCockpitGenerating(true);
+
+    try {
+      const snapshot = await generateExecutiveCockpit(applicationId);
+      setExecutiveCockpit(snapshot);
+      setExecutiveCockpitError(null);
+      setExecutiveCockpitFeedback({
+        type: "success",
+        message: `Cockpit exécutif généré (${formatExecutiveCockpitStatusFr(snapshot?.status)}).`,
+      });
+    } catch (mutationError) {
+      setExecutiveCockpitFeedback({
+        type: "error",
+        message: getExecutiveCockpitMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setExecutiveCockpitGenerating(false);
+    }
+  }
+
+  async function handleUpdateExecutiveCockpitStatus(status: InsuranceExecutiveCockpitSnapshotStatus) {
+    if (executiveCockpitStatusSaving) return;
+
+    setExecutiveCockpitFeedback(null);
+    setExecutiveCockpitStatusSaving(status);
+
+    try {
+      const snapshot = await updateExecutiveCockpitStatus(applicationId, status);
+      setExecutiveCockpit(snapshot);
+      setExecutiveCockpitFeedback({
+        type: "success",
+        message: `Statut cockpit exécutif mis à jour: ${formatExecutiveCockpitStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setExecutiveCockpitFeedback({
+        type: "error",
+        message: getExecutiveCockpitMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setExecutiveCockpitStatusSaving(null);
     }
   }
 
@@ -5666,6 +5903,257 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             }`}
           >
             {governanceComplianceFeedback.message}
+          </p>
+        ) : null}
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="cyan">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IRETEX"
+            title="IRETEX — Clôture & lessons learned"
+            subtitle="IRETEX prépare un package de clôture et capitalise les leçons apprises. Il ne ferme jamais automatiquement une police, un sinistre ou un dossier métier."
+            accent="cyan"
+          />
+          <span className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-0.5 text-[11px] text-cyan-100">
+            {formatRetexClosureStatusFr(retexClosure?.status)}
+          </span>
+        </div>
+
+        {retexClosureLoading ? (
+          <p className="text-xs text-slate-400">Chargement du rapport IRETEX...</p>
+        ) : null}
+        {retexClosureError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {retexClosureError}
+          </p>
+        ) : null}
+
+        {retexClosure ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <InstitutionDecisionValueBlock title="Périmètre de clôture" value={retexClosure.closureScope} />
+            <InstitutionDecisionValueBlock title="Timeline de la chaîne" value={retexClosure.chainTimeline} />
+            <InstitutionDecisionValueBlock title="Résumé du résultat" value={retexClosure.outcomeSummary} />
+            <InstitutionDecisionValueBlock title="Lessons learned" value={retexClosure.lessonsLearned} />
+            <InstitutionDecisionValueBlock title="Constats opérationnels" value={retexClosure.operationalFindings} />
+            <InstitutionDecisionValueBlock title="Constats de risque" value={retexClosure.riskFindings} />
+            <InstitutionDecisionValueBlock title="Constats sinistres" value={retexClosure.claimsFindings} />
+            <InstitutionDecisionValueBlock title="Constats monitoring" value={retexClosure.monitoringFindings} />
+            <InstitutionDecisionValueBlock title="Constats gouvernance" value={retexClosure.governanceFindings} />
+            <InstitutionDecisionValueBlock title="Constats preuves" value={retexClosure.evidenceFindings} />
+            <InstitutionDecisionValueBlock title="Éléments non résolus" value={retexClosure.unresolvedItems} />
+            <InstitutionDecisionValueBlock title="Actions correctives" value={retexClosure.correctiveActions} />
+            <InstitutionDecisionValueBlock title="Recommandations futures" value={retexClosure.futureRecommendations} />
+            <InstitutionDecisionValueBlock title="Readiness de clôture" value={retexClosure.closureReadiness} />
+            <InstitutionDecisionValueBlock title="Readiness d'archivage" value={retexClosure.archiveReadiness} />
+            <InstitutionDecisionValueBlock title="Blockers" value={retexClosure.blockers} />
+            <InstitutionDecisionValueBlock title="Warnings" value={retexClosure.warnings} />
+            <InstitutionDecisionValueBlock title="Side effects" value={retexClosure.sideEffects} />
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucun rapport IRETEX généré pour ce dossier.
+          </div>
+        )}
+
+        <p className="text-[11px] text-slate-400">
+          Cette action ne ferme pas automatiquement la police, le sinistre ou l&apos;application.
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateRetexClosure()}
+            disabled={retexClosureGenerating || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-4 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {retexClosureGenerating ? "..." : "Générer / Actualiser IRETEX"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateRetexClosureStatus("UNDER_RETEX_REVIEW")}
+            disabled={!retexClosure || retexClosureStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-violet-400/35 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {retexClosureStatusSaving === "UNDER_RETEX_REVIEW" ? "..." : "Démarrer revue RETEX"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateRetexClosureStatus("LESSONS_REVIEW_REQUIRED")}
+            disabled={!retexClosure || retexClosureStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {retexClosureStatusSaving === "LESSONS_REVIEW_REQUIRED" ? "..." : "Marquer lessons review requise"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateRetexClosureStatus("READY_FOR_INSTITUTION_CLOSURE_REVIEW")}
+            disabled={!retexClosure || retexClosureStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {retexClosureStatusSaving === "READY_FOR_INSTITUTION_CLOSURE_REVIEW"
+              ? "..."
+              : "Prêt pour revue clôture institution"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateRetexClosureStatus("NEEDS_FOLLOW_UP_ACTIONS")}
+            disabled={!retexClosure || retexClosureStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {retexClosureStatusSaving === "NEEDS_FOLLOW_UP_ACTIONS" ? "..." : "Actions de suivi requises"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateRetexClosureStatus("ARCHIVE_PACKAGE_READY")}
+            disabled={!retexClosure || retexClosureStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {retexClosureStatusSaving === "ARCHIVE_PACKAGE_READY" ? "..." : "Package archive prêt"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateRetexClosureStatus("CLOSED_FOR_LEARNING_ONLY")}
+            disabled={!retexClosure || retexClosureStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {retexClosureStatusSaving === "CLOSED_FOR_LEARNING_ONLY" ? "..." : "Clôturer le rapport RETEX"}
+          </button>
+        </div>
+
+        {retexClosureFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              retexClosureFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : retexClosureFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {retexClosureFeedback.message}
+          </p>
+        ) : null}
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="violet">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IDJOR"
+            title="IDJOR Executive Cockpit — Full Chain"
+            subtitle="Le cockpit exécutif synthétise toute la chaîne Wakama de manière déterministe. Aucun LLM n'est utilisé et aucune décision n'est prise automatiquement."
+            accent="violet"
+          />
+          <span className="rounded-full border border-violet-400/35 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-100">
+            {formatExecutiveCockpitStatusFr(executiveCockpit?.status)}
+          </span>
+        </div>
+
+        {executiveCockpitLoading ? (
+          <p className="text-xs text-slate-400">Chargement du cockpit exécutif...</p>
+        ) : null}
+        {executiveCockpitError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {executiveCockpitError}
+          </p>
+        ) : null}
+
+        {executiveCockpit ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <InstitutionDecisionValueBlock title="Résumé exécutif" value={executiveCockpit.executiveSummary} />
+            <InstitutionDecisionValueBlock title="Carte de la chaîne complète" value={executiveCockpit.fullChainMap} />
+            <InstitutionDecisionValueBlock title="KPIs portefeuille" value={executiveCockpit.portfolioKpis} />
+            <InstitutionDecisionValueBlock title="KPIs risque" value={executiveCockpit.riskKpis} />
+            <InstitutionDecisionValueBlock title="KPIs police" value={executiveCockpit.policyKpis} />
+            <InstitutionDecisionValueBlock title="KPIs sinistres" value={executiveCockpit.claimsKpis} />
+            <InstitutionDecisionValueBlock title="KPIs preuves" value={executiveCockpit.evidenceKpis} />
+            <InstitutionDecisionValueBlock title="KPIs monitoring" value={executiveCockpit.monitoringKpis} />
+            <InstitutionDecisionValueBlock title="KPIs opérations" value={executiveCockpit.operationsKpis} />
+            <InstitutionDecisionValueBlock title="KPIs gouvernance" value={executiveCockpit.governanceKpis} />
+            <InstitutionDecisionValueBlock title="KPIs forensic" value={executiveCockpit.forensicKpis} />
+            <InstitutionDecisionValueBlock title="KPIs RETEX" value={executiveCockpit.retexKpis} />
+            <InstitutionDecisionValueBlock title="Scorecard de readiness" value={executiveCockpit.readinessScorecard} />
+            <InstitutionDecisionValueBlock
+              title="Scorecard de qualité des données"
+              value={executiveCockpit.dataQualityScorecard}
+            />
+            <InstitutionDecisionValueBlock title="Tableau des exceptions" value={executiveCockpit.exceptionBoard} />
+            <InstitutionDecisionValueBlock
+              title="Actions humaines recommandées"
+              value={executiveCockpit.recommendedHumanActions}
+            />
+            <InstitutionDecisionValueBlock title="Blockers" value={executiveCockpit.blockers} />
+            <InstitutionDecisionValueBlock title="Warnings" value={executiveCockpit.warnings} />
+            <InstitutionDecisionValueBlock title="Side effects" value={executiveCockpit.sideEffects} />
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucun cockpit exécutif généré pour ce dossier.
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateExecutiveCockpit()}
+            disabled={executiveCockpitGenerating || !canOperateInstitutionFlow}
+            className="rounded-full border border-violet-400/35 bg-violet-500/10 px-4 py-1.5 text-xs text-violet-100 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {executiveCockpitGenerating ? "..." : "Générer / Actualiser cockpit exécutif"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateExecutiveCockpitStatus("UNDER_EXECUTIVE_REVIEW")}
+            disabled={!executiveCockpit || executiveCockpitStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {executiveCockpitStatusSaving === "UNDER_EXECUTIVE_REVIEW" ? "..." : "Démarrer revue exécutive"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateExecutiveCockpitStatus("EXECUTIVE_ACTIONS_REQUIRED")}
+            disabled={!executiveCockpit || executiveCockpitStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {executiveCockpitStatusSaving === "EXECUTIVE_ACTIONS_REQUIRED" ? "..." : "Marquer actions exécutives requises"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateExecutiveCockpitStatus("READY_FOR_STEERING_COMMITTEE")}
+            disabled={!executiveCockpit || executiveCockpitStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {executiveCockpitStatusSaving === "READY_FOR_STEERING_COMMITTEE" ? "..." : "Prêt comité de pilotage"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateExecutiveCockpitStatus("NO_EXECUTIVE_ACTION_REQUIRED")}
+            disabled={!executiveCockpit || executiveCockpitStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {executiveCockpitStatusSaving === "NO_EXECUTIVE_ACTION_REQUIRED" ? "..." : "Aucune action exécutive"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateExecutiveCockpitStatus("NEEDS_EXECUTIVE_REFRESH")}
+            disabled={!executiveCockpit || executiveCockpitStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {executiveCockpitStatusSaving === "NEEDS_EXECUTIVE_REFRESH" ? "..." : "Demander rafraîchissement"}
+          </button>
+        </div>
+
+        {executiveCockpitFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              executiveCockpitFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : executiveCockpitFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {executiveCockpitFeedback.message}
           </p>
         ) : null}
       </DcaSectionCard>
