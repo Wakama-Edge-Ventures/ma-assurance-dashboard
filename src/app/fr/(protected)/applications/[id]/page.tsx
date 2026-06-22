@@ -7,6 +7,7 @@ import {
   ApiError,
   assignInsuranceMissionDispatch,
   createInsuranceMissionDispatchDraft,
+  createIrax1Mission,
   CreateInsuranceMissionDispatchDraftResult,
   FieldAgent,
   generateIraxPlanning,
@@ -14,18 +15,22 @@ import {
   getInsuranceFieldAgents,
   getInsuranceMissionConfig,
   getInsuranceMissionConfigVersions,
+  getIrax1FieldAssessment,
   getIraxPlanning,
   InsuranceApplicationByIdResult,
+  InsuranceIrax1FieldAssessment,
   InsuranceIraxPlanning,
   InsuranceIraxPlanningStatus,
   InsuranceMissionConfig,
   InsuranceMissionConfigPayload,
   InsuranceMissionConfigSideEffects,
   InsuranceRiskReviewStatus,
+  Irax1FrapStatus,
   MissionDispatchResult,
   saveInsuranceMissionConfig,
   sendInsuranceMissionDispatch,
   updateInsuranceApplicationStatus,
+  updateIrax1FieldAssessmentStatus,
   updateIraxPlanningStatus,
 } from "@/lib/api";
 import { InsuranceFieldAudit } from "@/types";
@@ -549,6 +554,99 @@ function hasIraxPlanningForbiddenSideEffects(sideEffects: InsuranceMissionConfig
   return hasMissionConfigForbiddenSideEffects(sideEffects);
 }
 
+function getIrax1LoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Impossible de charger le FRAP IRAX1.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) au FRAP IRAX1.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404) pour le FRAP IRAX1.";
+  }
+  return error.message || "Erreur API pendant le chargement du FRAP IRAX1.";
+}
+
+function getIrax1MutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Action IRAX1 impossible.";
+  }
+  if (error.status === 400) {
+    return "Requête invalide (400) pour cette action IRAX1.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) pour cette action IRAX1.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404) pour cette action IRAX1.";
+  }
+  if (error.status === 409) {
+    return error.message || "Action IRAX1 impossible dans l'état actuel (409).";
+  }
+  return error.message || "Erreur API pendant l'action IRAX1.";
+}
+
+const IRAX1_STATUS_LABELS_FR: Record<string, string> = {
+  IRAX1_MISSION_DRAFT: "Mission en brouillon",
+  IRAX1_MISSION_READY: "Mission prête",
+  IRAX1_MISSION_SENT: "Mission envoyée à l'agent",
+  IRAX1_IN_PROGRESS: "Mission en cours sur le terrain",
+  IRAX1_SUBMITTED: "FRAP soumis par l'agent",
+  IRAX1_ACCEPTED_FOR_REVIEW: "FRAP accepté pour revue",
+  IRAX1_REJECTED_FOR_CORRECTION: "Renvoyé à l'agent pour correction",
+  IRAX1_CLOSED: "Mission IRAX1 clôturée",
+  UNDER_BACK_OFFICE_REVIEW: "En revue back-office",
+  ACCEPTED_FOR_IRAX3: "Accepté — prêt pour IRAX3",
+  NEEDS_FIELD_CORRECTION: "Correction terrain requise",
+  REJECTED_INVALID_EVIDENCE: "Rejeté — preuves invalides",
+};
+
+function formatIrax1StatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucune mission IRAX1";
+  return IRAX1_STATUS_LABELS_FR[status] ?? status;
+}
+
+function Irax1JsonSection({ title, value }: { title: string; value: Record<string, unknown> | null }) {
+  if (!value) {
+    return (
+      <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+        <p className="text-[10px] uppercase tracking-wide text-slate-500">{title}</p>
+        <p className="text-slate-500">Non disponible — en attente de soumission terrain.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+      <p className="text-[10px] uppercase tracking-wide text-slate-500">{title}</p>
+      <dl className="mt-1 space-y-0.5">
+        {Object.entries(value).map(([key, entryValue]) => (
+          <div key={key} className="flex flex-wrap justify-between gap-2">
+            <dt className="text-slate-500">{key}</dt>
+            <dd className="text-right text-slate-200">
+              {Array.isArray(entryValue)
+                ? entryValue.length > 0
+                  ? entryValue.join(", ")
+                  : "Aucun"
+                : entryValue === null || entryValue === undefined
+                  ? "—"
+                  : typeof entryValue === "object"
+                    ? JSON.stringify(entryValue)
+                    : String(entryValue)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
   if (value === "UNKNOWN") {
     return <span className="text-slate-500">Non disponible</span>;
@@ -664,6 +762,16 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     type: "success" | "error" | "critical";
     message: string;
   } | null>(null);
+  const [irax1FieldAssessment, setIrax1FieldAssessment] = useState<InsuranceIrax1FieldAssessment | null>(null);
+  const [irax1Loading, setIrax1Loading] = useState(false);
+  const [irax1Creating, setIrax1Creating] = useState(false);
+  const [irax1StatusSaving, setIrax1StatusSaving] = useState<Irax1FrapStatus | null>(null);
+  const [irax1Error, setIrax1Error] = useState<string | null>(null);
+  const [irax1Feedback, setIrax1Feedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [irax1SelectedAgentUserId, setIrax1SelectedAgentUserId] = useState<string>("");
   const [missionConfigLoading, setMissionConfigLoading] = useState(false);
   const [missionConfigSaving, setMissionConfigSaving] = useState(false);
   const [missionConfigError, setMissionConfigError] = useState<string | null>(null);
@@ -819,6 +927,85 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       });
     } finally {
       setIraxPlanningStatusSaving(null);
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadIrax1FieldAssessment() {
+      setIrax1Loading(true);
+      setIrax1Error(null);
+
+      try {
+        const fieldAssessment = await getIrax1FieldAssessment(applicationId);
+        if (!mounted) return;
+        setIrax1FieldAssessment(fieldAssessment);
+      } catch (loadError) {
+        if (!mounted) return;
+        setIrax1Error(getIrax1LoadErrorMessage(loadError));
+      } finally {
+        if (mounted) {
+          setIrax1Loading(false);
+        }
+      }
+    }
+
+    void loadIrax1FieldAssessment();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  async function handleCreateIrax1Mission() {
+    if (irax1Creating) return;
+
+    setIrax1Feedback(null);
+    setIrax1Creating(true);
+
+    try {
+      const mission = await createIrax1Mission(
+        applicationId,
+        irax1SelectedAgentUserId.trim() ? irax1SelectedAgentUserId.trim() : null,
+      );
+      setIrax1FieldAssessment(mission);
+      setIrax1Error(null);
+      setIrax1Feedback({
+        type: "success",
+        message: mission
+          ? `Mission IRAX1 prête (statut ${formatIrax1StatusFr(mission.status)}).`
+          : "Mission IRAX1 traitée.",
+      });
+    } catch (mutationError) {
+      setIrax1Feedback({
+        type: "error",
+        message: getIrax1MutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIrax1Creating(false);
+    }
+  }
+
+  async function handleUpdateIrax1FrapStatus(status: Irax1FrapStatus) {
+    if (irax1StatusSaving) return;
+
+    setIrax1Feedback(null);
+    setIrax1StatusSaving(status);
+
+    try {
+      const fieldAssessment = await updateIrax1FieldAssessmentStatus(applicationId, status);
+      setIrax1FieldAssessment(fieldAssessment);
+      setIrax1Feedback({
+        type: "success",
+        message: `Statut FRAP IRAX1 mis à jour: ${formatIrax1StatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setIrax1Feedback({
+        type: "error",
+        message: getIrax1MutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIrax1StatusSaving(null);
     }
   }
 
@@ -1789,6 +1976,227 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
 
         <p className="text-[11px] text-slate-500">
           IRAX-P prépare le plan d&apos;investigation. L&apos;institution reste seule décisionnaire.
+        </p>
+      </DcaSectionCard>
+
+      {/* ── IRAX1 — Investigation terrain ── */}
+      <DcaSectionCard accent="cyan">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IRAX1 — Front Office Investigation"
+            title="IRAX1 — Investigation terrain"
+            subtitle={`FRAP — Field Risk Assessment Package — moteur ${irax1FieldAssessment?.algorithmVersion ?? "IRAX1_FRAP_V1_2026"}`}
+            accent="cyan"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {irax1FieldAssessment ? (
+              <span className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-0.5 text-[11px] text-cyan-200">
+                {formatIrax1StatusFr(irax1FieldAssessment.status)}
+              </span>
+            ) : (
+              <span className="rounded-full border border-slate-400/20 bg-slate-800/50 px-2.5 py-0.5 text-[11px] text-slate-500">
+                Aucune mission IRAX1
+              </span>
+            )}
+          </div>
+        </div>
+
+        <p className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+          IRAX1 produit la vérité terrain. L&apos;institution reste seule décisionnaire.
+        </p>
+
+        {irax1Loading ? <p className="text-xs text-slate-400">Chargement du FRAP IRAX1...</p> : null}
+        {irax1Error ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {irax1Error}
+          </p>
+        ) : null}
+
+        {irax1FieldAssessment ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-3">
+              <DcaInfoTile label="Agent assigné" value={irax1FieldAssessment.agentUserId ?? "Non assigné"} mono />
+              <DcaInfoTile label="Plan IRAX-P source" value={irax1FieldAssessment.iraxPlanningId ?? "—"} mono />
+              <DcaInfoTile label="Source" value={irax1FieldAssessment.sourceLabel} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Objectifs terrain</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {(
+                    (irax1FieldAssessment.fieldMissionPlanSnapshot?.objectives as string[] | undefined) ?? []
+                  ).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Preuves attendues</p>
+                <p>
+                  Photos :{" "}
+                  {(
+                    (irax1FieldAssessment.fieldMissionPlanSnapshot?.photoRequirements as string[] | undefined) ?? []
+                  ).join(", ") || "—"}
+                </p>
+                <p>
+                  Documents :{" "}
+                  {(
+                    (irax1FieldAssessment.fieldMissionPlanSnapshot?.documentChecks as string[] | undefined) ?? []
+                  ).join(", ") || "—"}
+                </p>
+                <p>
+                  GPS :{" "}
+                  {(
+                    (irax1FieldAssessment.fieldMissionPlanSnapshot?.gpsChecks as string[] | undefined) ?? []
+                  ).join(", ") || "—"}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <Irax1JsonSection title="Vérification géospatiale" value={irax1FieldAssessment.geospatialVerification} />
+              <Irax1JsonSection title="Vérification parcelle" value={irax1FieldAssessment.parcelVerification} />
+              <Irax1JsonSection
+                title="Activité agricole observée"
+                value={irax1FieldAssessment.agriculturalActivityVerification}
+              />
+              <Irax1JsonSection title="Vérification actifs/documents" value={irax1FieldAssessment.assetVerification} />
+              <Irax1JsonSection title="Collecte de preuves" value={irax1FieldAssessment.evidenceCollection} />
+              <Irax1JsonSection title="Détection d'anomalies" value={irax1FieldAssessment.anomalyDetection} />
+              <Irax1JsonSection
+                title="Intelligence risque terrain"
+                value={irax1FieldAssessment.fieldRiskIntelligence}
+              />
+              <Irax1JsonSection title="Transfert de preuves (IBDO)" value={irax1FieldAssessment.evidenceTransfer} />
+              <Irax1JsonSection title="Rapport terrain" value={irax1FieldAssessment.fieldReport} />
+            </div>
+
+            {irax1FieldAssessment.blockers.length > 0 ? (
+              <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                <p className="text-[10px] uppercase tracking-wide text-rose-300">Blocages</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {irax1FieldAssessment.blockers.map((blocker, index) => (
+                    <li key={index}>{blocker}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {irax1FieldAssessment.warnings.length > 0 ? (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <p className="text-[10px] uppercase tracking-wide text-amber-300">Avertissements</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {irax1FieldAssessment.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <DcaInfoTile label="Soumis le" value={formatDate(irax1FieldAssessment.submittedAt)} />
+              <DcaInfoTile label="Revu le" value={formatDate(irax1FieldAssessment.reviewedAt)} />
+              <DcaInfoTile label="Accepté le" value={formatDate(irax1FieldAssessment.acceptedAt)} />
+            </div>
+          </>
+        ) : null}
+
+        <div className="space-y-3">
+          <label className="space-y-1 text-sm text-slate-300 block">
+            <span>Agent de terrain (optionnel — sinon mission prête sans envoi)</span>
+            <select
+              value={irax1SelectedAgentUserId}
+              onChange={(e) => setIrax1SelectedAgentUserId(e.target.value)}
+              disabled={irax1Creating || fieldAgentsLoading}
+              className="w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <option value="">{fieldAgentsLoading ? "Chargement..." : "— Choisir un agent —"}</option>
+              {fieldAgents.map((a) => (
+                <option key={a.userId} value={a.userId}>
+                  {a.displayName} ({a.email}) — {a.status}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleCreateIrax1Mission()}
+            disabled={irax1Creating || irax1Loading}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-4 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {irax1Creating
+              ? "Traitement..."
+              : irax1FieldAssessment
+                ? "Créer / Envoyer mission IRAX1"
+                : "Créer mission IRAX1"}
+          </button>
+
+          {irax1FieldAssessment ? (
+            <>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIrax1FrapStatus("IRAX1_ACCEPTED_FOR_REVIEW")}
+                disabled={irax1StatusSaving !== null}
+                className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {irax1StatusSaving === "IRAX1_ACCEPTED_FOR_REVIEW" ? "..." : "Marquer FRAP en revue"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIrax1FrapStatus("UNDER_BACK_OFFICE_REVIEW")}
+                disabled={irax1StatusSaving !== null}
+                className="rounded-full border border-violet-400/35 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {irax1StatusSaving === "UNDER_BACK_OFFICE_REVIEW" ? "..." : "Démarrer revue back-office"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIrax1FrapStatus("NEEDS_FIELD_CORRECTION")}
+                disabled={irax1StatusSaving !== null}
+                className="rounded-full border border-orange-400/35 bg-orange-500/10 px-3 py-1.5 text-xs text-orange-100 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {irax1StatusSaving === "NEEDS_FIELD_CORRECTION" ? "..." : "Demander correction terrain"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIrax1FrapStatus("ACCEPTED_FOR_IRAX3")}
+                disabled={irax1StatusSaving !== null}
+                className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {irax1StatusSaving === "ACCEPTED_FOR_IRAX3" ? "..." : "Accepter pour IRAX3"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIrax1FrapStatus("REJECTED_INVALID_EVIDENCE")}
+                disabled={irax1StatusSaving !== null}
+                className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {irax1StatusSaving === "REJECTED_INVALID_EVIDENCE" ? "..." : "Rejeter (preuves invalides)"}
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        {irax1Feedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              irax1Feedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : irax1Feedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {irax1Feedback.message}
+          </p>
+        ) : null}
+
+        <p className="text-[11px] text-slate-500">
+          IRAX1 produit la vérité terrain. L&apos;institution reste seule décisionnaire.
         </p>
       </DcaSectionCard>
 

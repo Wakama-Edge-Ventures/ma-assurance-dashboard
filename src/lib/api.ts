@@ -2912,6 +2912,133 @@ export async function updateIraxPlanningStatus(
   return mapIraxPlanning(payload);
 }
 
+export type Irax1FrapStatus =
+  | "IRAX1_MISSION_DRAFT"
+  | "IRAX1_MISSION_READY"
+  | "IRAX1_MISSION_SENT"
+  | "IRAX1_IN_PROGRESS"
+  | "IRAX1_SUBMITTED"
+  | "IRAX1_ACCEPTED_FOR_REVIEW"
+  | "IRAX1_REJECTED_FOR_CORRECTION"
+  | "IRAX1_CLOSED"
+  | "UNDER_BACK_OFFICE_REVIEW"
+  | "ACCEPTED_FOR_IRAX3"
+  | "NEEDS_FIELD_CORRECTION"
+  | "REJECTED_INVALID_EVIDENCE";
+
+export interface InsuranceIrax1FieldAssessment {
+  id: string;
+  applicationId: string;
+  iraxPlanningId: string | null;
+  missionDispatchId: string | null;
+  missionConfigId: string | null;
+  institutionId: string | null;
+  country: string;
+  agentUserId: string | null;
+  status: string;
+  sourceLabel: string;
+  algorithmVersion: string;
+  fieldMissionPlanSnapshot: Record<string, unknown> | null;
+  geospatialVerification: Record<string, unknown> | null;
+  parcelVerification: Record<string, unknown> | null;
+  agriculturalActivityVerification: Record<string, unknown> | null;
+  assetVerification: Record<string, unknown> | null;
+  evidenceCollection: Record<string, unknown> | null;
+  anomalyDetection: Record<string, unknown> | null;
+  fieldRiskIntelligence: Record<string, unknown> | null;
+  evidenceTransfer: Record<string, unknown> | null;
+  fieldReport: Record<string, unknown> | null;
+  blockers: string[];
+  warnings: string[];
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  acceptedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+function mapIrax1FieldAssessment(raw: unknown): InsuranceIrax1FieldAssessment | null {
+  const obj = asObject(raw);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    iraxPlanningId: readString(obj, "iraxPlanningId"),
+    missionDispatchId: readString(obj, "missionDispatchId"),
+    missionConfigId: readString(obj, "missionConfigId"),
+    institutionId: readString(obj, "institutionId"),
+    country: readString(obj, "country") ?? "MA",
+    agentUserId: readString(obj, "agentUserId"),
+    status: readString(obj, "status") ?? "IRAX1_MISSION_DRAFT",
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    algorithmVersion: readString(obj, "algorithmVersion") ?? "IRAX1_FRAP_V1_2026",
+    fieldMissionPlanSnapshot: asObject(obj.fieldMissionPlanSnapshot),
+    geospatialVerification: asObject(obj.geospatialVerification),
+    parcelVerification: asObject(obj.parcelVerification),
+    agriculturalActivityVerification: asObject(obj.agriculturalActivityVerification),
+    assetVerification: asObject(obj.assetVerification),
+    evidenceCollection: asObject(obj.evidenceCollection),
+    anomalyDetection: asObject(obj.anomalyDetection),
+    fieldRiskIntelligence: asObject(obj.fieldRiskIntelligence),
+    evidenceTransfer: asObject(obj.evidenceTransfer),
+    fieldReport: asObject(obj.fieldReport),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    submittedAt: readString(obj, "submittedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    acceptedAt: readString(obj, "acceptedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+export async function getIrax1FieldAssessment(
+  applicationId: string,
+): Promise<InsuranceIrax1FieldAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax1/frap`);
+  const root = asObject(payload);
+  return mapIrax1FieldAssessment(root?.fieldAssessment);
+}
+
+export async function createIrax1Mission(
+  applicationId: string,
+  agentUserId?: string | null,
+): Promise<InsuranceIrax1FieldAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const body: Record<string, unknown> = {};
+  if (agentUserId) {
+    body.agentUserId = agentUserId;
+  }
+
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax1/mission`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  const root = asObject(payload);
+  return mapIrax1FieldAssessment(root?.mission);
+}
+
+export async function updateIrax1FieldAssessmentStatus(
+  applicationId: string,
+  status: Irax1FrapStatus,
+): Promise<InsuranceIrax1FieldAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax1/frap/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  const root = asObject(payload);
+  return mapIrax1FieldAssessment(root?.fieldAssessment);
+}
+
 export async function getInsuranceMissionConfig(
   applicationId: string,
 ): Promise<InsuranceMissionConfig | null> {
