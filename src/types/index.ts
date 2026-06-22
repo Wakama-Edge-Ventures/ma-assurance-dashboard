@@ -1150,6 +1150,126 @@ export interface InsuranceMonitoringSnapshot {
   updatedAt: string | null;
 }
 
+export type InsuranceFraudForensicReviewStatus =
+  | "FORENSIC_REVIEW_GENERATED"
+  | "UNDER_FORENSIC_REVIEW"
+  | "ANOMALY_REVIEW_REQUIRED"
+  | "CLEARED_FOR_STANDARD_PROCESSING"
+  | "NEEDS_ADDITIONAL_EVIDENCE"
+  | "ESCALATED_TO_INSTITUTION_COMMITTEE"
+  | "CLOSED_NO_ACTION";
+
+export interface InsuranceFraudForensicReview {
+  id: string;
+  applicationId: string;
+  policyContractId: string | null;
+  evidenceBundleId: string | null;
+  monitoringSnapshotId: string | null;
+  institutionId: string;
+  country: string;
+  version: number;
+  status: InsuranceFraudForensicReviewStatus;
+  sourceLabel: string;
+  protocolVersion: string;
+  anomalySignals: unknown[];
+  forensicMatrix: unknown[];
+  evidenceConsistency: Record<string, unknown> | null;
+  identityAndConsentReview: Record<string, unknown> | null;
+  geoTemporalReview: Record<string, unknown> | null;
+  claimPatternReview: Record<string, unknown> | null;
+  documentIntegrityReview: Record<string, unknown> | null;
+  riskAndPricingConsistency: Record<string, unknown> | null;
+  recommendedHumanActions: string[];
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  generatedByUserId: string | null;
+  reviewedByUserId: string | null;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export type InsuranceOperationsCockpitSnapshotStatus =
+  | "OPERATIONS_SNAPSHOT_GENERATED"
+  | "UNDER_OPERATIONS_REVIEW"
+  | "ACTIONS_REQUIRED"
+  | "NO_OPERATIONAL_ACTION_REQUIRED"
+  | "NEEDS_REFRESH";
+
+export interface InsuranceOperationsCockpitSnapshot {
+  id: string;
+  institutionId: string;
+  country: string;
+  scopeType: string;
+  applicationId: string | null;
+  version: number;
+  status: InsuranceOperationsCockpitSnapshotStatus;
+  sourceLabel: string;
+  protocolVersion: string;
+  pipelineOverview: Record<string, unknown> | null;
+  workloadQueues: Record<string, unknown> | null;
+  slaIndicators: Record<string, unknown> | null;
+  bottleneckAnalysis: Record<string, unknown> | null;
+  exceptionList: unknown[];
+  claimsOperations: Record<string, unknown> | null;
+  monitoringOperations: Record<string, unknown> | null;
+  evidenceOperations: Record<string, unknown> | null;
+  policyOperations: Record<string, unknown> | null;
+  recommendedActions: string[];
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  generatedByUserId: string | null;
+  reviewedByUserId: string | null;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export type InsuranceGovernanceComplianceSnapshotStatus =
+  | "COMPLIANCE_SNAPSHOT_GENERATED"
+  | "UNDER_COMPLIANCE_REVIEW"
+  | "GAPS_REQUIRING_ACTION"
+  | "READY_FOR_AUDIT_REVIEW"
+  | "NO_COMPLIANCE_ACTION_REQUIRED"
+  | "NEEDS_COMPLIANCE_REFRESH";
+
+export interface InsuranceGovernanceComplianceSnapshot {
+  id: string;
+  institutionId: string;
+  country: string;
+  scopeType: string;
+  applicationId: string | null;
+  policyContractId: string | null;
+  evidenceBundleId: string | null;
+  version: number;
+  status: InsuranceGovernanceComplianceSnapshotStatus;
+  sourceLabel: string;
+  protocolVersion: string;
+  consentCompliance: Record<string, unknown> | null;
+  dataProtectionReview: Record<string, unknown> | null;
+  piiReview: Record<string, unknown> | null;
+  auditTrailReview: Record<string, unknown> | null;
+  evidenceGovernance: Record<string, unknown> | null;
+  tenantScopeReview: Record<string, unknown> | null;
+  regulatoryReadiness: Record<string, unknown> | null;
+  securityPostureReview: Record<string, unknown> | null;
+  complianceGaps: string[];
+  recommendedActions: string[];
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  generatedByUserId: string | null;
+  reviewedByUserId: string | null;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
 export interface RaxEvaluation {
   id: string;
   applicationId: string;

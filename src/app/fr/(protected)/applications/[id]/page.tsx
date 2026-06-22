@@ -15,6 +15,9 @@ import {
   generateEvidenceBundle,
   generateIraxConsolidatedAssessment,
   generateMonitoringSnapshot,
+  generateFraudForensicReview,
+  generateOperationsCockpit,
+  generateGovernanceCompliance,
   generatePricingOffer,
   generateIraxPlanning,
   generateIraxScientificAssessment,
@@ -30,6 +33,9 @@ import {
   getIraxPlanning,
   getIraxScientificAssessment,
   getMonitoringSnapshot,
+  getFraudForensicReview,
+  getOperationsCockpit,
+  getGovernanceCompliance,
   getPolicyContract,
   getPricingOffer,
   listClaimCases,
@@ -56,6 +62,9 @@ import {
   updateClaimCaseStatus,
   updateEvidenceBundleStatus,
   updateMonitoringSnapshotStatus,
+  updateFraudForensicReviewStatus,
+  updateOperationsCockpitStatus,
+  updateGovernanceComplianceStatus,
   updatePolicyContractStatus,
   updatePricingOfferStatus,
   updateInsuranceApplicationStatus,
@@ -77,6 +86,12 @@ import {
   InsuranceInstitutionDecisionType,
   InsuranceMonitoringSnapshot,
   InsuranceMonitoringSnapshotStatus,
+  InsuranceFraudForensicReview,
+  InsuranceFraudForensicReviewStatus,
+  InsuranceOperationsCockpitSnapshot,
+  InsuranceOperationsCockpitSnapshotStatus,
+  InsuranceGovernanceComplianceSnapshot,
+  InsuranceGovernanceComplianceSnapshotStatus,
   InsurancePolicyContract,
   InsurancePolicyContractStatus,
   InsurancePricingOffer,
@@ -1084,6 +1099,48 @@ function formatMonitoringSnapshotStatusFr(status: string | null | undefined): st
   return MONITORING_SNAPSHOT_STATUS_LABELS_FR[status as InsuranceMonitoringSnapshotStatus] ?? status;
 }
 
+const FRAUD_FORENSIC_REVIEW_STATUS_LABELS_FR: Record<InsuranceFraudForensicReviewStatus, string> = {
+  FORENSIC_REVIEW_GENERATED: "Revue générée",
+  UNDER_FORENSIC_REVIEW: "En revue forensic",
+  ANOMALY_REVIEW_REQUIRED: "Revue anomalies requise",
+  CLEARED_FOR_STANDARD_PROCESSING: "Traitement standard validé",
+  NEEDS_ADDITIONAL_EVIDENCE: "Preuves complémentaires requises",
+  ESCALATED_TO_INSTITUTION_COMMITTEE: "Escaladé au comité institution",
+  CLOSED_NO_ACTION: "Clôturé sans action",
+};
+
+function formatFraudForensicReviewStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucune revue IFDO";
+  return FRAUD_FORENSIC_REVIEW_STATUS_LABELS_FR[status as InsuranceFraudForensicReviewStatus] ?? status;
+}
+
+const OPERATIONS_COCKPIT_STATUS_LABELS_FR: Record<InsuranceOperationsCockpitSnapshotStatus, string> = {
+  OPERATIONS_SNAPSHOT_GENERATED: "Cockpit généré",
+  UNDER_OPERATIONS_REVIEW: "En revue opérations",
+  ACTIONS_REQUIRED: "Actions requises",
+  NO_OPERATIONAL_ACTION_REQUIRED: "Aucune action requise",
+  NEEDS_REFRESH: "Rafraîchissement requis",
+};
+
+function formatOperationsCockpitStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucun cockpit opérations";
+  return OPERATIONS_COCKPIT_STATUS_LABELS_FR[status as InsuranceOperationsCockpitSnapshotStatus] ?? status;
+}
+
+const GOVERNANCE_COMPLIANCE_STATUS_LABELS_FR: Record<InsuranceGovernanceComplianceSnapshotStatus, string> = {
+  COMPLIANCE_SNAPSHOT_GENERATED: "Conformité générée",
+  UNDER_COMPLIANCE_REVIEW: "En revue conformité",
+  GAPS_REQUIRING_ACTION: "Écarts à traiter",
+  READY_FOR_AUDIT_REVIEW: "Prêt pour revue audit",
+  NO_COMPLIANCE_ACTION_REQUIRED: "Aucune action requise",
+  NEEDS_COMPLIANCE_REFRESH: "Rafraîchissement requis",
+};
+
+function formatGovernanceComplianceStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucune conformité ICGO";
+  return GOVERNANCE_COMPLIANCE_STATUS_LABELS_FR[status as InsuranceGovernanceComplianceSnapshotStatus] ?? status;
+}
+
 function parseLineItems(value: string): string[] {
   return value
     .split(/\n|,/g)
@@ -1268,6 +1325,57 @@ function getMonitoringSnapshotMutationErrorMessage(error: unknown): string {
   if (error.status === 403) return "Accès refusé (403) pour cette action IDDO.";
   if (error.status === 404) return "Dossier introuvable (404) pour cette action IDDO.";
   return error.message || "Erreur API pendant l'action IDDO.";
+}
+
+function getFraudForensicReviewLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger la revue IFDO.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) à la revue IFDO.";
+  if (error.status === 404) return "Dossier introuvable (404) pour la revue IFDO.";
+  return error.message || "Erreur API pendant le chargement de la revue IFDO.";
+}
+
+function getFraudForensicReviewMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action IFDO impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action IFDO.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action IFDO.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action IFDO.";
+  return error.message || "Erreur API pendant l'action IFDO.";
+}
+
+function getOperationsCockpitLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger le cockpit opérations.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) au cockpit opérations.";
+  if (error.status === 404) return "Dossier introuvable (404) pour le cockpit opérations.";
+  return error.message || "Erreur API pendant le chargement du cockpit opérations.";
+}
+
+function getOperationsCockpitMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action ICOO impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action ICOO.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action ICOO.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action ICOO.";
+  return error.message || "Erreur API pendant l'action ICOO.";
+}
+
+function getGovernanceComplianceLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger la conformité ICGO.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) à la conformité ICGO.";
+  if (error.status === 404) return "Dossier introuvable (404) pour la conformité ICGO.";
+  return error.message || "Erreur API pendant le chargement de la conformité ICGO.";
+}
+
+function getGovernanceComplianceMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action ICGO impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action ICGO.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action ICGO.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action ICGO.";
+  return error.message || "Erreur API pendant l'action ICGO.";
 }
 
 function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
@@ -1495,6 +1603,38 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     type: "success" | "error" | "critical";
     message: string;
   } | null>(null);
+  const [fraudForensicReview, setFraudForensicReview] = useState<InsuranceFraudForensicReview | null>(null);
+  const [fraudForensicReviewLoading, setFraudForensicReviewLoading] = useState(false);
+  const [fraudForensicReviewGenerating, setFraudForensicReviewGenerating] = useState(false);
+  const [fraudForensicReviewStatusSaving, setFraudForensicReviewStatusSaving] =
+    useState<InsuranceFraudForensicReviewStatus | null>(null);
+  const [fraudForensicReviewError, setFraudForensicReviewError] = useState<string | null>(null);
+  const [fraudForensicReviewFeedback, setFraudForensicReviewFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [operationsCockpit, setOperationsCockpit] = useState<InsuranceOperationsCockpitSnapshot | null>(null);
+  const [operationsCockpitLoading, setOperationsCockpitLoading] = useState(false);
+  const [operationsCockpitGenerating, setOperationsCockpitGenerating] = useState(false);
+  const [operationsCockpitStatusSaving, setOperationsCockpitStatusSaving] =
+    useState<InsuranceOperationsCockpitSnapshotStatus | null>(null);
+  const [operationsCockpitError, setOperationsCockpitError] = useState<string | null>(null);
+  const [operationsCockpitFeedback, setOperationsCockpitFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [governanceCompliance, setGovernanceCompliance] = useState<InsuranceGovernanceComplianceSnapshot | null>(
+    null,
+  );
+  const [governanceComplianceLoading, setGovernanceComplianceLoading] = useState(false);
+  const [governanceComplianceGenerating, setGovernanceComplianceGenerating] = useState(false);
+  const [governanceComplianceStatusSaving, setGovernanceComplianceStatusSaving] =
+    useState<InsuranceGovernanceComplianceSnapshotStatus | null>(null);
+  const [governanceComplianceError, setGovernanceComplianceError] = useState<string | null>(null);
+  const [governanceComplianceFeedback, setGovernanceComplianceFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
   const [missionConfigLoading, setMissionConfigLoading] = useState(false);
   const [missionConfigSaving, setMissionConfigSaving] = useState(false);
   const [missionConfigError, setMissionConfigError] = useState<string | null>(null);
@@ -1683,6 +1823,81 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
 
     void loadMonitoringSnapshot();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadFraudForensicReview() {
+      setFraudForensicReviewLoading(true);
+      setFraudForensicReviewError(null);
+
+      try {
+        const review = await getFraudForensicReview(applicationId);
+        if (!mounted) return;
+        setFraudForensicReview(review);
+      } catch (loadError) {
+        if (!mounted) return;
+        setFraudForensicReviewError(getFraudForensicReviewLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setFraudForensicReviewLoading(false);
+      }
+    }
+
+    void loadFraudForensicReview();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadOperationsCockpit() {
+      setOperationsCockpitLoading(true);
+      setOperationsCockpitError(null);
+
+      try {
+        const snapshot = await getOperationsCockpit(applicationId);
+        if (!mounted) return;
+        setOperationsCockpit(snapshot);
+      } catch (loadError) {
+        if (!mounted) return;
+        setOperationsCockpitError(getOperationsCockpitLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setOperationsCockpitLoading(false);
+      }
+    }
+
+    void loadOperationsCockpit();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadGovernanceCompliance() {
+      setGovernanceComplianceLoading(true);
+      setGovernanceComplianceError(null);
+
+      try {
+        const snapshot = await getGovernanceCompliance(applicationId);
+        if (!mounted) return;
+        setGovernanceCompliance(snapshot);
+      } catch (loadError) {
+        if (!mounted) return;
+        setGovernanceComplianceError(getGovernanceComplianceLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setGovernanceComplianceLoading(false);
+      }
+    }
+
+    void loadGovernanceCompliance();
     return () => {
       mounted = false;
     };
@@ -2438,6 +2653,147 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       });
     } finally {
       setMonitoringSnapshotStatusSaving(null);
+    }
+  }
+
+  async function handleGenerateFraudForensicReview() {
+    if (fraudForensicReviewGenerating) return;
+
+    setFraudForensicReviewFeedback(null);
+    setFraudForensicReviewGenerating(true);
+
+    try {
+      const review = await generateFraudForensicReview(applicationId);
+      setFraudForensicReview(review);
+      setFraudForensicReviewError(null);
+      setFraudForensicReviewFeedback({
+        type: "success",
+        message: `Revue IFDO générée (${formatFraudForensicReviewStatusFr(review?.status)}).`,
+      });
+    } catch (mutationError) {
+      setFraudForensicReviewFeedback({
+        type: "error",
+        message: getFraudForensicReviewMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setFraudForensicReviewGenerating(false);
+    }
+  }
+
+  async function handleUpdateFraudForensicReviewStatus(status: InsuranceFraudForensicReviewStatus) {
+    if (fraudForensicReviewStatusSaving) return;
+
+    setFraudForensicReviewFeedback(null);
+    setFraudForensicReviewStatusSaving(status);
+
+    try {
+      const review = await updateFraudForensicReviewStatus(applicationId, status);
+      setFraudForensicReview(review);
+      setFraudForensicReviewFeedback({
+        type: "success",
+        message: `Statut revue IFDO mis à jour: ${formatFraudForensicReviewStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setFraudForensicReviewFeedback({
+        type: "error",
+        message: getFraudForensicReviewMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setFraudForensicReviewStatusSaving(null);
+    }
+  }
+
+  async function handleGenerateOperationsCockpit() {
+    if (operationsCockpitGenerating) return;
+
+    setOperationsCockpitFeedback(null);
+    setOperationsCockpitGenerating(true);
+
+    try {
+      const snapshot = await generateOperationsCockpit(applicationId);
+      setOperationsCockpit(snapshot);
+      setOperationsCockpitError(null);
+      setOperationsCockpitFeedback({
+        type: "success",
+        message: `Cockpit opérations généré (${formatOperationsCockpitStatusFr(snapshot?.status)}).`,
+      });
+    } catch (mutationError) {
+      setOperationsCockpitFeedback({
+        type: "error",
+        message: getOperationsCockpitMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setOperationsCockpitGenerating(false);
+    }
+  }
+
+  async function handleUpdateOperationsCockpitStatus(status: InsuranceOperationsCockpitSnapshotStatus) {
+    if (operationsCockpitStatusSaving) return;
+
+    setOperationsCockpitFeedback(null);
+    setOperationsCockpitStatusSaving(status);
+
+    try {
+      const snapshot = await updateOperationsCockpitStatus(applicationId, status);
+      setOperationsCockpit(snapshot);
+      setOperationsCockpitFeedback({
+        type: "success",
+        message: `Statut cockpit opérations mis à jour: ${formatOperationsCockpitStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setOperationsCockpitFeedback({
+        type: "error",
+        message: getOperationsCockpitMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setOperationsCockpitStatusSaving(null);
+    }
+  }
+
+  async function handleGenerateGovernanceCompliance() {
+    if (governanceComplianceGenerating) return;
+
+    setGovernanceComplianceFeedback(null);
+    setGovernanceComplianceGenerating(true);
+
+    try {
+      const snapshot = await generateGovernanceCompliance(applicationId);
+      setGovernanceCompliance(snapshot);
+      setGovernanceComplianceError(null);
+      setGovernanceComplianceFeedback({
+        type: "success",
+        message: `Conformité ICGO générée (${formatGovernanceComplianceStatusFr(snapshot?.status)}).`,
+      });
+    } catch (mutationError) {
+      setGovernanceComplianceFeedback({
+        type: "error",
+        message: getGovernanceComplianceMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setGovernanceComplianceGenerating(false);
+    }
+  }
+
+  async function handleUpdateGovernanceComplianceStatus(status: InsuranceGovernanceComplianceSnapshotStatus) {
+    if (governanceComplianceStatusSaving) return;
+
+    setGovernanceComplianceFeedback(null);
+    setGovernanceComplianceStatusSaving(status);
+
+    try {
+      const snapshot = await updateGovernanceComplianceStatus(applicationId, status);
+      setGovernanceCompliance(snapshot);
+      setGovernanceComplianceFeedback({
+        type: "success",
+        message: `Statut conformité ICGO mis à jour: ${formatGovernanceComplianceStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setGovernanceComplianceFeedback({
+        type: "error",
+        message: getGovernanceComplianceMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setGovernanceComplianceStatusSaving(null);
     }
   }
 
@@ -4970,6 +5326,346 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             }`}
           >
             {monitoringSnapshotFeedback.message}
+          </p>
+        ) : null}
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="violet">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IFDO"
+            title="IFDO — Fraude, forensic & anomalies"
+            subtitle="IFDO détecte des signaux d'anomalie et prépare une revue humaine. Il ne déclare jamais une fraude automatiquement."
+            accent="violet"
+          />
+          <span className="rounded-full border border-violet-400/35 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-100">
+            {formatFraudForensicReviewStatusFr(fraudForensicReview?.status)}
+          </span>
+        </div>
+
+        {fraudForensicReviewLoading ? <p className="text-xs text-slate-400">Chargement de la revue IFDO...</p> : null}
+        {fraudForensicReviewError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {fraudForensicReviewError}
+          </p>
+        ) : null}
+
+        {fraudForensicReview ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <InstitutionDecisionValueBlock title="Protocol version" value={fraudForensicReview.protocolVersion} />
+            <InstitutionDecisionValueBlock title="Anomaly signals" value={fraudForensicReview.anomalySignals} />
+            <InstitutionDecisionValueBlock title="Forensic matrix" value={fraudForensicReview.forensicMatrix} />
+            <InstitutionDecisionValueBlock title="Evidence consistency" value={fraudForensicReview.evidenceConsistency} />
+            <InstitutionDecisionValueBlock
+              title="Identity & consent review"
+              value={fraudForensicReview.identityAndConsentReview}
+            />
+            <InstitutionDecisionValueBlock title="Geo-temporal review" value={fraudForensicReview.geoTemporalReview} />
+            <InstitutionDecisionValueBlock title="Claim pattern review" value={fraudForensicReview.claimPatternReview} />
+            <InstitutionDecisionValueBlock
+              title="Document integrity review"
+              value={fraudForensicReview.documentIntegrityReview}
+            />
+            <InstitutionDecisionValueBlock
+              title="Risk & pricing consistency"
+              value={fraudForensicReview.riskAndPricingConsistency}
+            />
+            <InstitutionDecisionValueBlock
+              title="Recommended human actions"
+              value={fraudForensicReview.recommendedHumanActions}
+            />
+            <InstitutionDecisionValueBlock title="Blockers" value={fraudForensicReview.blockers} />
+            <InstitutionDecisionValueBlock title="Warnings" value={fraudForensicReview.warnings} />
+            <InstitutionDecisionValueBlock title="Side effects" value={fraudForensicReview.sideEffects} />
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucune revue IFDO générée pour ce dossier.
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateFraudForensicReview()}
+            disabled={fraudForensicReviewGenerating || !canOperateInstitutionFlow}
+            className="rounded-full border border-violet-400/35 bg-violet-500/10 px-4 py-1.5 text-xs text-violet-100 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {fraudForensicReviewGenerating ? "..." : "Générer / Actualiser revue IFDO"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateFraudForensicReviewStatus("UNDER_FORENSIC_REVIEW")}
+            disabled={!fraudForensicReview || fraudForensicReviewStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {fraudForensicReviewStatusSaving === "UNDER_FORENSIC_REVIEW" ? "..." : "Démarrer revue forensic"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateFraudForensicReviewStatus("ANOMALY_REVIEW_REQUIRED")}
+            disabled={!fraudForensicReview || fraudForensicReviewStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {fraudForensicReviewStatusSaving === "ANOMALY_REVIEW_REQUIRED" ? "..." : "Marquer revue anomalies requise"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateFraudForensicReviewStatus("NEEDS_ADDITIONAL_EVIDENCE")}
+            disabled={!fraudForensicReview || fraudForensicReviewStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {fraudForensicReviewStatusSaving === "NEEDS_ADDITIONAL_EVIDENCE" ? "..." : "Demander preuves complémentaires"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateFraudForensicReviewStatus("ESCALATED_TO_INSTITUTION_COMMITTEE")}
+            disabled={!fraudForensicReview || fraudForensicReviewStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {fraudForensicReviewStatusSaving === "ESCALATED_TO_INSTITUTION_COMMITTEE"
+              ? "..."
+              : "Escalader au comité institution"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateFraudForensicReviewStatus("CLOSED_NO_ACTION")}
+            disabled={!fraudForensicReview || fraudForensicReviewStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {fraudForensicReviewStatusSaving === "CLOSED_NO_ACTION" ? "..." : "Clôturer sans action"}
+          </button>
+        </div>
+
+        {fraudForensicReviewFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              fraudForensicReviewFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : fraudForensicReviewFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {fraudForensicReviewFeedback.message}
+          </p>
+        ) : null}
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="emerald">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="ICOO"
+            title="ICOO — Cockpit opérations"
+            subtitle="ICOO agrège les files de travail et les blocages opérationnels. Il ne modifie aucun statut métier automatiquement."
+            accent="emerald"
+          />
+          <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-100">
+            {formatOperationsCockpitStatusFr(operationsCockpit?.status)}
+          </span>
+        </div>
+
+        {operationsCockpitLoading ? (
+          <p className="text-xs text-slate-400">Chargement du cockpit opérations...</p>
+        ) : null}
+        {operationsCockpitError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {operationsCockpitError}
+          </p>
+        ) : null}
+
+        {operationsCockpit ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <InstitutionDecisionValueBlock title="Pipeline overview" value={operationsCockpit.pipelineOverview} />
+            <InstitutionDecisionValueBlock title="Workload queues" value={operationsCockpit.workloadQueues} />
+            <InstitutionDecisionValueBlock title="SLA indicators" value={operationsCockpit.slaIndicators} />
+            <InstitutionDecisionValueBlock title="Bottleneck analysis" value={operationsCockpit.bottleneckAnalysis} />
+            <InstitutionDecisionValueBlock title="Exception list" value={operationsCockpit.exceptionList} />
+            <InstitutionDecisionValueBlock title="Claims operations" value={operationsCockpit.claimsOperations} />
+            <InstitutionDecisionValueBlock title="Monitoring operations" value={operationsCockpit.monitoringOperations} />
+            <InstitutionDecisionValueBlock title="Evidence operations" value={operationsCockpit.evidenceOperations} />
+            <InstitutionDecisionValueBlock title="Policy operations" value={operationsCockpit.policyOperations} />
+            <InstitutionDecisionValueBlock title="Recommended actions" value={operationsCockpit.recommendedActions} />
+            <InstitutionDecisionValueBlock title="Blockers" value={operationsCockpit.blockers} />
+            <InstitutionDecisionValueBlock title="Warnings" value={operationsCockpit.warnings} />
+            <InstitutionDecisionValueBlock title="Side effects" value={operationsCockpit.sideEffects} />
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucun cockpit opérations généré pour ce dossier.
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateOperationsCockpit()}
+            disabled={operationsCockpitGenerating || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-4 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {operationsCockpitGenerating ? "..." : "Générer / Actualiser cockpit opérations"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateOperationsCockpitStatus("UNDER_OPERATIONS_REVIEW")}
+            disabled={!operationsCockpit || operationsCockpitStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {operationsCockpitStatusSaving === "UNDER_OPERATIONS_REVIEW" ? "..." : "Démarrer revue opérations"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateOperationsCockpitStatus("ACTIONS_REQUIRED")}
+            disabled={!operationsCockpit || operationsCockpitStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {operationsCockpitStatusSaving === "ACTIONS_REQUIRED" ? "..." : "Marquer actions requises"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateOperationsCockpitStatus("NO_OPERATIONAL_ACTION_REQUIRED")}
+            disabled={!operationsCockpit || operationsCockpitStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {operationsCockpitStatusSaving === "NO_OPERATIONAL_ACTION_REQUIRED" ? "..." : "Aucune action opérationnelle"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateOperationsCockpitStatus("NEEDS_REFRESH")}
+            disabled={!operationsCockpit || operationsCockpitStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {operationsCockpitStatusSaving === "NEEDS_REFRESH" ? "..." : "Demander rafraîchissement"}
+          </button>
+        </div>
+
+        {operationsCockpitFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              operationsCockpitFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : operationsCockpitFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {operationsCockpitFeedback.message}
+          </p>
+        ) : null}
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="cyan">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="ICGO"
+            title="ICGO — Gouvernance & conformité"
+            subtitle="ICGO prépare la revue gouvernance/conformité. Il ne certifie pas juridiquement ou réglementairement."
+            accent="cyan"
+          />
+          <span className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-0.5 text-[11px] text-cyan-100">
+            {formatGovernanceComplianceStatusFr(governanceCompliance?.status)}
+          </span>
+        </div>
+
+        {governanceComplianceLoading ? (
+          <p className="text-xs text-slate-400">Chargement de la conformité ICGO...</p>
+        ) : null}
+        {governanceComplianceError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {governanceComplianceError}
+          </p>
+        ) : null}
+
+        {governanceCompliance ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <InstitutionDecisionValueBlock title="Consent compliance" value={governanceCompliance.consentCompliance} />
+            <InstitutionDecisionValueBlock
+              title="Data protection review"
+              value={governanceCompliance.dataProtectionReview}
+            />
+            <InstitutionDecisionValueBlock title="PII review" value={governanceCompliance.piiReview} />
+            <InstitutionDecisionValueBlock title="Audit trail review" value={governanceCompliance.auditTrailReview} />
+            <InstitutionDecisionValueBlock title="Evidence governance" value={governanceCompliance.evidenceGovernance} />
+            <InstitutionDecisionValueBlock title="Tenant scope review" value={governanceCompliance.tenantScopeReview} />
+            <InstitutionDecisionValueBlock title="Regulatory readiness" value={governanceCompliance.regulatoryReadiness} />
+            <InstitutionDecisionValueBlock
+              title="Security posture review"
+              value={governanceCompliance.securityPostureReview}
+            />
+            <InstitutionDecisionValueBlock title="Compliance gaps" value={governanceCompliance.complianceGaps} />
+            <InstitutionDecisionValueBlock title="Recommended actions" value={governanceCompliance.recommendedActions} />
+            <InstitutionDecisionValueBlock title="Blockers" value={governanceCompliance.blockers} />
+            <InstitutionDecisionValueBlock title="Warnings" value={governanceCompliance.warnings} />
+            <InstitutionDecisionValueBlock title="Side effects" value={governanceCompliance.sideEffects} />
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucune conformité ICGO générée pour ce dossier.
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateGovernanceCompliance()}
+            disabled={governanceComplianceGenerating || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-4 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {governanceComplianceGenerating ? "..." : "Générer / Actualiser conformité"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateGovernanceComplianceStatus("UNDER_COMPLIANCE_REVIEW")}
+            disabled={!governanceCompliance || governanceComplianceStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-violet-400/35 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {governanceComplianceStatusSaving === "UNDER_COMPLIANCE_REVIEW" ? "..." : "Démarrer revue conformité"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateGovernanceComplianceStatus("GAPS_REQUIRING_ACTION")}
+            disabled={!governanceCompliance || governanceComplianceStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {governanceComplianceStatusSaving === "GAPS_REQUIRING_ACTION" ? "..." : "Marquer écarts à traiter"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateGovernanceComplianceStatus("READY_FOR_AUDIT_REVIEW")}
+            disabled={!governanceCompliance || governanceComplianceStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {governanceComplianceStatusSaving === "READY_FOR_AUDIT_REVIEW" ? "..." : "Prêt pour revue audit"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateGovernanceComplianceStatus("NO_COMPLIANCE_ACTION_REQUIRED")}
+            disabled={!governanceCompliance || governanceComplianceStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {governanceComplianceStatusSaving === "NO_COMPLIANCE_ACTION_REQUIRED" ? "..." : "Aucune action conformité"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdateGovernanceComplianceStatus("NEEDS_COMPLIANCE_REFRESH")}
+            disabled={!governanceCompliance || governanceComplianceStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-slate-400/35 bg-slate-700/20 px-3 py-1.5 text-xs text-slate-100 transition hover:bg-slate-700/30 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {governanceComplianceStatusSaving === "NEEDS_COMPLIANCE_REFRESH" ? "..." : "Demander rafraîchissement"}
+          </button>
+        </div>
+
+        {governanceComplianceFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              governanceComplianceFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : governanceComplianceFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {governanceComplianceFeedback.message}
           </p>
         ) : null}
       </DcaSectionCard>

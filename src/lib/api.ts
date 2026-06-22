@@ -87,6 +87,12 @@ import {
   InsuranceClaimCaseStatus,
   InsuranceMonitoringSnapshot,
   InsuranceMonitoringSnapshotStatus,
+  InsuranceFraudForensicReview,
+  InsuranceFraudForensicReviewStatus,
+  InsuranceOperationsCockpitSnapshot,
+  InsuranceOperationsCockpitSnapshotStatus,
+  InsuranceGovernanceComplianceSnapshot,
+  InsuranceGovernanceComplianceSnapshotStatus,
   InsurancePricingOffer,
   InsurancePricingOfferStatus,
 } from "@/types";
@@ -3881,6 +3887,249 @@ export async function updateMonitoringSnapshotStatus(
     body: JSON.stringify({ status }),
   });
   return mapMonitoringSnapshot(payload);
+}
+
+function mapFraudForensicReview(payload: unknown): InsuranceFraudForensicReview | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.fraudForensicReview);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    policyContractId: readString(obj, "policyContractId"),
+    evidenceBundleId: readString(obj, "evidenceBundleId"),
+    monitoringSnapshotId: readString(obj, "monitoringSnapshotId"),
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "FORENSIC_REVIEW_GENERATED") as InsuranceFraudForensicReviewStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    protocolVersion: readString(obj, "protocolVersion") ?? "IFDO_FORENSIC_REVIEW_V1_2026",
+    anomalySignals: Array.isArray(obj.anomalySignals) ? obj.anomalySignals : [],
+    forensicMatrix: Array.isArray(obj.forensicMatrix) ? obj.forensicMatrix : [],
+    evidenceConsistency: asObject(obj.evidenceConsistency),
+    identityAndConsentReview: asObject(obj.identityAndConsentReview),
+    geoTemporalReview: asObject(obj.geoTemporalReview),
+    claimPatternReview: asObject(obj.claimPatternReview),
+    documentIntegrityReview: asObject(obj.documentIntegrityReview),
+    riskAndPricingConsistency: asObject(obj.riskAndPricingConsistency),
+    recommendedHumanActions: readStringArray(obj, "recommendedHumanActions"),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    generatedByUserId: readString(obj, "generatedByUserId"),
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+export async function getFraudForensicReview(
+  applicationId: string,
+): Promise<InsuranceFraudForensicReview | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/fraud-forensic-review`);
+  return mapFraudForensicReview(payload);
+}
+
+export async function generateFraudForensicReview(
+  applicationId: string,
+): Promise<InsuranceFraudForensicReview | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/fraud-forensic-review/generate`,
+    { method: "POST" },
+  );
+  return mapFraudForensicReview(payload);
+}
+
+export async function updateFraudForensicReviewStatus(
+  applicationId: string,
+  status: InsuranceFraudForensicReviewStatus,
+): Promise<InsuranceFraudForensicReview | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/fraud-forensic-review/status`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
+  );
+  return mapFraudForensicReview(payload);
+}
+
+function mapOperationsCockpitSnapshot(payload: unknown): InsuranceOperationsCockpitSnapshot | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.operationsCockpit);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    scopeType: readString(obj, "scopeType") ?? "APPLICATION",
+    applicationId: readString(obj, "applicationId"),
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "OPERATIONS_SNAPSHOT_GENERATED") as InsuranceOperationsCockpitSnapshotStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    protocolVersion: readString(obj, "protocolVersion") ?? "ICOO_OPERATIONS_COCKPIT_V1_2026",
+    pipelineOverview: asObject(obj.pipelineOverview),
+    workloadQueues: asObject(obj.workloadQueues),
+    slaIndicators: asObject(obj.slaIndicators),
+    bottleneckAnalysis: asObject(obj.bottleneckAnalysis),
+    exceptionList: Array.isArray(obj.exceptionList) ? obj.exceptionList : [],
+    claimsOperations: asObject(obj.claimsOperations),
+    monitoringOperations: asObject(obj.monitoringOperations),
+    evidenceOperations: asObject(obj.evidenceOperations),
+    policyOperations: asObject(obj.policyOperations),
+    recommendedActions: readStringArray(obj, "recommendedActions"),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    generatedByUserId: readString(obj, "generatedByUserId"),
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+export async function getOperationsCockpit(
+  applicationId: string,
+): Promise<InsuranceOperationsCockpitSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/operations-cockpit`);
+  return mapOperationsCockpitSnapshot(payload);
+}
+
+export async function generateOperationsCockpit(
+  applicationId: string,
+): Promise<InsuranceOperationsCockpitSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/operations-cockpit/generate`,
+    { method: "POST" },
+  );
+  return mapOperationsCockpitSnapshot(payload);
+}
+
+export async function updateOperationsCockpitStatus(
+  applicationId: string,
+  status: InsuranceOperationsCockpitSnapshotStatus,
+): Promise<InsuranceOperationsCockpitSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/operations-cockpit/status`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
+  );
+  return mapOperationsCockpitSnapshot(payload);
+}
+
+export async function getInstitutionOperationsCockpit(): Promise<InsuranceOperationsCockpitSnapshot | null> {
+  const payload = await apiFetch<unknown>(`/v1/insurance/operations-cockpit`);
+  return mapOperationsCockpitSnapshot(payload);
+}
+
+export async function generateInstitutionOperationsCockpit(): Promise<InsuranceOperationsCockpitSnapshot | null> {
+  const payload = await apiFetch<unknown>(`/v1/insurance/operations-cockpit/generate`, {
+    method: "POST",
+  });
+  return mapOperationsCockpitSnapshot(payload);
+}
+
+function mapGovernanceComplianceSnapshot(payload: unknown): InsuranceGovernanceComplianceSnapshot | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.governanceCompliance);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    scopeType: readString(obj, "scopeType") ?? "APPLICATION",
+    applicationId: readString(obj, "applicationId"),
+    policyContractId: readString(obj, "policyContractId"),
+    evidenceBundleId: readString(obj, "evidenceBundleId"),
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "COMPLIANCE_SNAPSHOT_GENERATED") as InsuranceGovernanceComplianceSnapshotStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    protocolVersion: readString(obj, "protocolVersion") ?? "ICGO_GOVERNANCE_COMPLIANCE_V1_2026",
+    consentCompliance: asObject(obj.consentCompliance),
+    dataProtectionReview: asObject(obj.dataProtectionReview),
+    piiReview: asObject(obj.piiReview),
+    auditTrailReview: asObject(obj.auditTrailReview),
+    evidenceGovernance: asObject(obj.evidenceGovernance),
+    tenantScopeReview: asObject(obj.tenantScopeReview),
+    regulatoryReadiness: asObject(obj.regulatoryReadiness),
+    securityPostureReview: asObject(obj.securityPostureReview),
+    complianceGaps: readStringArray(obj, "complianceGaps"),
+    recommendedActions: readStringArray(obj, "recommendedActions"),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    generatedByUserId: readString(obj, "generatedByUserId"),
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+export async function getGovernanceCompliance(
+  applicationId: string,
+): Promise<InsuranceGovernanceComplianceSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/governance-compliance`);
+  return mapGovernanceComplianceSnapshot(payload);
+}
+
+export async function generateGovernanceCompliance(
+  applicationId: string,
+): Promise<InsuranceGovernanceComplianceSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/governance-compliance/generate`,
+    { method: "POST" },
+  );
+  return mapGovernanceComplianceSnapshot(payload);
+}
+
+export async function updateGovernanceComplianceStatus(
+  applicationId: string,
+  status: InsuranceGovernanceComplianceSnapshotStatus,
+): Promise<InsuranceGovernanceComplianceSnapshot | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(
+    `/v1/insurance/applications/${safeId}/governance-compliance/status`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
+  );
+  return mapGovernanceComplianceSnapshot(payload);
+}
+
+export async function getInstitutionGovernanceCompliance(): Promise<InsuranceGovernanceComplianceSnapshot | null> {
+  const payload = await apiFetch<unknown>(`/v1/insurance/governance-compliance`);
+  return mapGovernanceComplianceSnapshot(payload);
+}
+
+export async function generateInstitutionGovernanceCompliance(): Promise<InsuranceGovernanceComplianceSnapshot | null> {
+  const payload = await apiFetch<unknown>(`/v1/insurance/governance-compliance/generate`, {
+    method: "POST",
+  });
+  return mapGovernanceComplianceSnapshot(payload);
 }
 
 export async function getInsuranceMissionConfig(
