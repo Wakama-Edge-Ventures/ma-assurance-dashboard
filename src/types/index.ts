@@ -936,6 +936,93 @@ export interface InsuranceInstitutionDecision {
   updatedAt: string | null;
 }
 
+export type InsurancePricingOfferStatus =
+  | "OFFER_DRAFT"
+  | "OFFER_PREPARED"
+  | "UNDER_OFFER_REVIEW"
+  | "OFFER_APPROVED_FOR_CONTRACT"
+  | "OFFER_NEEDS_MORE_INFORMATION"
+  | "OFFER_DECLINED"
+  | "OFFER_EXPIRED";
+
+export interface InsurancePricingOffer {
+  id: string;
+  applicationId: string;
+  institutionDecisionId: string | null;
+  iraxDecisionAssessmentId: string | null;
+  institutionId: string;
+  country: string;
+  version: number;
+  status: InsurancePricingOfferStatus;
+  sourceLabel: string;
+  pricingVersion: string;
+  pricingInputs: Record<string, unknown> | null;
+  coverageProposal: Record<string, unknown> | null;
+  premiumComputation: Record<string, unknown> | null;
+  taxesAndFees: Record<string, unknown> | null;
+  discountsAndAdjustments: Record<string, unknown> | null;
+  exclusions: unknown;
+  conditions: unknown;
+  offerSummary: Record<string, unknown> | null;
+  offerValidity: Record<string, unknown> | null;
+  requiredActions: unknown;
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  generatedByUserId: string | null;
+  reviewedByUserId: string | null;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  acceptedAt: string | null;
+  rejectedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export type InsurancePolicyContractStatus =
+  | "CONTRACT_DRAFT"
+  | "READY_FOR_SIGNATURE"
+  | "ISSUED_PENDING_PAYMENT"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "CANCELLED"
+  | "EXPIRED";
+
+export interface InsurancePolicyContract {
+  id: string;
+  applicationId: string;
+  pricingOfferId: string | null;
+  institutionDecisionId: string | null;
+  institutionId: string;
+  country: string;
+  version: number;
+  status: InsurancePolicyContractStatus;
+  sourceLabel: string;
+  contractVersion: string;
+  policyNumber: string;
+  contractReference: string;
+  insuredPartySnapshot: Record<string, unknown> | null;
+  parcelSnapshot: Record<string, unknown> | null;
+  coverageTerms: Record<string, unknown> | null;
+  premiumSnapshot: Record<string, unknown> | null;
+  conditions: unknown;
+  exclusions: unknown;
+  contractDocuments: Record<string, unknown> | null;
+  receiptDraft: Record<string, unknown> | null;
+  issuanceAudit: Record<string, unknown> | null;
+  blockers: string[];
+  warnings: string[];
+  sideEffects: Record<string, unknown> | null;
+  issuedByUserId: string | null;
+  reviewedByUserId: string | null;
+  issuedAt: string | null;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+  cancelledAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
 export interface RaxEvaluation {
   id: string;
   applicationId: string;

@@ -12,6 +12,7 @@ import {
   CreateInsuranceMissionDispatchDraftResult,
   FieldAgent,
   generateIraxConsolidatedAssessment,
+  generatePricingOffer,
   generateIraxPlanning,
   generateIraxScientificAssessment,
   getInsuranceApplicationById,
@@ -24,6 +25,8 @@ import {
   getIraxDecisionAssessment,
   getIraxPlanning,
   getIraxScientificAssessment,
+  getPolicyContract,
+  getPricingOffer,
   InsuranceApplicationByIdResult,
   InsuranceIrax1FieldAssessment,
   InsuranceIraxConsolidatedAssessment,
@@ -39,10 +42,13 @@ import {
   InsuranceMissionConfigSideEffects,
   InsuranceRiskReviewStatus,
   Irax1FrapStatus,
+  issuePolicyContract,
   MissionDispatchResult,
   recordInstitutionDecision,
   saveInsuranceMissionConfig,
   sendInsuranceMissionDispatch,
+  updatePolicyContractStatus,
+  updatePricingOfferStatus,
   updateInsuranceApplicationStatus,
   updateInstitutionDecisionStatus,
   updateIrax1FieldAssessmentStatus,
@@ -56,6 +62,10 @@ import {
   InsuranceInstitutionDecision,
   InsuranceInstitutionDecisionStatus,
   InsuranceInstitutionDecisionType,
+  InsurancePolicyContract,
+  InsurancePolicyContractStatus,
+  InsurancePricingOffer,
+  InsurancePricingOfferStatus,
 } from "@/types";
 import {
   formatBooleanFr,
@@ -978,6 +988,26 @@ const INSTITUTION_DECISION_TYPE_LABELS_FR: Record<InsuranceInstitutionDecisionTy
   DEFER_FOR_COMMITTEE: "Reporter au comité",
 };
 
+const PRICING_OFFER_STATUS_LABELS_FR: Record<InsurancePricingOfferStatus, string> = {
+  OFFER_DRAFT: "Brouillon d'offre",
+  OFFER_PREPARED: "Offre préparée",
+  UNDER_OFFER_REVIEW: "En revue d'offre",
+  OFFER_APPROVED_FOR_CONTRACT: "Approuvée pour contrat",
+  OFFER_NEEDS_MORE_INFORMATION: "Informations complémentaires requises",
+  OFFER_DECLINED: "Offre déclinée",
+  OFFER_EXPIRED: "Offre expirée",
+};
+
+const POLICY_CONTRACT_STATUS_LABELS_FR: Record<InsurancePolicyContractStatus, string> = {
+  CONTRACT_DRAFT: "Brouillon contrat",
+  READY_FOR_SIGNATURE: "Prêt pour signature",
+  ISSUED_PENDING_PAYMENT: "Émis en attente paiement",
+  ACTIVE: "Actif",
+  SUSPENDED: "Suspendu",
+  CANCELLED: "Annulé",
+  EXPIRED: "Expiré",
+};
+
 function formatInstitutionDecisionStatusFr(status: string | null | undefined): string {
   if (!status) return "Aucune décision";
   return INSTITUTION_DECISION_STATUS_LABELS_FR[status as InsuranceInstitutionDecisionStatus] ?? status;
@@ -986,6 +1016,16 @@ function formatInstitutionDecisionStatusFr(status: string | null | undefined): s
 function formatInstitutionDecisionTypeFr(type: string | null | undefined): string {
   if (!type) return "—";
   return INSTITUTION_DECISION_TYPE_LABELS_FR[type as InsuranceInstitutionDecisionType] ?? type;
+}
+
+function formatPricingOfferStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucune offre";
+  return PRICING_OFFER_STATUS_LABELS_FR[status as InsurancePricingOfferStatus] ?? status;
+}
+
+function formatPolicyContractStatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucun contrat";
+  return POLICY_CONTRACT_STATUS_LABELS_FR[status as InsurancePolicyContractStatus] ?? status;
 }
 
 function parseLineItems(value: string): string[] {
@@ -1084,6 +1124,42 @@ function getInstitutionDecisionMutationErrorMessage(error: unknown): string {
   if (error.status === 404) return "Dossier introuvable (404) pour cette action institutionnelle.";
   if (error.status === 409) return error.message || "Prérequis IRAX-D manquants ou décision déjà enregistrée.";
   return error.message || "Erreur API pendant l'action institutionnelle.";
+}
+
+function getPricingOfferLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger l'offre tarifaire.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) à l'offre tarifaire.";
+  if (error.status === 404) return "Dossier introuvable (404) pour l'offre tarifaire.";
+  return error.message || "Erreur API pendant le chargement de l'offre tarifaire.";
+}
+
+function getPricingOfferMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action pricing impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action pricing.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action pricing.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action pricing.";
+  if (error.status === 409) return error.message || "Prérequis institutionnels manquants pour le pricing.";
+  return error.message || "Erreur API pendant l'action pricing.";
+}
+
+function getPolicyContractLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Impossible de charger le contrat.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) au contrat.";
+  if (error.status === 404) return "Dossier introuvable (404) pour le contrat.";
+  return error.message || "Erreur API pendant le chargement du contrat.";
+}
+
+function getPolicyContractMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return "Service indisponible. Action contrat impossible.";
+  if (error.status === 400) return "Requête invalide (400) pour cette action contrat.";
+  if (error.status === 401) return "Session expirée (401). Veuillez vous reconnecter.";
+  if (error.status === 403) return "Accès refusé (403) pour cette action contrat.";
+  if (error.status === 404) return "Dossier introuvable (404) pour cette action contrat.";
+  if (error.status === 409) return error.message || "L'offre doit être approuvée pour émettre le contrat.";
+  return error.message || "Erreur API pendant l'action contrat.";
 }
 
 function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
@@ -1262,6 +1338,25 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
   const [institutionDecisionRequiredActions, setInstitutionDecisionRequiredActions] = useState("");
   const [institutionDecisionAuthorityLevel, setInstitutionDecisionAuthorityLevel] = useState("");
   const [institutionDecisionCommitteeNote, setInstitutionDecisionCommitteeNote] = useState("");
+  const [pricingOffer, setPricingOffer] = useState<InsurancePricingOffer | null>(null);
+  const [pricingOfferLoading, setPricingOfferLoading] = useState(false);
+  const [pricingOfferGenerating, setPricingOfferGenerating] = useState(false);
+  const [pricingOfferStatusSaving, setPricingOfferStatusSaving] = useState<InsurancePricingOfferStatus | null>(null);
+  const [pricingOfferError, setPricingOfferError] = useState<string | null>(null);
+  const [pricingOfferFeedback, setPricingOfferFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
+  const [policyContract, setPolicyContract] = useState<InsurancePolicyContract | null>(null);
+  const [policyContractLoading, setPolicyContractLoading] = useState(false);
+  const [policyContractIssuing, setPolicyContractIssuing] = useState(false);
+  const [policyContractStatusSaving, setPolicyContractStatusSaving] =
+    useState<InsurancePolicyContractStatus | null>(null);
+  const [policyContractError, setPolicyContractError] = useState<string | null>(null);
+  const [policyContractFeedback, setPolicyContractFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
   const [missionConfigLoading, setMissionConfigLoading] = useState(false);
   const [missionConfigSaving, setMissionConfigSaving] = useState(false);
   const [missionConfigError, setMissionConfigError] = useState<string | null>(null);
@@ -1325,6 +1420,56 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
 
     void load();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPricingOffer() {
+      setPricingOfferLoading(true);
+      setPricingOfferError(null);
+
+      try {
+        const offer = await getPricingOffer(applicationId);
+        if (!mounted) return;
+        setPricingOffer(offer);
+      } catch (loadError) {
+        if (!mounted) return;
+        setPricingOfferError(getPricingOfferLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setPricingOfferLoading(false);
+      }
+    }
+
+    void loadPricingOffer();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPolicyContract() {
+      setPolicyContractLoading(true);
+      setPolicyContractError(null);
+
+      try {
+        const contract = await getPolicyContract(applicationId);
+        if (!mounted) return;
+        setPolicyContract(contract);
+      } catch (loadError) {
+        if (!mounted) return;
+        setPolicyContractError(getPolicyContractLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) setPolicyContractLoading(false);
+      }
+    }
+
+    void loadPolicyContract();
     return () => {
       mounted = false;
     };
@@ -1835,6 +1980,100 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     }
   }
 
+  async function handleGeneratePricingOffer() {
+    if (pricingOfferGenerating) return;
+
+    setPricingOfferFeedback(null);
+    setPricingOfferGenerating(true);
+
+    try {
+      const offer = await generatePricingOffer(applicationId);
+      setPricingOffer(offer);
+      setPricingOfferError(null);
+      setPricingOfferFeedback({
+        type: "success",
+        message: `Offre tarifaire préparée (${formatPricingOfferStatusFr(offer?.status)}).`,
+      });
+    } catch (mutationError) {
+      setPricingOfferFeedback({
+        type: "error",
+        message: getPricingOfferMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setPricingOfferGenerating(false);
+    }
+  }
+
+  async function handleUpdatePricingOfferStatus(status: InsurancePricingOfferStatus) {
+    if (pricingOfferStatusSaving) return;
+
+    setPricingOfferFeedback(null);
+    setPricingOfferStatusSaving(status);
+
+    try {
+      const offer = await updatePricingOfferStatus(applicationId, status);
+      setPricingOffer(offer);
+      setPricingOfferFeedback({
+        type: "success",
+        message: `Statut offre mis à jour: ${formatPricingOfferStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setPricingOfferFeedback({
+        type: "error",
+        message: getPricingOfferMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setPricingOfferStatusSaving(null);
+    }
+  }
+
+  async function handleIssuePolicyContract() {
+    if (policyContractIssuing) return;
+
+    setPolicyContractFeedback(null);
+    setPolicyContractIssuing(true);
+
+    try {
+      const contract = await issuePolicyContract(applicationId);
+      setPolicyContract(contract);
+      setPolicyContractError(null);
+      setPolicyContractFeedback({
+        type: "success",
+        message: `Contrat émis: ${formatPolicyContractStatusFr(contract?.status)}.`,
+      });
+    } catch (mutationError) {
+      setPolicyContractFeedback({
+        type: "error",
+        message: getPolicyContractMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setPolicyContractIssuing(false);
+    }
+  }
+
+  async function handleUpdatePolicyContractStatus(status: InsurancePolicyContractStatus) {
+    if (policyContractStatusSaving) return;
+
+    setPolicyContractFeedback(null);
+    setPolicyContractStatusSaving(status);
+
+    try {
+      const contract = await updatePolicyContractStatus(applicationId, status);
+      setPolicyContract(contract);
+      setPolicyContractFeedback({
+        type: "success",
+        message: `Statut contrat mis à jour: ${formatPolicyContractStatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setPolicyContractFeedback({
+        type: "error",
+        message: getPolicyContractMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setPolicyContractStatusSaving(null);
+    }
+  }
+
   async function handleRiskReviewAction(status: InsuranceRiskReviewStatus) {
     if (riskReviewActionLoading) return;
 
@@ -2189,6 +2428,11 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     iraxDecisionAssessment?.status === "ACCEPTED_FOR_INSTITUTION_REVIEW" && !institutionDecision;
   const institutionDecisionPrerequisiteBlocked =
     iraxDecisionAssessment?.status !== "ACCEPTED_FOR_INSTITUTION_REVIEW";
+  const canOperateInstitutionFlow = true;
+  const pricingOfferPrerequisiteBlocked =
+    institutionDecision?.status !== "READY_FOR_PRICING" || institutionDecision?.decisionType !== "PROCEED_TO_PRICING";
+  const policyContractPrerequisiteBlocked =
+    pricingOffer?.status !== "OFFER_APPROVED_FOR_CONTRACT";
 
   if (loading) {
     return (
@@ -3777,6 +4021,231 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         <p className="text-[11px] text-slate-500">
           Wakama fournit le calcul et la traçabilité. L&apos;institution reste seule décisionnaire.
         </p>
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="emerald">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="Pricing"
+            title="Pricing — Préparation tarifaire"
+            subtitle="Le pricing prépare une proposition tarifaire. Il ne crée ni police, ni quittance, ni paiement."
+            accent="emerald"
+          />
+          <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-100">
+            {formatPricingOfferStatusFr(pricingOffer?.status)}
+          </span>
+        </div>
+
+        {pricingOfferLoading ? <p className="text-xs text-slate-400">Chargement de l&apos;offre tarifaire...</p> : null}
+        {pricingOfferError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {pricingOfferError}
+          </p>
+        ) : null}
+
+        {pricingOffer ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              <DcaInfoTile label="Statut offre" value={formatPricingOfferStatusFr(pricingOffer.status)} />
+              <DcaInfoTile label="Pricing version" value={pricingOffer.pricingVersion || "—"} />
+              <DcaInfoTile label="Source label" value={pricingOffer.sourceLabel || "—"} />
+              <DcaInfoTile label="Version" value={pricingOffer.version} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <InstitutionDecisionValueBlock title="Pricing inputs" value={pricingOffer.pricingInputs} />
+              <InstitutionDecisionValueBlock title="Coverage proposal" value={pricingOffer.coverageProposal} />
+              <InstitutionDecisionValueBlock title="Premium computation" value={pricingOffer.premiumComputation} />
+              <InstitutionDecisionValueBlock title="Taxes and fees" value={pricingOffer.taxesAndFees} />
+              <InstitutionDecisionValueBlock title="Discounts and adjustments" value={pricingOffer.discountsAndAdjustments} />
+              <InstitutionDecisionValueBlock title="Exclusions" value={pricingOffer.exclusions} />
+              <InstitutionDecisionValueBlock title="Conditions" value={pricingOffer.conditions} />
+              <InstitutionDecisionValueBlock title="Offer summary" value={pricingOffer.offerSummary} />
+              <InstitutionDecisionValueBlock title="Offer validity" value={pricingOffer.offerValidity} />
+              <InstitutionDecisionValueBlock title="Required actions" value={pricingOffer.requiredActions} />
+              <InstitutionDecisionValueBlock title="Side effects" value={pricingOffer.sideEffects} />
+            </div>
+          </>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucune offre tarifaire préparée pour ce dossier.
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGeneratePricingOffer()}
+            disabled={pricingOfferGenerating || !canOperateInstitutionFlow || pricingOfferPrerequisiteBlocked}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-4 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {pricingOfferGenerating ? "..." : "Générer / Actualiser offre tarifaire"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdatePricingOfferStatus("UNDER_OFFER_REVIEW")}
+            disabled={!pricingOffer || pricingOfferStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {pricingOfferStatusSaving === "UNDER_OFFER_REVIEW" ? "..." : "Démarrer revue offre"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdatePricingOfferStatus("OFFER_APPROVED_FOR_CONTRACT")}
+            disabled={!pricingOffer || pricingOfferStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {pricingOfferStatusSaving === "OFFER_APPROVED_FOR_CONTRACT" ? "..." : "Approuver pour contrat"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdatePricingOfferStatus("OFFER_NEEDS_MORE_INFORMATION")}
+            disabled={!pricingOffer || pricingOfferStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {pricingOfferStatusSaving === "OFFER_NEEDS_MORE_INFORMATION" ? "..." : "Demander informations complémentaires"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdatePricingOfferStatus("OFFER_DECLINED")}
+            disabled={!pricingOffer || pricingOfferStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {pricingOfferStatusSaving === "OFFER_DECLINED" ? "..." : "Décliner offre"}
+          </button>
+        </div>
+
+        {pricingOfferPrerequisiteBlocked ? (
+          <p className="rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
+            Le pricing reste bloqué tant que la décision institutionnelle n&apos;est pas prête pour pricing.
+          </p>
+        ) : null}
+
+        {pricingOfferFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              pricingOfferFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : pricingOfferFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {pricingOfferFeedback.message}
+          </p>
+        ) : null}
+      </DcaSectionCard>
+
+      <DcaSectionCard accent="slate">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="Policy / Contract"
+            title="Police / Contrat — Émission contrôlée"
+            subtitle="Le contrat est émis uniquement par action humaine institutionnelle. Aucun paiement ni quittance payée n’est créé automatiquement."
+            accent="slate"
+          />
+          <span className="rounded-full border border-slate-400/35 bg-slate-700/30 px-2.5 py-0.5 text-[11px] text-slate-100">
+            {formatPolicyContractStatusFr(policyContract?.status)}
+          </span>
+        </div>
+
+        {policyContractLoading ? <p className="text-xs text-slate-400">Chargement du contrat...</p> : null}
+        {policyContractError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {policyContractError}
+          </p>
+        ) : null}
+
+        {policyContract ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              <DcaInfoTile label="Statut contrat" value={formatPolicyContractStatusFr(policyContract.status)} />
+              <DcaInfoTile label="Policy number" value={policyContract.policyNumber || "—"} mono />
+              <DcaInfoTile label="Contract reference" value={policyContract.contractReference || "—"} mono />
+              <DcaInfoTile label="Contract version" value={policyContract.contractVersion || "—"} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <InstitutionDecisionValueBlock title="Insured party snapshot" value={policyContract.insuredPartySnapshot} />
+              <InstitutionDecisionValueBlock title="Parcel snapshot" value={policyContract.parcelSnapshot} />
+              <InstitutionDecisionValueBlock title="Coverage terms" value={policyContract.coverageTerms} />
+              <InstitutionDecisionValueBlock title="Premium snapshot" value={policyContract.premiumSnapshot} />
+              <InstitutionDecisionValueBlock title="Conditions" value={policyContract.conditions} />
+              <InstitutionDecisionValueBlock title="Exclusions" value={policyContract.exclusions} />
+              <InstitutionDecisionValueBlock title="Contract documents" value={policyContract.contractDocuments} />
+              <InstitutionDecisionValueBlock title="Receipt draft" value={policyContract.receiptDraft} />
+              <InstitutionDecisionValueBlock title="Issuance audit" value={policyContract.issuanceAudit} />
+              <InstitutionDecisionValueBlock title="Side effects" value={policyContract.sideEffects} />
+            </div>
+          </>
+        ) : (
+          <div className="rounded-xl border border-slate-400/15 bg-slate-900/30 px-3 py-3 text-xs text-slate-400">
+            Aucun contrat émis pour ce dossier.
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleIssuePolicyContract()}
+            disabled={policyContractIssuing || !canOperateInstitutionFlow || policyContractPrerequisiteBlocked}
+            className="rounded-full border border-slate-300/35 bg-slate-200/10 px-4 py-1.5 text-xs text-slate-100 transition hover:bg-slate-200/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {policyContractIssuing ? "..." : "Émettre contrat"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdatePolicyContractStatus("READY_FOR_SIGNATURE")}
+            disabled={!policyContract || policyContractStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {policyContractStatusSaving === "READY_FOR_SIGNATURE" ? "..." : "Marquer prêt pour signature"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdatePolicyContractStatus("ISSUED_PENDING_PAYMENT")}
+            disabled={!policyContract || policyContractStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {policyContractStatusSaving === "ISSUED_PENDING_PAYMENT" ? "..." : "Marquer émis en attente paiement"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdatePolicyContractStatus("SUSPENDED")}
+            disabled={!policyContract || policyContractStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-amber-400/35 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {policyContractStatusSaving === "SUSPENDED" ? "..." : "Suspendre"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleUpdatePolicyContractStatus("CANCELLED")}
+            disabled={!policyContract || policyContractStatusSaving !== null || !canOperateInstitutionFlow}
+            className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {policyContractStatusSaving === "CANCELLED" ? "..." : "Annuler"}
+          </button>
+        </div>
+
+        {policyContractPrerequisiteBlocked ? (
+          <p className="rounded-xl border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
+            Le contrat reste bloqué tant que l&apos;offre n&apos;est pas approuvée pour contrat.
+          </p>
+        ) : null}
+
+        {policyContractFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              policyContractFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : policyContractFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {policyContractFeedback.message}
+          </p>
+        ) : null}
       </DcaSectionCard>
 
       {/* ── 8. Revue back-office audit terrain ── */}

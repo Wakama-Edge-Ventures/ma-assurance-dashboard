@@ -79,6 +79,10 @@ import {
   InsuranceInstitutionDecision,
   InsuranceInstitutionDecisionStatus,
   InsuranceInstitutionDecisionType,
+  InsurancePolicyContract,
+  InsurancePolicyContractStatus,
+  InsurancePricingOffer,
+  InsurancePricingOfferStatus,
 } from "@/types";
 
 export const API_BASE_URL =
@@ -3325,6 +3329,87 @@ export interface RecordInstitutionDecisionPayload {
   committeeNote?: string | null;
 }
 
+function mapPricingOffer(payload: unknown): InsurancePricingOffer | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.pricingOffer);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    institutionDecisionId: readString(obj, "institutionDecisionId"),
+    iraxDecisionAssessmentId: readString(obj, "iraxDecisionAssessmentId"),
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "OFFER_DRAFT") as InsurancePricingOfferStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    pricingVersion: readString(obj, "pricingVersion") ?? "PRICING_OFFER_V1_2026",
+    pricingInputs: asObject(obj.pricingInputs),
+    coverageProposal: asObject(obj.coverageProposal),
+    premiumComputation: asObject(obj.premiumComputation),
+    taxesAndFees: asObject(obj.taxesAndFees),
+    discountsAndAdjustments: asObject(obj.discountsAndAdjustments),
+    exclusions: obj.exclusions ?? [],
+    conditions: obj.conditions ?? [],
+    offerSummary: asObject(obj.offerSummary),
+    offerValidity: asObject(obj.offerValidity),
+    requiredActions: obj.requiredActions ?? [],
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    generatedByUserId: readString(obj, "generatedByUserId"),
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    acceptedAt: readString(obj, "acceptedAt"),
+    rejectedAt: readString(obj, "rejectedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
+function mapPolicyContract(payload: unknown): InsurancePolicyContract | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.policyContract);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    pricingOfferId: readString(obj, "pricingOfferId"),
+    institutionDecisionId: readString(obj, "institutionDecisionId"),
+    institutionId: readString(obj, "institutionId") ?? "",
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: (readString(obj, "status") ?? "CONTRACT_DRAFT") as InsurancePolicyContractStatus,
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    contractVersion: readString(obj, "contractVersion") ?? "POLICY_CONTRACT_V1_2026",
+    policyNumber: readString(obj, "policyNumber") ?? "",
+    contractReference: readString(obj, "contractReference") ?? "",
+    insuredPartySnapshot: asObject(obj.insuredPartySnapshot),
+    parcelSnapshot: asObject(obj.parcelSnapshot),
+    coverageTerms: asObject(obj.coverageTerms),
+    premiumSnapshot: asObject(obj.premiumSnapshot),
+    conditions: obj.conditions ?? [],
+    exclusions: obj.exclusions ?? [],
+    contractDocuments: asObject(obj.contractDocuments),
+    receiptDraft: asObject(obj.receiptDraft),
+    issuanceAudit: asObject(obj.issuanceAudit),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    sideEffects: asObject(obj.sideEffects),
+    issuedByUserId: readString(obj, "issuedByUserId"),
+    reviewedByUserId: readString(obj, "reviewedByUserId"),
+    issuedAt: readString(obj, "issuedAt"),
+    effectiveFrom: readString(obj, "effectiveFrom"),
+    effectiveTo: readString(obj, "effectiveTo"),
+    cancelledAt: readString(obj, "cancelledAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+  };
+}
+
 function mapInstitutionDecision(payload: unknown): InsuranceInstitutionDecision | null {
   const root = asObject(payload);
   const obj = asObject(root?.institutionDecision);
@@ -3473,6 +3558,72 @@ export async function updateInstitutionDecisionStatus(
     body: JSON.stringify({ status }),
   });
   return mapInstitutionDecision(payload);
+}
+
+export async function getPricingOffer(
+  applicationId: string,
+): Promise<InsurancePricingOffer | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/pricing-offer`);
+  return mapPricingOffer(payload);
+}
+
+export async function generatePricingOffer(
+  applicationId: string,
+): Promise<InsurancePricingOffer | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/pricing-offer/generate`, {
+    method: "POST",
+  });
+  return mapPricingOffer(payload);
+}
+
+export async function updatePricingOfferStatus(
+  applicationId: string,
+  status: InsurancePricingOfferStatus,
+): Promise<InsurancePricingOffer | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/pricing-offer/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return mapPricingOffer(payload);
+}
+
+export async function getPolicyContract(
+  applicationId: string,
+): Promise<InsurancePolicyContract | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/policy-contract`);
+  return mapPolicyContract(payload);
+}
+
+export async function issuePolicyContract(
+  applicationId: string,
+): Promise<InsurancePolicyContract | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/policy-contract/issue`, {
+    method: "POST",
+  });
+  return mapPolicyContract(payload);
+}
+
+export async function updatePolicyContractStatus(
+  applicationId: string,
+  status: InsurancePolicyContractStatus,
+): Promise<InsurancePolicyContract | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/policy-contract/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return mapPolicyContract(payload);
 }
 
 export async function getInsuranceMissionConfig(
