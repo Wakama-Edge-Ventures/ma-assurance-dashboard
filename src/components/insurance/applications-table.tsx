@@ -10,6 +10,7 @@ import {
   formatSideEffectsSourceFr,
   formatSourceFr,
 } from "@/lib/dto-mappers";
+import { getCountryLabel } from "@/lib/country-labels";
 
 interface ApplicationsTableProps {
   rows: InsuranceDcaApplication[];
@@ -43,6 +44,7 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
         <thead>
           <tr className="border-b border-slate-400/10 text-slate-500">
             <th className="px-3 py-2">Référence DCA</th>
+            <th className="px-3 py-2">Pays</th>
             <th className="px-3 py-2">Exploitant</th>
             <th className="px-3 py-2">Parcelle</th>
             <th className="px-3 py-2">Culture</th>
@@ -69,12 +71,22 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
               row.reference ??
               row.dcaNumber ??
               `En attente de génération — ID technique ${row.id}`;
+            const dcaCountry = row.applicationCountry ?? row.farmerCountry ?? row.parcelleCountry ?? null;
 
             return (
               <tr key={row.id} className="border-b border-slate-400/6 align-top last:border-0">
                 <td className="px-3 py-3">
                   <p className="font-medium text-white">{displayReference}</p>
                   <p className="text-[11px] text-slate-500">{row.id}</p>
+                </td>
+                <td className="px-3 py-3">
+                  {dcaCountry ? (
+                    <span className="rounded-full border border-cyan-400/25 bg-cyan-500/8 px-2 py-0.5 text-[11px] text-cyan-200">
+                      {getCountryLabel(dcaCountry)}
+                    </span>
+                  ) : (
+                    <span className="text-slate-500">—</span>
+                  )}
                 </td>
                 <td className="px-3 py-3">
                   <p>{farmerName}</p>

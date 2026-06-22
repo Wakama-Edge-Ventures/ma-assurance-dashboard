@@ -35,6 +35,12 @@ import {
 import { InsuranceDcaApplication } from "@/types";
 import { useTenant } from "@/components/tenant/useTenant";
 import { PageTitle } from "@/components/ui/page-title";
+import {
+  formatAmountForCountry,
+  getCountryLabel,
+  getIdentityDocumentLabel,
+  getPrivacyConsentLabel,
+} from "@/lib/country-labels";
 
 interface ApplicationDetailPageProps {
   params: Promise<{ id: string }>;
@@ -49,11 +55,6 @@ function formatDate(value?: string | null) {
     month: "2-digit",
     day: "2-digit",
   });
-}
-
-function asMad(value?: number | null) {
-  if (value === null || value === undefined) return "Non disponible";
-  return `${value.toLocaleString("fr-FR")} MAD`;
 }
 
 function formatFieldAuditStatusFr(status: string | null | undefined): string {
@@ -1080,13 +1081,32 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     application.reference ??
     application.dcaNumber ??
     `En attente de génération — ID technique ${application.id}`;
+  const dcaCountry =
+    application.applicationCountry ?? application.farmerCountry ?? application.parcelleCountry ?? null;
+  const identityDocumentLabel = getIdentityDocumentLabel(dcaCountry);
+  const privacyConsentLabel = getPrivacyConsentLabel(dcaCountry);
+  const hasAnyReceivedDocument = application.preparedDocuments.some((doc) => doc.hasUploadedFile === true);
+  const preparedDocumentsTitle = hasAnyReceivedDocument
+    ? "Documents DCA reçus"
+    : "Pièces justificatives préparées";
+  const workflowBadgeOverride = {
+    label: `Parcours assurance · ${formatSourceFr(application.source)}`,
+    live: application.source === "LIVE",
+  };
 
   return (
     <div className="space-y-5">
       <PageTitle
         title={`${detailPageTitlePrefix} ${application.reference ?? application.dcaNumber ?? application.id}`}
         description={detailPageDescription}
+        workflowBadgeOverride={workflowBadgeOverride}
       />
+
+      {dcaCountry && (
+        <p className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-500/8 px-3 py-1 text-[11px] font-medium text-cyan-200">
+          Pays dossier : {getCountryLabel(dcaCountry)}
+        </p>
+      )}
 
       {result?.detailNote ? <p className="text-xs text-slate-400">{result.detailNote}</p> : null}
 
@@ -1156,7 +1176,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
             }
           />
           <DcaInfoTile label="Téléphone masqué" value={application.farmer.phoneMasked ?? "—"} mono />
-          <DcaInfoTile label="CIN masquée" value={application.farmer.cinMasked ?? "—"} mono />
+          <DcaInfoTile label={`${identityDocumentLabel} masquée`} value={application.farmer.cinMasked ?? "—"} mono />
           <DcaInfoTile label="Langue préférée" value={application.farmer.preferredLanguage ?? "—"} />
           <DcaInfoTile
             label="Source"
@@ -1203,7 +1223,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       <DcaSectionCard accent="slate">
         <DcaSectionHeader
           kicker="Pièces justificatives"
-          title="Documents DCA reçus"
+          title={preparedDocumentsTitle}
           subtitle="Dossier structuré par Wakama pour l'institution"
           accent="slate"
         />
@@ -1303,7 +1323,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
                         disabled
                         className="cursor-not-allowed rounded-lg border border-slate-400/15 bg-slate-800/30 px-3 py-1.5 text-xs text-slate-500"
                       >
-                        Téléchargement sécurisé non disponible en Phase 1.5C
+                        Ouverture sécurisée des fichiers non activée dans cette version.
                       </button>
                     )}
                   </div>
@@ -1337,7 +1357,10 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
               >
                 <DcaInfoTile label="Année" value={item.year ?? "—"} />
                 <DcaInfoTile label="Type / Cause" value={item.type ?? item.cause ?? "—"} />
-                <DcaInfoTile label="Montant estimé" value={asMad(item.estimatedAmount)} />
+                <DcaInfoTile
+                  label="Montant estimé"
+                  value={formatAmountForCountry(item.estimatedAmount, dcaCountry)}
+                />
                 <DcaInfoTile label="Note" value={item.note ?? "—"} />
                 <DcaInfoTile label="Source" value={<DcaSourceBadge source={item.source} />} />
               </div>
@@ -1351,11 +1374,11 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
         )}
       </DcaSectionCard>
 
-      {/* ── 6. Consentement CNDP ── */}
+      {/* ── 6. Consentement données personnelles ── */}
       <DcaSectionCard accent="slate">
         <DcaSectionHeader
           kicker="Conformité"
-          title="Consentement CNDP"
+          title={privacyConsentLabel}
           subtitle="Données personnelles — usage exclusif préparation du dossier institutionnel"
           accent="slate"
         />

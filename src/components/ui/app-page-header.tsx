@@ -12,12 +12,19 @@ interface AppPageHeaderProps {
   description?: string;
   note?: string;
   action?: ReactNode;
+  /**
+   * Overrides the generic "Parcours assurance LIVE/SEED_DEMO" badge with the
+   * real source label of the document being viewed (e.g. a single DCA).
+   * Avoids implying SEED_DEMO on a dossier that came from a real submission.
+   */
+  workflowBadgeOverride?: { label: string; live: boolean } | null;
 }
 
-export function AppPageHeader({ title, description, note, action }: AppPageHeaderProps) {
+export function AppPageHeader({ title, description, note, action, workflowBadgeOverride }: AppPageHeaderProps) {
   const { tenant } = useTenant();
   const sharedLive = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
-  const insuranceLive = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
+  const insuranceLiveDefault = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
+  const insuranceLive = workflowBadgeOverride ? workflowBadgeOverride.live : insuranceLiveDefault;
   const scopeLabel = [tenant.countryLabel, tenant.institutionType].filter(Boolean).join(" · ");
   const workflowLabel = tenant.featureFlags.showInsuranceNavigation
     ? "Parcours assurance"
@@ -90,7 +97,7 @@ export function AppPageHeader({ title, description, note, action }: AppPageHeade
                   : "border-amber-400/26 bg-amber-400/9 text-amber-400",
               )}
             >
-              {workflowLabel} {insuranceLive ? "LIVE" : "SEED_DEMO"}
+              {workflowBadgeOverride ? workflowBadgeOverride.label : `${workflowLabel} ${insuranceLive ? "LIVE" : "SEED_DEMO"}`}
             </span>
           </div>
         </div>
