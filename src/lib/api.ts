@@ -3039,6 +3039,125 @@ export async function updateIrax1FieldAssessmentStatus(
   return mapIrax1FieldAssessment(root?.fieldAssessment);
 }
 
+// ── IRAX2: Scientific Back Office Investigation Engine ─────────────────────
+// IRAX2 produces the Scientific Risk Assessment Package (SRAP). It never
+// approves, rejects, prices, or declares an application insurable, and it
+// never triggers RAX/IRAX3/IRAX-D, a policy, a claim, or a blockchain anchor.
+
+export type InsuranceIraxScientificAssessmentStatus =
+  | "SRAP_GENERATED"
+  | "UNDER_BACK_OFFICE_REVIEW"
+  | "ACCEPTED_FOR_IRAX3"
+  | "NEEDS_MORE_SCIENTIFIC_DATA"
+  | "REJECTED_INSUFFICIENT_DATA";
+
+export interface InsuranceIraxScientificAssessment {
+  id: string;
+  applicationId: string;
+  iraxPlanningId: string | null;
+  iraxFieldAssessmentId: string | null;
+  institutionId: string | null;
+  country: string;
+  version: number;
+  status: string;
+  sourceLabel: string;
+  protocolVersion: string;
+  dataAggregation: Record<string, unknown> | null;
+  geospatialIntelligence: Record<string, unknown> | null;
+  climateIntelligence: Record<string, unknown> | null;
+  hydrologyIntelligence: Record<string, unknown> | null;
+  agronomicIntelligence: Record<string, unknown> | null;
+  economicIntelligence: Record<string, unknown> | null;
+  supplyChainIntelligence: Record<string, unknown> | null;
+  riskCorrelation: Record<string, unknown> | null;
+  predictiveAnalytics: Record<string, unknown> | null;
+  scientificReport: Record<string, unknown> | null;
+  requiredSignals: string[];
+  unavailableSignals: string[];
+  degradedSignals: string[];
+  blockers: string[];
+  warnings: string[];
+  nextRecommendedStep: string;
+  generatedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  sideEffects: InsuranceMissionConfigSideEffects;
+}
+
+function mapIraxScientificAssessment(payload: unknown): InsuranceIraxScientificAssessment | null {
+  const root = asObject(payload);
+  const obj = asObject(root?.iraxScientificAssessment);
+  if (!obj) return null;
+
+  return {
+    id: readString(obj, "id") ?? "",
+    applicationId: readString(obj, "applicationId") ?? "",
+    iraxPlanningId: readString(obj, "iraxPlanningId"),
+    iraxFieldAssessmentId: readString(obj, "iraxFieldAssessmentId"),
+    institutionId: readString(obj, "institutionId"),
+    country: readString(obj, "country") ?? "MA",
+    version: readNumberLike(obj, "version") ?? 1,
+    status: readString(obj, "status") ?? "SRAP_GENERATED",
+    sourceLabel: readString(obj, "sourceLabel") ?? "LIVE",
+    protocolVersion: readString(obj, "protocolVersion") ?? "IRAX2_SRAP_V1_2026",
+    dataAggregation: asObject(obj.dataAggregation),
+    geospatialIntelligence: asObject(obj.geospatialIntelligence),
+    climateIntelligence: asObject(obj.climateIntelligence),
+    hydrologyIntelligence: asObject(obj.hydrologyIntelligence),
+    agronomicIntelligence: asObject(obj.agronomicIntelligence),
+    economicIntelligence: asObject(obj.economicIntelligence),
+    supplyChainIntelligence: asObject(obj.supplyChainIntelligence),
+    riskCorrelation: asObject(obj.riskCorrelation),
+    predictiveAnalytics: asObject(obj.predictiveAnalytics),
+    scientificReport: asObject(obj.scientificReport),
+    requiredSignals: readStringArray(obj, "requiredSignals"),
+    unavailableSignals: readStringArray(obj, "unavailableSignals"),
+    degradedSignals: readStringArray(obj, "degradedSignals"),
+    blockers: readStringArray(obj, "blockers"),
+    warnings: readStringArray(obj, "warnings"),
+    nextRecommendedStep: readString(obj, "nextRecommendedStep") ?? "REQUEST_MORE_SCIENTIFIC_DATA",
+    generatedAt: readString(obj, "generatedAt"),
+    reviewedAt: readString(obj, "reviewedAt"),
+    createdAt: readString(obj, "createdAt"),
+    updatedAt: readString(obj, "updatedAt"),
+    sideEffects: mapMissionConfigSideEffects(root?.sideEffects),
+  };
+}
+
+export async function getIraxScientificAssessment(
+  applicationId: string,
+): Promise<InsuranceIraxScientificAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax2/srap`);
+  return mapIraxScientificAssessment(payload);
+}
+
+export async function generateIraxScientificAssessment(
+  applicationId: string,
+): Promise<InsuranceIraxScientificAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax2/generate`, {
+    method: "POST",
+  });
+  return mapIraxScientificAssessment(payload);
+}
+
+export async function updateIraxScientificAssessmentStatus(
+  applicationId: string,
+  status: InsuranceIraxScientificAssessmentStatus,
+): Promise<InsuranceIraxScientificAssessment | null> {
+  const safeId = encodeURIComponent(applicationId);
+  const payload = await apiFetch<unknown>(`/v1/insurance/applications/${safeId}/irax2/srap/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return mapIraxScientificAssessment(payload);
+}
+
 export async function getInsuranceMissionConfig(
   applicationId: string,
 ): Promise<InsuranceMissionConfig | null> {

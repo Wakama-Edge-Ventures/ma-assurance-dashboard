@@ -11,16 +11,20 @@ import {
   CreateInsuranceMissionDispatchDraftResult,
   FieldAgent,
   generateIraxPlanning,
+  generateIraxScientificAssessment,
   getInsuranceApplicationById,
   getInsuranceFieldAgents,
   getInsuranceMissionConfig,
   getInsuranceMissionConfigVersions,
   getIrax1FieldAssessment,
   getIraxPlanning,
+  getIraxScientificAssessment,
   InsuranceApplicationByIdResult,
   InsuranceIrax1FieldAssessment,
   InsuranceIraxPlanning,
   InsuranceIraxPlanningStatus,
+  InsuranceIraxScientificAssessment,
+  InsuranceIraxScientificAssessmentStatus,
   InsuranceMissionConfig,
   InsuranceMissionConfigPayload,
   InsuranceMissionConfigSideEffects,
@@ -32,6 +36,7 @@ import {
   updateInsuranceApplicationStatus,
   updateIrax1FieldAssessmentStatus,
   updateIraxPlanningStatus,
+  updateIraxScientificAssessmentStatus,
 } from "@/lib/api";
 import { InsuranceFieldAudit } from "@/types";
 import {
@@ -647,6 +652,128 @@ function Irax1JsonSection({ title, value }: { title: string; value: Record<strin
   );
 }
 
+const IRAX2_STATUS_LABELS_FR: Record<string, string> = {
+  SRAP_GENERATED: "SRAP généré",
+  UNDER_BACK_OFFICE_REVIEW: "En revue scientifique back-office",
+  ACCEPTED_FOR_IRAX3: "Accepté — prêt pour IRAX3",
+  NEEDS_MORE_SCIENTIFIC_DATA: "Données scientifiques complémentaires requises",
+  REJECTED_INSUFFICIENT_DATA: "Rejeté — données insuffisantes",
+};
+
+const IRAX2_NEXT_STEP_LABELS_FR: Record<string, string> = {
+  WAITING_FOR_FIELD_ASSESSMENT: "En attente de l'évaluation terrain IRAX1",
+  REQUEST_MORE_SCIENTIFIC_DATA: "Demander des données scientifiques complémentaires",
+  READY_FOR_IRAX3: "Prêt pour IRAX3",
+  NEEDS_BACK_OFFICE_REVIEW: "Revue scientifique back-office requise",
+  BLOCKED_INSUFFICIENT_DATA: "Bloqué — données insuffisantes",
+};
+
+function formatIrax2StatusFr(status: string | null | undefined): string {
+  if (!status) return "Aucun SRAP";
+  return IRAX2_STATUS_LABELS_FR[status] ?? status;
+}
+
+function formatIrax2NextStepFr(step: string | null | undefined): string {
+  if (!step) return "—";
+  return IRAX2_NEXT_STEP_LABELS_FR[step] ?? step;
+}
+
+function Irax2AvailabilityBadge({ value }: { value: unknown }) {
+  const label = typeof value === "string" ? value : "UNAVAILABLE";
+  const styles =
+    label === "LIVE"
+      ? "border-emerald-400/35 bg-emerald-500/10 text-emerald-200"
+      : label === "SEED_DEMO"
+        ? "border-sky-400/35 bg-sky-500/10 text-sky-200"
+        : label === "DEGRADED"
+          ? "border-amber-400/35 bg-amber-500/10 text-amber-200"
+          : "border-slate-500/30 bg-slate-800/40 text-slate-400";
+  return <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${styles}`}>{label}</span>;
+}
+
+function Irax2JsonSection({ title, value }: { title: string; value: Record<string, unknown> | null }) {
+  if (!value) {
+    return (
+      <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+        <p className="text-[10px] uppercase tracking-wide text-slate-500">{title}</p>
+        <p className="text-slate-500">Aucune donnée disponible.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+      <p className="text-[10px] uppercase tracking-wide text-slate-500">{title}</p>
+      <dl className="mt-1 space-y-0.5">
+        {Object.entries(value).map(([key, entryValue]) => (
+          <div key={key} className="flex flex-wrap justify-between gap-2">
+            <dt className="text-slate-500">{key}</dt>
+            <dd className="text-right text-slate-200">
+              {key.toLowerCase().includes("availability") || key === "status" ? (
+                <Irax2AvailabilityBadge value={entryValue} />
+              ) : Array.isArray(entryValue) ? (
+                entryValue.length > 0 ? (
+                  entryValue.join(", ")
+                ) : (
+                  "Aucun"
+                )
+              ) : entryValue === null || entryValue === undefined ? (
+                "—"
+              ) : typeof entryValue === "object" ? (
+                JSON.stringify(entryValue)
+              ) : (
+                String(entryValue)
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function getIraxScientificLoadErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Impossible de charger le SRAP IRAX2.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) au SRAP IRAX2.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404) pour le SRAP IRAX2.";
+  }
+  return error.message || "Erreur API pendant le chargement du SRAP IRAX2.";
+}
+
+function getIraxScientificMutationErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return "Service indisponible. Action IRAX2 impossible.";
+  }
+  if (error.status === 400) {
+    return "Requête invalide (400) pour cette action IRAX2.";
+  }
+  if (error.status === 401) {
+    return "Session expirée (401). Veuillez vous reconnecter.";
+  }
+  if (error.status === 403) {
+    return "Accès refusé (403) pour cette action IRAX2.";
+  }
+  if (error.status === 404) {
+    return "Dossier introuvable (404), ou aucun plan IRAX-P / SRAP existant pour cette action IRAX2.";
+  }
+  if (error.status === 409) {
+    return error.message || "Action IRAX2 impossible dans l'état actuel (409).";
+  }
+  return error.message || "Erreur API pendant l'action IRAX2.";
+}
+
+function hasIraxScientificForbiddenSideEffects(sideEffects: InsuranceMissionConfigSideEffects): boolean {
+  return hasMissionConfigForbiddenSideEffects(sideEffects);
+}
+
 function IraxCoherenceValue({ value }: { value: boolean | "UNKNOWN" }) {
   if (value === "UNKNOWN") {
     return <span className="text-slate-500">Non disponible</span>;
@@ -772,6 +899,18 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     message: string;
   } | null>(null);
   const [irax1SelectedAgentUserId, setIrax1SelectedAgentUserId] = useState<string>("");
+  const [iraxScientificAssessment, setIraxScientificAssessment] = useState<InsuranceIraxScientificAssessment | null>(
+    null,
+  );
+  const [iraxScientificLoading, setIraxScientificLoading] = useState(false);
+  const [iraxScientificGenerating, setIraxScientificGenerating] = useState(false);
+  const [iraxScientificStatusSaving, setIraxScientificStatusSaving] =
+    useState<InsuranceIraxScientificAssessmentStatus | null>(null);
+  const [iraxScientificError, setIraxScientificError] = useState<string | null>(null);
+  const [iraxScientificFeedback, setIraxScientificFeedback] = useState<{
+    type: "success" | "error" | "critical";
+    message: string;
+  } | null>(null);
   const [missionConfigLoading, setMissionConfigLoading] = useState(false);
   const [missionConfigSaving, setMissionConfigSaving] = useState(false);
   const [missionConfigError, setMissionConfigError] = useState<string | null>(null);
@@ -1006,6 +1145,90 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       });
     } finally {
       setIrax1StatusSaving(null);
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadIraxScientificAssessment() {
+      setIraxScientificLoading(true);
+      setIraxScientificError(null);
+
+      try {
+        const srap = await getIraxScientificAssessment(applicationId);
+        if (!mounted) return;
+        setIraxScientificAssessment(srap);
+      } catch (loadError) {
+        if (!mounted) return;
+        setIraxScientificError(getIraxScientificLoadErrorMessage(loadError));
+      } finally {
+        if (mounted) {
+          setIraxScientificLoading(false);
+        }
+      }
+    }
+
+    void loadIraxScientificAssessment();
+    return () => {
+      mounted = false;
+    };
+  }, [applicationId]);
+
+  async function handleGenerateIraxScientificAssessment() {
+    if (iraxScientificGenerating) return;
+
+    setIraxScientificFeedback(null);
+    setIraxScientificGenerating(true);
+
+    try {
+      const srap = await generateIraxScientificAssessment(applicationId);
+      setIraxScientificAssessment(srap);
+      setIraxScientificError(null);
+
+      if (srap && hasIraxScientificForbiddenSideEffects(srap.sideEffects)) {
+        setIraxScientificFeedback({
+          type: "critical",
+          message:
+            "Erreur critique: un effet secondaire interdit a été détecté (mission/RAX/pricing/police/sinistre/evidence/blockchain). SRAP non validé.",
+        });
+        return;
+      }
+
+      setIraxScientificFeedback({
+        type: "success",
+        message: `SRAP IRAX2 généré (version ${srap?.version ?? 1}).`,
+      });
+    } catch (mutationError) {
+      setIraxScientificFeedback({
+        type: "error",
+        message: getIraxScientificMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIraxScientificGenerating(false);
+    }
+  }
+
+  async function handleUpdateIraxScientificAssessmentStatus(status: InsuranceIraxScientificAssessmentStatus) {
+    if (iraxScientificStatusSaving) return;
+
+    setIraxScientificFeedback(null);
+    setIraxScientificStatusSaving(status);
+
+    try {
+      const srap = await updateIraxScientificAssessmentStatus(applicationId, status);
+      setIraxScientificAssessment(srap);
+      setIraxScientificFeedback({
+        type: "success",
+        message: `Statut SRAP IRAX2 mis à jour: ${formatIrax2StatusFr(status)}.`,
+      });
+    } catch (mutationError) {
+      setIraxScientificFeedback({
+        type: "error",
+        message: getIraxScientificMutationErrorMessage(mutationError),
+      });
+    } finally {
+      setIraxScientificStatusSaving(null);
     }
   }
 
@@ -2197,6 +2420,190 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
 
         <p className="text-[11px] text-slate-500">
           IRAX1 produit la vérité terrain. L&apos;institution reste seule décisionnaire.
+        </p>
+      </DcaSectionCard>
+
+      {/* ── IRAX2 — Intelligence scientifique back-office ── */}
+      <DcaSectionCard accent="violet">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <DcaSectionHeader
+            kicker="IRAX2 — Scientific Back Office"
+            title="IRAX2 — Intelligence scientifique back-office"
+            subtitle={`SRAP — Scientific Risk Assessment Package — protocole ${iraxScientificAssessment?.protocolVersion ?? "IRAX2_SRAP_V1_2026"}`}
+            accent="violet"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {iraxScientificAssessment ? (
+              <span className="rounded-full border border-violet-400/35 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-200">
+                {formatIrax2StatusFr(iraxScientificAssessment.status)}
+              </span>
+            ) : (
+              <span className="rounded-full border border-slate-400/20 bg-slate-800/50 px-2.5 py-0.5 text-[11px] text-slate-500">
+                Aucun SRAP
+              </span>
+            )}
+          </div>
+        </div>
+
+        <p className="rounded-xl border border-violet-400/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-100">
+          IRAX2 produit le SRAP scientifique. Il ne décide pas. L&apos;institution reste seule décisionnaire.
+        </p>
+
+        {iraxScientificLoading ? <p className="text-xs text-slate-400">Chargement du SRAP IRAX2...</p> : null}
+        {iraxScientificError ? (
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+            {iraxScientificError}
+          </p>
+        ) : null}
+
+        {iraxScientificAssessment ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-4">
+              <DcaInfoTile label="Pays" value={iraxScientificAssessment.country} />
+              <DcaInfoTile label="Source" value={iraxScientificAssessment.sourceLabel} />
+              <DcaInfoTile label="Version" value={String(iraxScientificAssessment.version)} />
+              <DcaInfoTile
+                label="Prochaine étape recommandée"
+                value={formatIrax2NextStepFr(iraxScientificAssessment.nextRecommendedStep)}
+              />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <Irax2JsonSection title="1. Agrégation des données" value={iraxScientificAssessment.dataAggregation} />
+              <Irax2JsonSection
+                title="2. Intelligence géospatiale"
+                value={iraxScientificAssessment.geospatialIntelligence}
+              />
+              <Irax2JsonSection title="3. Intelligence climatique" value={iraxScientificAssessment.climateIntelligence} />
+              <Irax2JsonSection
+                title="4. Intelligence hydrologique"
+                value={iraxScientificAssessment.hydrologyIntelligence}
+              />
+              <Irax2JsonSection
+                title="5. Intelligence agronomique"
+                value={iraxScientificAssessment.agronomicIntelligence}
+              />
+              <Irax2JsonSection
+                title="6. Intelligence économique"
+                value={iraxScientificAssessment.economicIntelligence}
+              />
+              <Irax2JsonSection
+                title="7. Intelligence supply chain"
+                value={iraxScientificAssessment.supplyChainIntelligence}
+              />
+              <Irax2JsonSection title="8. Corrélation des risques" value={iraxScientificAssessment.riskCorrelation} />
+              <Irax2JsonSection title="9. Analyse prédictive" value={iraxScientificAssessment.predictiveAnalytics} />
+              <Irax2JsonSection title="10. Rapport scientifique" value={iraxScientificAssessment.scientificReport} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Signaux requis</p>
+                <p>{iraxScientificAssessment.requiredSignals.join(", ") || "Aucun"}</p>
+              </div>
+              <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Signaux indisponibles</p>
+                <p>{iraxScientificAssessment.unavailableSignals.join(", ") || "Aucun"}</p>
+              </div>
+              <div className="space-y-1 rounded-lg border border-slate-400/10 bg-slate-900/35 px-3 py-2 text-xs text-slate-300">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Signaux dégradés</p>
+                <p>{iraxScientificAssessment.degradedSignals.join(", ") || "Aucun"}</p>
+              </div>
+            </div>
+
+            {iraxScientificAssessment.blockers.length > 0 ? (
+              <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                <p className="text-[10px] uppercase tracking-wide text-rose-300">Blocages</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxScientificAssessment.blockers.map((blocker, index) => (
+                    <li key={index}>{blocker}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {iraxScientificAssessment.warnings.length > 0 ? (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <p className="text-[10px] uppercase tracking-wide text-amber-300">Avertissements</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {iraxScientificAssessment.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <DcaInfoTile label="Généré le" value={formatDate(iraxScientificAssessment.generatedAt)} />
+              <DcaInfoTile label="Revu le" value={formatDate(iraxScientificAssessment.reviewedAt)} />
+            </div>
+          </>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleGenerateIraxScientificAssessment()}
+            disabled={iraxScientificGenerating || iraxScientificLoading}
+            className="rounded-full border border-violet-400/35 bg-violet-500/10 px-4 py-1.5 text-xs text-violet-100 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+          >
+            {iraxScientificGenerating ? "Traitement..." : "Générer / Actualiser SRAP"}
+          </button>
+
+          {iraxScientificAssessment ? (
+            <>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxScientificAssessmentStatus("UNDER_BACK_OFFICE_REVIEW")}
+                disabled={iraxScientificStatusSaving !== null}
+                className="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxScientificStatusSaving === "UNDER_BACK_OFFICE_REVIEW" ? "..." : "Démarrer revue scientifique"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxScientificAssessmentStatus("NEEDS_MORE_SCIENTIFIC_DATA")}
+                disabled={iraxScientificStatusSaving !== null}
+                className="rounded-full border border-orange-400/35 bg-orange-500/10 px-3 py-1.5 text-xs text-orange-100 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxScientificStatusSaving === "NEEDS_MORE_SCIENTIFIC_DATA" ? "..." : "Demander données complémentaires"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxScientificAssessmentStatus("ACCEPTED_FOR_IRAX3")}
+                disabled={iraxScientificStatusSaving !== null}
+                className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxScientificStatusSaving === "ACCEPTED_FOR_IRAX3" ? "..." : "Accepter pour IRAX3"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleUpdateIraxScientificAssessmentStatus("REJECTED_INSUFFICIENT_DATA")}
+                disabled={iraxScientificStatusSaving !== null}
+                className="rounded-full border border-rose-400/35 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:border-slate-500/30 disabled:bg-slate-700/20 disabled:text-slate-400"
+              >
+                {iraxScientificStatusSaving === "REJECTED_INSUFFICIENT_DATA" ? "..." : "Rejeter données insuffisantes"}
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        {iraxScientificFeedback ? (
+          <p
+            className={`rounded-xl border px-3 py-2 text-xs ${
+              iraxScientificFeedback.type === "success"
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : iraxScientificFeedback.type === "critical"
+                  ? "border-rose-500/40 bg-rose-600/15 text-rose-200"
+                  : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}
+          >
+            {iraxScientificFeedback.message}
+          </p>
+        ) : null}
+
+        <p className="text-[11px] text-slate-500">
+          IRAX2 produit le SRAP scientifique. Il ne décide pas. L&apos;institution reste seule décisionnaire.
         </p>
       </DcaSectionCard>
 
