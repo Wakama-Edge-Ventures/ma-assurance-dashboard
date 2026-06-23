@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { DashboardFooter } from "@/components/layout/dashboard-footer";
 import { Header } from "@/components/layout/header";
 import { MobileNav, Sidebar } from "@/components/layout/sidebar";
+import { IdjorCompanionLauncher } from "@/components/idjor/idjor-companion-launcher";
+import { IdjorCompanionPanel } from "@/components/idjor/idjor-companion-panel";
+import { IdjorCompanionProvider } from "@/components/idjor/idjor-companion-provider";
 import { restoreAuthSession } from "@/lib/auth";
 
 export function ProtectedShell({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -51,28 +54,33 @@ export function ProtectedShell({ children }: Readonly<{ children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-brand-bg text-slate-900 dark:text-slate-100">
-      <div className="flex flex-1 lg:flex-row">
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => {
-            setSidebarCollapsed((prev) => {
-              const next = !prev;
-              window.localStorage.setItem("wakama_sidebar_collapsed", next ? "1" : "0");
-              return next;
-            });
-          }}
-        />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Header />
-          <MobileNav />
-          <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col px-4 py-4 md:px-6 md:py-5">
-            {children}
-          </main>
+    <IdjorCompanionProvider>
+      <div className="flex min-h-screen flex-col bg-brand-bg text-slate-900 dark:text-slate-100">
+        <div className="flex flex-1 lg:flex-row">
+          <Sidebar
+            collapsed={sidebarCollapsed}
+            onToggle={() => {
+              setSidebarCollapsed((prev) => {
+                const next = !prev;
+                window.localStorage.setItem("wakama_sidebar_collapsed", next ? "1" : "0");
+                return next;
+              });
+            }}
+          />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Header />
+            <MobileNav />
+            <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col px-4 py-4 md:px-6 md:py-5">
+              {children}
+            </main>
+          </div>
         </div>
+
+        <DashboardFooter />
       </div>
 
-      <DashboardFooter />
-    </div>
+      <IdjorCompanionLauncher />
+      <IdjorCompanionPanel />
+    </IdjorCompanionProvider>
   );
 }

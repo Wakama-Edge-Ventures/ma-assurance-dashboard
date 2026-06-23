@@ -5,6 +5,7 @@ import {
 } from "@/lib/dto-mappers";
 import { normalizeSource } from "@/lib/data-source";
 import {
+  DataSource,
   IdjorFeatureFlag,
   IdjorFoundationHealth,
   IdjorFoundationRegistry,
@@ -54,6 +55,8 @@ import {
   IdjorRagIngestionReadinessState,
   IdjorRagLinkedAssetCounts,
   IdjorRagLlmBlockedReason,
+  IdjorRagLlmPreviewCitation,
+  IdjorRagLlmPreviewRequestResponse,
   IdjorRagLlmReadinessFlagKey,
   IdjorRagLlmReadinessFlagStates,
   IdjorRagLlmReadinessResponse,
@@ -2565,6 +2568,91 @@ export async function getIdjorRagLlmReadiness(
   );
 
   return mapIdjorRagLlmReadinessResponse(payload);
+}
+
+function mapIdjorRagLlmPreviewCitation(value: unknown): IdjorRagLlmPreviewCitation | null {
+  const record = asObject(value);
+  const id = readString(record, "id");
+  const documentId = readString(record, "documentId");
+  const documentKey = readString(record, "documentKey");
+  const citationLabel = readString(record, "citationLabel");
+  const excerptText = readString(record, "excerptText");
+  const source = readString(record, "source");
+
+  if (!id || !documentId || !documentKey || !citationLabel || !excerptText || !source) {
+    return null;
+  }
+
+  return {
+    id,
+    documentId,
+    documentKey,
+    citationLabel,
+    excerptText,
+    chunkId: readString(record, "chunkId"),
+    chunkIndex: readNumberLike(record, "chunkIndex"),
+    source: source as DataSource,
+  };
+}
+
+function mapIdjorRagLlmPreviewRequestResponse(
+  payload: unknown,
+): IdjorRagLlmPreviewRequestResponse {
+  const root = asObject(payload);
+  const scope = mapIdjorRagScope(root?.scope);
+  const documentId = readString(root, "documentId");
+  const documentKey = readString(root, "documentKey");
+  const extractionId = readString(root, "extractionId");
+  const status = readString(root, "status");
+
+  if (
+    !root ||
+    !scope ||
+    !documentId ||
+    !documentKey ||
+    !extractionId ||
+    (status !== "BLOCKED" && status !== "FAILED" && status !== "EXECUTED")
+  ) {
+    throw new ApiError(
+      502,
+      "Reponse backend invalide: demande de preview LLM RAG incomplete.",
+      payload,
+    );
+  }
+
+  return {
+    scope,
+    documentId,
+    documentKey,
+    extractionId,
+    status,
+    llmExecuted: readBooleanLike(root, "llmExecuted") ?? false,
+    blockedReasons: mapIdjorRagLlmBlockedReasons(root.blockedReasons),
+    answer: readString(root, "answer"),
+    citations: readArray(root.citations)
+      .map((entry) => mapIdjorRagLlmPreviewCitation(entry))
+      .filter((entry): entry is IdjorRagLlmPreviewCitation => entry !== null),
+    chunksCount: readNumberLike(root, "chunksCount") ?? 0,
+    embeddingsCount: readNumberLike(root, "embeddingsCount") ?? 0,
+    citationsCount: readNumberLike(root, "citationsCount") ?? 0,
+    securitySummary: mapIdjorRagSecuritySummary(root.securitySummary),
+    auditWritten: readBooleanLike(root, "auditWritten") ?? false,
+    sourceLabel: readString(root, "sourceLabel"),
+    resolutionMode: readString(root, "resolutionMode"),
+    readOnly: readBooleanLike(root, "readOnly") ?? true,
+  };
+}
+
+export async function requestIdjorRagLlmPreview(
+  extractionId: string,
+): Promise<IdjorRagLlmPreviewRequestResponse> {
+  const safeId = encodeURIComponent(extractionId);
+  const payload = await apiFetch<unknown>(
+    `/v1/idjor/rag/extractions/${safeId}/llm-preview-request`,
+    { method: "POST" },
+  );
+
+  return mapIdjorRagLlmPreviewRequestResponse(payload);
 }
 
 export async function getIdjorRagDocumentGovernanceCockpit(

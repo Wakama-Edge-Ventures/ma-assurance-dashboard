@@ -9,6 +9,7 @@ import {
   FileSearch,
   Flag,
   Layers3,
+  MessageCircle,
   Network,
   ScanSearch,
   ScrollText,
@@ -18,6 +19,7 @@ import {
   Wrench,
 } from "lucide-react";
 
+import { useIdjorCompanion } from "@/components/idjor/idjor-companion-provider";
 import { useTenant } from "@/components/tenant/useTenant";
 import { AccessDeniedCard } from "@/components/ui/access-denied-card";
 import { AppAccordion } from "@/components/ui/app-accordion";
@@ -53,6 +55,7 @@ import {
   getIdjorRagUploadExtractions,
   registerIdjorRagDocumentMetadata,
   requestIdjorRagEmbeddingPreview,
+  requestIdjorRagLlmPreview,
   requestIdjorRagRetrievalPreview,
   runIdjorRagExtractionChunking,
   runIdjorRagUploadExtractionPreview,
@@ -82,10 +85,12 @@ import type {
   IdjorRagGovernanceCockpitResponse,
   IdjorRagHealth,
   IdjorRagIngestionPreview,
+  IdjorRagLlmPreviewRequestResponse,
   IdjorRagLlmReadinessResponse,
   IdjorRagMetadataRegistrationStatus,
   IdjorRagRetrievalPreviewRequestResponse,
   IdjorRagRetrievalReadinessResponse,
+  IdjorRagSecuritySummary,
   IdjorRagUploadIntakeResponse,
   IdjorRegisterRagDocumentMetadataResult,
 } from "@/types";
@@ -302,6 +307,12 @@ type RagLlmReadinessState =
   | { status: "idle" }
   | { status: "loading"; extractionId: string }
   | { status: "success"; extractionId: string; response: IdjorRagLlmReadinessResponse }
+  | { status: "error"; extractionId: string; message: string };
+
+type RagLlmPreviewRequestState =
+  | { status: "idle" }
+  | { status: "loading"; extractionId: string }
+  | { status: "success"; extractionId: string; response: IdjorRagLlmPreviewRequestResponse }
   | { status: "error"; extractionId: string; message: string };
 
 type RagDocumentGovernanceCockpitState =
@@ -720,38 +731,65 @@ function EmbeddingReadinessPanel({
   );
 }
 
-function LlmReadinessGovernanceCard() {
+function LlmReadinessGovernanceCard({
+  securitySummary,
+}: {
+  securitySummary: IdjorRagSecuritySummary;
+}) {
+  const llmGoverned = securitySummary.llmEnabled;
+
   return (
     <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <BotOff className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
+        {llmGoverned ? (
+          <ShieldCheck className="h-4 w-4 text-cyan-300" />
+        ) : (
+          <BotOff className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
+        )}
         <h3 className="font-medium text-slate-900 dark:text-white">
-          LLM IDJOR — activation non demarree
+          {llmGoverned
+            ? "Idjor Preview — disponible sous gouvernance"
+            : "LLM IDJOR — activation non demarree"}
         </h3>
       </div>
 
       <p className="rounded-xl border border-slate-300/40 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-slate-400/16 dark:bg-slate-400/5 dark:text-slate-300">
-        Specification gouvernee prete — activation non demarree. Aucun moteur LLM actif.
+        {llmGoverned
+          ? "Idjor Preview disponible sous gouvernance — execution controlee uniquement sur demande, par extraction. La disponibilite reelle se verifie au niveau de chaque extraction ci-dessous."
+          : "Specification gouvernee prete — activation non demarree. Aucun moteur LLM actif."}
       </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <ExecutiveStatus label="LLM" value="OFF" tone="success" />
-        <ExecutiveStatus label="Provider" value="OFF" tone="success" />
-        <ExecutiveStatus label="Modele" value="OFF" tone="success" />
-        <ExecutiveStatus label="Guardrails prompts" value="OFF" tone="success" />
-        <ExecutiveStatus label="Execution" value="OFF" tone="success" />
-        <ExecutiveStatus label="Audit write" value="OFF" tone="success" />
+        <ExecutiveStatus
+          label="LLM"
+          value={llmGoverned ? "Gouverne (preview sur demande)" : "OFF"}
+          tone={llmGoverned ? "warning" : "success"}
+        />
+        <ExecutiveStatus
+          label="Vector store"
+          value={securitySummary.vectorStoreEnabled ? "ON" : "OFF"}
+          tone={securitySummary.vectorStoreEnabled ? "danger" : "success"}
+        />
+        <ExecutiveStatus
+          label="Decisioning"
+          value={securitySummary.decisioningEnabled ? "ON" : "OFF"}
+          tone={securitySummary.decisioningEnabled ? "danger" : "success"}
+        />
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <ExecutiveStatus label="Reponse reelle" value="0" tone="success" />
+        <ExecutiveStatus
+          label="Reponse reelle"
+          value={llmGoverned ? "Depend de l'extraction" : "0"}
+          tone={llmGoverned ? "warning" : "success"}
+        />
         <ExecutiveStatus label="Decision automatique" value="Interdite" tone="success" />
       </div>
 
       <p className="mt-3 rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3 py-2 text-xs leading-relaxed text-brand-textMuted">
-        Aucun appel LLM, aucun provider externe, aucun vector store, aucun retrieval reel et
-        aucune citation reelle ne sont actifs. Cette carte reste un socle de gouvernance en
-        lecture seule.
+        {llmGoverned
+          ? "Aucune decision metier n'est calculee automatiquement. Le vector store et le decisioning restent desactives ; seule l'execution LLM gouvernee, par extraction et sur demande, est active."
+          : "Aucun appel LLM, aucun provider externe, aucun vector store, aucun retrieval reel et aucune citation reelle ne sont actifs. Cette carte reste un socle de gouvernance en lecture seule."}
       </p>
     </div>
   );
@@ -869,6 +907,7 @@ function LlmReadinessPanel({
   readiness: IdjorRagLlmReadinessResponse;
 }) {
   const flagEntries = Object.entries(readiness.flagStates);
+  const allFlagsOn = flagEntries.length > 0 && flagEntries.every(([, enabled]) => enabled);
 
   return (
     <div className="space-y-3 rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3.5 py-3 dark:border-slate-400/10 dark:bg-slate-400/5">
@@ -885,13 +924,14 @@ function LlmReadinessPanel({
       </div>
 
       <p className="rounded-xl border border-slate-300/40 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-slate-400/16 dark:bg-slate-400/5 dark:text-slate-300">
-        LLM IDJOR gouverne — activation non demarree. Aucun moteur LLM actif, aucune reponse
-        generee.
+        {allFlagsOn
+          ? "Idjor Preview est disponible sous gouvernance pour cette extraction. Le statut ci-dessus signale l'absence d'execution enregistree, pas une desactivation : lancez Idjor Preview ci-dessous pour obtenir une reponse reelle."
+          : "LLM IDJOR gouverne — activation non demarree. Aucun moteur LLM actif, aucune reponse generee."}
       </p>
 
       <DataPanel className="p-3">
         <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
-          flags activation LLM (gouvernance, OFF par defaut)
+          flags activation LLM ({allFlagsOn ? "gouvernance, actifs" : "gouvernance, OFF par defaut"})
         </p>
         <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
           {flagEntries.map(([key, enabled]) => (
@@ -924,8 +964,12 @@ function LlmReadinessPanel({
         <StatusOverviewCard
           label="Reponse reelle"
           value={readiness.llmExecuted ? "1" : "0"}
-          hint="Aucune reponse LLM generee dans cette phase"
-          tone={readiness.llmExecuted ? "danger" : "success"}
+          hint={
+            readiness.llmExecuted
+              ? "Une execution Idjor Preview a deja ete enregistree pour cette extraction"
+              : "Aucune execution enregistree pour le moment"
+          }
+          tone={readiness.llmExecuted ? "warning" : "neutral"}
         />
         <StatusOverviewCard
           label="Decision automatique"
@@ -951,6 +995,87 @@ function LlmReadinessPanel({
           <p className="text-xs text-brand-textMuted">Aucun motif de blocage signale.</p>
         )}
       </DataPanel>
+    </div>
+  );
+}
+
+function LlmPreviewResultPanel({
+  result,
+}: {
+  result: IdjorRagLlmPreviewRequestResponse;
+}) {
+  const toneByStatus = {
+    EXECUTED: "success" as const,
+    BLOCKED: "warning" as const,
+    FAILED: "danger" as const,
+  };
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3.5 py-3 dark:border-slate-400/10 dark:bg-slate-400/5">
+      <div className="flex flex-wrap items-center gap-2">
+        <ExecutiveStatus label="Statut Idjor Preview" value={result.status} tone={toneByStatus[result.status]} />
+        <span className="font-mono text-[11px] text-brand-textMuted">
+          citations: {result.citationsCount}
+        </span>
+      </div>
+
+      {result.status === "EXECUTED" ? (
+        <DataPanel className="p-3">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+            Reponse Idjor (preview gouvernee, validation humaine requise)
+          </p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            {result.answer ?? "Aucun contenu renvoye."}
+          </p>
+        </DataPanel>
+      ) : (
+        <p className="rounded-xl border border-slate-300/40 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-slate-400/16 dark:bg-slate-400/5 dark:text-slate-300">
+          {result.status === "BLOCKED"
+            ? "Idjor n'a pas execute cette analyse : les prerequis de gouvernance ne sont pas reunis."
+            : "Idjor n'a pas pu executer cette analyse : le fournisseur n'a pas repondu correctement."}
+        </p>
+      )}
+
+      {result.citations.length > 0 ? (
+        <DataPanel className="space-y-2 p-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+            Sources citees
+          </p>
+          {result.citations.map((citation) => (
+            <div
+              key={citation.id}
+              className="rounded-2xl border border-brand-border/10 bg-brand-surface/60 px-3 py-2 dark:border-slate-400/10 dark:bg-slate-400/5"
+            >
+              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-800 dark:text-cyan-200">
+                {citation.citationLabel} — {citation.documentKey}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                {citation.excerptText}
+              </p>
+            </div>
+          ))}
+        </DataPanel>
+      ) : null}
+
+      {result.blockedReasons.length > 0 ? (
+        <DataPanel className="p-3">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-textMuted">
+            blockedReasons
+          </p>
+          <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+            {result.blockedReasons.map((reason) => (
+              <li key={reason} className="font-mono">
+                {reason}
+              </li>
+            ))}
+          </ul>
+        </DataPanel>
+      ) : null}
+
+      <p className="text-[11px] text-brand-textMuted">
+        Aucune decision metier n&apos;est calculee. Validation humaine obligatoire avant tout
+        usage du contenu ci-dessus.
+      </p>
     </div>
   );
 }
@@ -1106,6 +1231,8 @@ function ExtractionResultBlock({
   onRequestRetrievalPreview,
   ragLlmReadinessState,
   onCheckLlmReadiness,
+  ragLlmPreviewRequestState,
+  onRequestLlmPreview,
   ragDocumentGovernanceCockpitState,
   ragExtractionGovernanceCockpitState,
   onLoadDocumentGovernanceCockpit,
@@ -1128,12 +1255,15 @@ function ExtractionResultBlock({
   onRequestRetrievalPreview?: (extractionId: string, documentId: string) => void;
   ragLlmReadinessState?: RagLlmReadinessState;
   onCheckLlmReadiness?: (extractionId: string, documentId: string) => void;
+  ragLlmPreviewRequestState?: RagLlmPreviewRequestState;
+  onRequestLlmPreview?: (extractionId: string, documentId: string) => void;
   ragDocumentGovernanceCockpitState?: RagDocumentGovernanceCockpitState;
   ragExtractionGovernanceCockpitState?: RagExtractionGovernanceCockpitState;
   onLoadDocumentGovernanceCockpit?: (documentId: string) => void;
   onLoadExtractionGovernanceCockpit?: (extractionId: string) => void;
   maxHeightClass?: string;
 }) {
+  const { open: openIdjorCompanion } = useIdjorCompanion();
   const isChunkable =
     extraction.status === "EXTRACTED_PENDING_REVIEW" ||
     extraction.status === "EXTRACTED_PARTIAL_PENDING_REVIEW";
@@ -1464,6 +1594,62 @@ function ExtractionResultBlock({
                 </div>
               ) : null}
 
+              {onRequestLlmPreview ? (
+                <div className="space-y-3 border-t border-slate-400/10 pt-3">
+                  <p className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 px-3 py-2 text-xs leading-relaxed text-cyan-800 dark:text-cyan-200">
+                    Idjor Preview gouverne : execution reelle sur demande, par extraction.
+                    Reflete exactement BLOCKED / FAILED / EXECUTED renvoye par le backend. Aucune
+                    decision metier n&apos;est calculee.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onRequestLlmPreview(extraction.id, extraction.documentId)}
+                      disabled={
+                        ragLlmPreviewRequestState?.status === "loading" &&
+                        ragLlmPreviewRequestState.extractionId === extraction.id
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      {ragLlmPreviewRequestState?.status === "loading" &&
+                      ragLlmPreviewRequestState.extractionId === extraction.id
+                        ? "Analyse en cours..."
+                        : "Lancer Idjor Preview"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openIdjorCompanion({
+                          kind: "extraction",
+                          extractionId: extraction.id,
+                          documentId: extraction.documentId,
+                          documentTitle: extraction.documentId,
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      Demander a Idjor
+                    </button>
+                  </div>
+
+                  {ragLlmPreviewRequestState?.status === "error" &&
+                  ragLlmPreviewRequestState.extractionId === extraction.id ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+                      {ragLlmPreviewRequestState.message}
+                    </div>
+                  ) : null}
+
+                  {ragLlmPreviewRequestState?.status === "success" &&
+                  ragLlmPreviewRequestState.extractionId === extraction.id ? (
+                    <LlmPreviewResultPanel result={ragLlmPreviewRequestState.response} />
+                  ) : null}
+                </div>
+              ) : null}
+
               {onLoadDocumentGovernanceCockpit && onLoadExtractionGovernanceCockpit ? (
                 <div className="space-y-3 border-t border-slate-400/10 pt-3">
                   <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
@@ -1718,6 +1904,8 @@ export function IdjorFoundationPanel() {
   const [ragLlmReadinessState, setRagLlmReadinessState] = useState<RagLlmReadinessState>({
     status: "idle",
   });
+  const [ragLlmPreviewRequestState, setRagLlmPreviewRequestState] =
+    useState<RagLlmPreviewRequestState>({ status: "idle" });
   const [ragDocumentGovernanceCockpitState, setRagDocumentGovernanceCockpitState] =
     useState<RagDocumentGovernanceCockpitState>({ status: "idle" });
   const [ragExtractionGovernanceCockpitState, setRagExtractionGovernanceCockpitState] =
@@ -2316,6 +2504,26 @@ export function IdjorFoundationPanel() {
     }
   };
 
+  const handleRequestLlmPreview = async (extractionId: string, documentId: string) => {
+    setRagLlmPreviewRequestState({ status: "loading", extractionId });
+
+    try {
+      const response = await requestIdjorRagLlmPreview(extractionId);
+      setRagLlmPreviewRequestState({ status: "success", extractionId, response });
+      await refreshDocumentAuditIfVisible(documentId);
+      await refreshGovernanceCockpitIfVisible({ documentId, extractionId });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de lancer Idjor Preview pour cette extraction.";
+
+      setRagLlmPreviewRequestState({ status: "error", extractionId, message });
+    }
+  };
+
   const handleRunExtractionPreview = async (uploadId: string, documentId: string) => {
     setRagExtractionPreviewState({ status: "loading", uploadId });
 
@@ -2676,11 +2884,10 @@ export function IdjorFoundationPanel() {
                     <h3 className="font-medium text-slate-900 dark:text-white">Message de demo</h3>
                   </div>
                   <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-                    La base documentaire RAG reste un socle gouverne. La quarantaine de
-                    fichiers, la previsualisation d&apos;extraction et le decoupage
-                    deterministe sont disponibles comme actions controlees et tracees.
-                    Aucune analyse IA, vectorisation ou extraction automatique n&apos;est
-                    activee, et aucune question en langage naturel n&apos;est traitee.
+                    La base documentaire RAG reste un socle gouverne. Le decoupage
+                    deterministe, la previsualisation d&apos;extraction et l&apos;analyse Idjor
+                    Preview sont disponibles comme actions controlees et tracees, sur demande et
+                    par extraction. Aucune decision metier n&apos;est calculee automatiquement.
                   </p>
                 </div>
               </div>
@@ -2708,7 +2915,7 @@ export function IdjorFoundationPanel() {
                 </div>
               </div>
 
-              <LlmReadinessGovernanceCard />
+              <LlmReadinessGovernanceCard securitySummary={state.ragHealth.securitySummary} />
 
               {!demoSafeMode ? (
               <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
@@ -3216,6 +3423,8 @@ export function IdjorFoundationPanel() {
                           onRequestRetrievalPreview={handleRequestRetrievalPreview}
                           ragLlmReadinessState={ragLlmReadinessState}
                           onCheckLlmReadiness={handleCheckLlmReadiness}
+                          ragLlmPreviewRequestState={ragLlmPreviewRequestState}
+                          onRequestLlmPreview={handleRequestLlmPreview}
                           ragDocumentGovernanceCockpitState={ragDocumentGovernanceCockpitState}
                           ragExtractionGovernanceCockpitState={ragExtractionGovernanceCockpitState}
                           onLoadDocumentGovernanceCockpit={handleLoadDocumentGovernanceCockpit}
@@ -3280,6 +3489,8 @@ export function IdjorFoundationPanel() {
                                     onRequestRetrievalPreview={handleRequestRetrievalPreview}
                                     ragLlmReadinessState={ragLlmReadinessState}
                                     onCheckLlmReadiness={handleCheckLlmReadiness}
+                                    ragLlmPreviewRequestState={ragLlmPreviewRequestState}
+                                    onRequestLlmPreview={handleRequestLlmPreview}
                                     ragDocumentGovernanceCockpitState={ragDocumentGovernanceCockpitState}
                                     ragExtractionGovernanceCockpitState={ragExtractionGovernanceCockpitState}
                                     onLoadDocumentGovernanceCockpit={handleLoadDocumentGovernanceCockpit}

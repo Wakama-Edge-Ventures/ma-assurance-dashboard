@@ -1,7 +1,9 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
+import { FileText, HelpCircle, MessageCircle } from "lucide-react";
 
+import { useIdjorCompanion } from "@/components/idjor/idjor-companion-provider";
 import {
   acceptInsuranceFieldAuditForReview,
   ApiError,
@@ -1533,6 +1535,7 @@ function hasMissionDispatchForbiddenSideEffects(
 
 export default function ApplicationDetailPage({ params }: ApplicationDetailPageProps) {
   const { tenant } = useTenant();
+  const { open: openIdjorCompanion } = useIdjorCompanion();
   const resolvedParams = use(params);
   const applicationId = resolvedParams.id;
   const isAssuranceTenant = tenant.id === "assurance-ma";
@@ -3476,6 +3479,31 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
       )}
 
       {result?.detailNote ? <p className="text-xs text-slate-400">{result.detailNote}</p> : null}
+
+      <div className="flex flex-wrap gap-2">
+        {[
+          { label: "Demander à Idjor", icon: MessageCircle },
+          { label: "Résumer ce dossier", icon: FileText },
+          { label: "Expliquer ce statut", icon: HelpCircle },
+        ].map(({ label, icon: Icon }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() =>
+              openIdjorCompanion({
+                kind: "application",
+                applicationRef: application.id,
+                applicationLabel:
+                  application.reference ?? application.dcaNumber ?? application.id,
+              })
+            }
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/5 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200"
+          >
+            <Icon className="h-3 w-3" />
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* ── 1. Résumé DCA ── */}
       <DcaSectionCard accent="cyan">

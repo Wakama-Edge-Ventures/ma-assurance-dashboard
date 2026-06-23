@@ -108,6 +108,22 @@ body {
   }
 }
 
+@keyframes idjor-rainbow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes idjor-companion-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 @layer components {
   .oracle-search-input {
     padding-left: 2.2rem;
@@ -119,6 +135,36 @@ body {
 
   .oracle-live-dot {
     animation: oracle-live-pulse 1.4s ease-in-out infinite;
+  }
+
+  .idjor-rainbow-border {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .idjor-rainbow-border::before {
+    content: "";
+    position: absolute;
+    inset: -65%;
+    background: conic-gradient(
+      from 0deg,
+      #22d3ee,
+      #a855f7,
+      #34d399,
+      #f59e0b,
+      #22d3ee
+    );
+    animation: idjor-rainbow-spin 7s linear infinite;
+  }
+
+  .idjor-rainbow-border-inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  .idjor-companion-glow {
+    animation: idjor-companion-breathe 3.2s ease-in-out infinite;
   }
 }
 

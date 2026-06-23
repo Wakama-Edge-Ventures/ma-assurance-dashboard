@@ -611,6 +611,39 @@ export interface IdjorRagLlmReadinessResponse extends IdjorRagLlmReadiness {
   readOnly: boolean;
 }
 
+export type IdjorRagLlmPreviewStatus = "BLOCKED" | "FAILED" | "EXECUTED";
+
+export interface IdjorRagLlmPreviewCitation {
+  id: string;
+  documentId: string;
+  documentKey: string;
+  citationLabel: string;
+  excerptText: string;
+  chunkId: string | null;
+  chunkIndex: number | null;
+  source: DataSource;
+}
+
+export interface IdjorRagLlmPreviewRequestResponse {
+  scope: IdjorRagResponseScope;
+  documentId: string;
+  documentKey: string;
+  extractionId: string;
+  status: IdjorRagLlmPreviewStatus;
+  llmExecuted: boolean;
+  blockedReasons: IdjorRagLlmBlockedReason[];
+  answer: string | null;
+  citations: IdjorRagLlmPreviewCitation[];
+  chunksCount: number;
+  embeddingsCount: number;
+  citationsCount: number;
+  securitySummary: IdjorRagSecuritySummary;
+  auditWritten: boolean;
+  sourceLabel: string | null;
+  resolutionMode: string | null;
+  readOnly: boolean;
+}
+
 export type IdjorRagGovernancePipelineStage =
   | "METADATA"
   | "UPLOAD_QUARANTINE"
