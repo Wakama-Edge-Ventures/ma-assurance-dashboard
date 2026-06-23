@@ -21,6 +21,8 @@ import {
 
 import { useIdjorCompanion } from "@/components/idjor/idjor-companion-provider";
 import { useTenant } from "@/components/tenant/useTenant";
+import { TenantSessionMismatchCard } from "@/components/tenant/tenant-session-mismatch-card";
+import { evaluateTenantConsistency, TenantConsistencyResult } from "@/lib/tenant-session-consistency";
 import { AccessDeniedCard } from "@/components/ui/access-denied-card";
 import { AppAccordion } from "@/components/ui/app-accordion";
 import { AppCard } from "@/components/ui/app-card";
@@ -1974,6 +1976,19 @@ export function IdjorFoundationPanel() {
       ? state.registry.tenant.tenantKey
       : state.tenantKey ?? tenant.id;
 
+  // ?tenantKey= is an explicit technical override; it is a deliberate session
+  // choice, not the `?tenant=` branding param the consistency guard protects.
+  const tenantConsistency: TenantConsistencyResult = explicitTenantKey
+    ? { state: "MATCH", requestedTenantId: tenant.id, backendScope: null }
+    : state.status === "ready"
+      ? evaluateTenantConsistency(tenant.id, {
+          tenantKey: state.registry.tenant.tenantKey,
+          institutionId: state.registry.tenant.institutionId,
+          country: state.registry.tenant.country,
+          vertical: state.registry.tenant.vertical,
+        })
+      : { state: "UNKNOWN", requestedTenantId: tenant.id, backendScope: null };
+
   const resolutionMode =
     state.status === "ready"
       ? state.registry.resolutionMode ?? state.health.resolutionMode ?? "UNKNOWN"
@@ -2592,6 +2607,7 @@ export function IdjorFoundationPanel() {
             ? "Vue protegee des preuves, documents et journaux IDJOR. La page reste demonstrative, compacte et gouvernee: lecture, tracabilite et actions controlees sans IA active."
             : "Vue protegee du socle technique IDJOR. La page reste demonstrative, compacte et gouvernee: lecture, tracabilite et actions controlees sans IA active."
         }
+        forceNonLive={tenantConsistency.state !== "MATCH"}
       />
 
       <AppCard className="overflow-hidden p-0" tone="soft">
@@ -2618,10 +2634,21 @@ export function IdjorFoundationPanel() {
             <span className="inline-flex items-center rounded-full border border-amber-400/28 bg-amber-400/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-800 dark:text-amber-300">
               socle gouverne
             </span>
-            <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
-              tenant {displayTenantKey}
-            </span>
-            {resolutionMode ? (
+            {tenantConsistency.state === "MATCH" ? (
+              <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                tenant {displayTenantKey}
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                mode demande {tenant.id}
+              </span>
+            )}
+            {tenantConsistency.state === "UNKNOWN" ? (
+              <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                contexte session non verifie
+              </span>
+            ) : null}
+            {tenantConsistency.state === "MATCH" && resolutionMode ? (
               <span className="inline-flex items-center rounded-full border border-slate-400/18 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
                 resolution {resolutionMode}
               </span>
@@ -2738,7 +2765,15 @@ export function IdjorFoundationPanel() {
 
       {state.status === "error" ? getErrorCard(state, tenant.id) : null}
 
-      {state.status === "ready" ? (
+      {state.status === "ready" && tenantConsistency.state !== "MATCH" ? (
+        <TenantSessionMismatchCard
+          consistency={tenantConsistency}
+          requestedTenant={tenant}
+          resolutionMode={resolutionMode}
+        />
+      ) : null}
+
+      {state.status === "ready" && tenantConsistency.state === "MATCH" ? (
         <>
           <SectionCard
             icon={<Layers3 className="h-4 w-4" />}

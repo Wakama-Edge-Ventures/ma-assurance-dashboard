@@ -7,15 +7,23 @@ interface PageTitleProps {
   description?: string;
   action?: ReactNode;
   workflowBadgeOverride?: { label: string; live: boolean } | null;
+  forceNonLive?: boolean;
 }
 
-export function PageTitle({ title, description, action, workflowBadgeOverride }: PageTitleProps) {
+export function PageTitle({
+  title,
+  description,
+  action,
+  workflowBadgeOverride,
+  forceNonLive,
+}: PageTitleProps) {
   return (
     <AppPageHeader
       title={title}
       description={description}
       action={action}
       workflowBadgeOverride={workflowBadgeOverride}
+      forceNonLive={forceNonLive}
     />
   );
 }

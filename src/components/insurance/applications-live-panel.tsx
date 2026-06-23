@@ -13,9 +13,11 @@ import { InsuranceDcaApplication } from "@/types";
 import { AccessDeniedCard } from "@/components/ui/access-denied-card";
 import { AuthRequiredCard } from "@/components/ui/auth-required-card";
 import { useTenant } from "@/components/tenant/useTenant";
+import { TenantSessionMismatchCard } from "@/components/tenant/tenant-session-mismatch-card";
 import { DisclosureNote } from "@/components/ui/disclosure-note";
 import { EmptyLiveDataCard } from "@/components/ui/empty-live-data-card";
 import { getCountryLabel } from "@/lib/country-labels";
+import { useTenantSessionConsistency } from "@/hooks/useTenantSessionConsistency";
 
 import { ApplicationsTable } from "./applications-table";
 
@@ -126,6 +128,8 @@ type CountryFilter = "ALL" | string;
 
 export function ApplicationsLivePanel() {
   const { tenant } = useTenant();
+  const tenantConsistency = useTenantSessionConsistency();
+  const [demoModeAcknowledged, setDemoModeAcknowledged] = useState(false);
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<InsuranceDcaApplication[]>([]);
   const [usingSeedFallback, setUsingSeedFallback] = useState(false);
@@ -225,6 +229,36 @@ export function ApplicationsLivePanel() {
       count: distribution.get(source) ?? 0,
     }));
   }, [filteredRows]);
+
+  if (tenantConsistency.checking) {
+    return (
+      <div className="rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4 text-xs text-slate-400">
+        Verification du contexte tenant...
+      </div>
+    );
+  }
+
+  if (tenantConsistency.state !== "MATCH" && !demoModeAcknowledged) {
+    return (
+      <TenantSessionMismatchCard
+        consistency={tenantConsistency}
+        requestedTenant={tenant}
+        onContinueDemoMode={() => setDemoModeAcknowledged(true)}
+      />
+    );
+  }
+
+  if (tenantConsistency.state !== "MATCH" && demoModeAcknowledged) {
+    return (
+      <section className="space-y-3 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4">
+        <p className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
+          Mode demo — donnees live masquees. Aucun dossier {tenant.shortName} live n&apos;est
+          affiche pour cette session.
+        </p>
+        <EmptyLiveDataCard description="Maquette non-live: aucune donnee backend affichee pour ce tenant tant que la session n'est pas confirmee." />
+      </section>
+    );
+  }
 
   if (loading) {
     return (

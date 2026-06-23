@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TenantBadge } from "@/components/tenant/TenantBadge";
 import { TenantLogo } from "@/components/tenant/TenantLogo";
 import { useTenant } from "@/components/tenant/useTenant";
+import { useTenantSessionConsistency } from "@/hooks/useTenantSessionConsistency";
 
 const FOOTER_LINKS = [
   { label: "Reporter un bug", href: "/fr/bug" },
@@ -16,8 +17,10 @@ const FOOTER_LINKS = [
 
 export function DashboardFooter() {
   const { tenant } = useTenant();
-  const sharedLive = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
-  const insuranceLive = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
+  const tenantConsistency = useTenantSessionConsistency();
+  const sessionMismatch = !tenantConsistency.checking && tenantConsistency.state !== "MATCH";
+  const sharedLive = !sessionMismatch && process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
+  const insuranceLive = !sessionMismatch && process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
   const workflowLabel =
     tenant.id === "assurance-ma" ? "Workflows assurance" : tenant.terminology.portfolioLabel;
 
@@ -42,14 +45,22 @@ export function DashboardFooter() {
         <TenantBadge className="ml-auto" />
 
         <div className="flex flex-wrap items-center gap-1 font-mono text-[11px] text-brand-textMuted">
-          <span className={sharedLive ? "text-emerald-600 dark:text-emerald-400" : ""}>
-            Shared data{sharedLive ? " LIVE" : ""}
-          </span>
-          <span>·</span>
-          <span>
-            {workflowLabel}
-            {insuranceLive && <span className="ml-1 text-emerald-600 dark:text-emerald-400">LIVE</span>}
-          </span>
+          {sessionMismatch ? (
+            <span className="text-amber-600 dark:text-amber-400">
+              Session incompatible — live desactive
+            </span>
+          ) : (
+            <>
+              <span className={sharedLive ? "text-emerald-600 dark:text-emerald-400" : ""}>
+                Shared data{sharedLive ? " LIVE" : ""}
+              </span>
+              <span>·</span>
+              <span>
+                {workflowLabel}
+                {insuranceLive && <span className="ml-1 text-emerald-600 dark:text-emerald-400">LIVE</span>}
+              </span>
+            </>
+          )}
           <span>·</span>
           <span>© 2026 Wakama Edge Ventures Inc.</span>
         </div>

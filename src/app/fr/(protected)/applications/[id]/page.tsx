@@ -119,6 +119,8 @@ import {
 } from "@/lib/dto-mappers";
 import { InsuranceDcaApplication } from "@/types";
 import { useTenant } from "@/components/tenant/useTenant";
+import { TenantSessionMismatchCard } from "@/components/tenant/tenant-session-mismatch-card";
+import { useTenantSessionConsistency } from "@/hooks/useTenantSessionConsistency";
 import { PageTitle } from "@/components/ui/page-title";
 import {
   formatAmountForCountry,
@@ -1535,6 +1537,7 @@ function hasMissionDispatchForbiddenSideEffects(
 
 export default function ApplicationDetailPage({ params }: ApplicationDetailPageProps) {
   const { tenant } = useTenant();
+  const tenantConsistency = useTenantSessionConsistency();
   const { open: openIdjorCompanion } = useIdjorCompanion();
   const resolvedParams = use(params);
   const applicationId = resolvedParams.id;
@@ -3398,12 +3401,16 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
     pricingOffer?.status !== "OFFER_APPROVED_FOR_CONTRACT";
   const claimCasePrerequisiteBlocked = !policyContract;
 
-  if (loading) {
+  if (loading || tenantConsistency.checking) {
     return (
       <div className="rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4 text-xs text-slate-400">
         Chargement du detail DCA...
       </div>
     );
+  }
+
+  if (tenantConsistency.state !== "MATCH") {
+    return <TenantSessionMismatchCard consistency={tenantConsistency} requestedTenant={tenant} />;
   }
 
   if (error) {

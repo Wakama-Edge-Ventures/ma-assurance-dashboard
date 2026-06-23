@@ -18,13 +18,30 @@ interface AppPageHeaderProps {
    * Avoids implying SEED_DEMO on a dossier that came from a real submission.
    */
   workflowBadgeOverride?: { label: string; live: boolean } | null;
+  /**
+   * Forces both status chips into a clearly non-live state. Used when the
+   * requested tenant does not match the backend-resolved session scope, so
+   * the env-driven LIVE badges never imply live data for the wrong tenant.
+   */
+  forceNonLive?: boolean;
 }
 
-export function AppPageHeader({ title, description, note, action, workflowBadgeOverride }: AppPageHeaderProps) {
+export function AppPageHeader({
+  title,
+  description,
+  note,
+  action,
+  workflowBadgeOverride,
+  forceNonLive = false,
+}: AppPageHeaderProps) {
   const { tenant } = useTenant();
-  const sharedLive = process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
+  const sharedLive = !forceNonLive && process.env.NEXT_PUBLIC_USE_LIVE_API === "true";
   const insuranceLiveDefault = process.env.NEXT_PUBLIC_USE_LIVE_INSURANCE_API === "true";
-  const insuranceLive = workflowBadgeOverride ? workflowBadgeOverride.live : insuranceLiveDefault;
+  const insuranceLive = forceNonLive
+    ? false
+    : workflowBadgeOverride
+      ? workflowBadgeOverride.live
+      : insuranceLiveDefault;
   const scopeLabel = [tenant.countryLabel, tenant.institutionType].filter(Boolean).join(" · ");
   const workflowLabel = tenant.featureFlags.showInsuranceNavigation
     ? "Parcours assurance"
@@ -87,7 +104,9 @@ export function AppPageHeader({ title, description, note, action, workflowBadgeO
               {sharedLive && (
                 <span className="oracle-live-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />
               )}
-              Donnees partagees {sharedLive ? "LIVE" : "SEED_DEMO"}
+              {forceNonLive
+                ? "Mode demo — donnees live masquees"
+                : `Donnees partagees ${sharedLive ? "LIVE" : "SEED_DEMO"}`}
             </span>
             <span
               className={cn(
@@ -97,7 +116,11 @@ export function AppPageHeader({ title, description, note, action, workflowBadgeO
                   : "border-amber-400/26 bg-amber-400/9 text-amber-400",
               )}
             >
-              {workflowBadgeOverride ? workflowBadgeOverride.label : `${workflowLabel} ${insuranceLive ? "LIVE" : "SEED_DEMO"}`}
+              {forceNonLive
+                ? "Session incompatible — live desactive"
+                : workflowBadgeOverride
+                  ? workflowBadgeOverride.label
+                  : `${workflowLabel} ${insuranceLive ? "LIVE" : "SEED_DEMO"}`}
             </span>
           </div>
         </div>
