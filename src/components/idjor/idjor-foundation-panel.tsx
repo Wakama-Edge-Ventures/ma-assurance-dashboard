@@ -315,6 +315,13 @@ type RagLlmPreviewRequestState =
   | { status: "success"; extractionId: string; response: IdjorRagLlmPreviewRequestResponse }
   | { status: "error"; extractionId: string; message: string };
 
+type IdjorPreviewResolutionState =
+  | { status: "idle" }
+  | { status: "loading"; documentId: string }
+  | { status: "found"; documentId: string; extractionId: string; uploadId: string }
+  | { status: "not-found"; documentId: string }
+  | { status: "error"; documentId: string; message: string };
+
 type RagDocumentGovernanceCockpitState =
   | { status: "idle" }
   | { status: "loading"; documentId: string }
@@ -736,35 +743,22 @@ function LlmReadinessGovernanceCard({
 }: {
   securitySummary: IdjorRagSecuritySummary;
 }) {
-  const llmGoverned = securitySummary.llmEnabled;
-
   return (
     <div className="rounded-[18px] border border-slate-400/10 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
       <div className="mb-3 flex items-center gap-2">
-        {llmGoverned ? (
-          <ShieldCheck className="h-4 w-4 text-cyan-300" />
-        ) : (
-          <BotOff className="h-4 w-4 text-emerald-800 dark:text-emerald-300" />
-        )}
+        <ShieldCheck className="h-4 w-4 text-cyan-300" />
         <h3 className="font-medium text-slate-900 dark:text-white">
-          {llmGoverned
-            ? "Idjor Preview — disponible sous gouvernance"
-            : "LLM IDJOR — activation non demarree"}
+          Preparation gouvernance non vectorisee
         </h3>
       </div>
 
       <p className="rounded-xl border border-slate-300/40 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-slate-400/16 dark:bg-slate-400/5 dark:text-slate-300">
-        {llmGoverned
-          ? "Idjor Preview disponible sous gouvernance — execution controlee uniquement sur demande, par extraction. La disponibilite reelle se verifie au niveau de chaque extraction ci-dessous."
-          : "Specification gouvernee prete — activation non demarree. Aucun moteur LLM actif."}
+        Idjor Preview disponible separement sur extraction compatible — voir le bloc &quot;Idjor
+        Preview Phase 5R&quot; sous chaque document ci-dessous. Execution controlee uniquement
+        sur demande, par extraction.
       </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <ExecutiveStatus
-          label="LLM"
-          value={llmGoverned ? "Gouverne (preview sur demande)" : "OFF"}
-          tone={llmGoverned ? "warning" : "success"}
-        />
         <ExecutiveStatus
           label="Vector store"
           value={securitySummary.vectorStoreEnabled ? "ON" : "OFF"}
@@ -775,21 +769,14 @@ function LlmReadinessGovernanceCard({
           value={securitySummary.decisioningEnabled ? "ON" : "OFF"}
           tone={securitySummary.decisioningEnabled ? "danger" : "success"}
         />
-      </div>
-
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <ExecutiveStatus
-          label="Reponse reelle"
-          value={llmGoverned ? "Depend de l'extraction" : "0"}
-          tone={llmGoverned ? "warning" : "success"}
-        />
         <ExecutiveStatus label="Decision automatique" value="Interdite" tone="success" />
       </div>
 
       <p className="mt-3 rounded-2xl border border-slate-400/10 bg-slate-400/5 px-3 py-2 text-xs leading-relaxed text-brand-textMuted">
-        {llmGoverned
-          ? "Aucune decision metier n'est calculee automatiquement. Le vector store et le decisioning restent desactives ; seule l'execution LLM gouvernee, par extraction et sur demande, est active."
-          : "Aucun appel LLM, aucun provider externe, aucun vector store, aucun retrieval reel et aucune citation reelle ne sont actifs. Cette carte reste un socle de gouvernance en lecture seule."}
+        Aucune decision metier n&apos;est calculee automatiquement. Le vector store et le
+        decisioning restent desactives a ce niveau de synthese ; l&apos;execution LLM reelle, si
+        elle a lieu, se fait uniquement via le bloc Idjor Preview Phase 5R, par extraction et sur
+        demande.
       </p>
     </div>
   );
@@ -925,8 +912,8 @@ function LlmReadinessPanel({
 
       <p className="rounded-xl border border-slate-300/40 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-slate-400/16 dark:bg-slate-400/5 dark:text-slate-300">
         {allFlagsOn
-          ? "Idjor Preview est disponible sous gouvernance pour cette extraction. Le statut ci-dessus signale l'absence d'execution enregistree, pas une desactivation : lancez Idjor Preview ci-dessous pour obtenir une reponse reelle."
-          : "LLM IDJOR gouverne — activation non demarree. Aucun moteur LLM actif, aucune reponse generee."}
+          ? "Idjor Preview disponible separement sur extraction compatible pour cette extraction. Le statut ci-dessus signale l'absence d'execution enregistree, pas une desactivation : lancez Idjor Preview ci-dessous (ou via le bloc Idjor Preview Phase 5R) pour obtenir une reponse reelle."
+          : "Preparation gouvernance non vectorisee pour cette extraction. Execution controlee uniquement sur demande — certains prerequis de gouvernance restent a activer."}
       </p>
 
       <DataPanel className="p-3">
@@ -1855,6 +1842,7 @@ function getErrorCard(state: Extract<FoundationState, { status: "error" }>, tena
 
 export function IdjorFoundationPanel() {
   const { tenant } = useTenant();
+  const { open: openIdjorCompanion } = useIdjorCompanion();
   const demoSafeMode = tenant.demoMode;
   const showTechnicalSections = !tenant.demoMode;
   const searchParams = useSearchParams();
@@ -1873,6 +1861,11 @@ export function IdjorFoundationPanel() {
     status: "idle",
   });
   const [uploadPanelDocumentId, setUploadPanelDocumentId] = useState<string | null>(null);
+  const [idjorPreviewPanelDocumentId, setIdjorPreviewPanelDocumentId] = useState<string | null>(
+    null,
+  );
+  const [idjorPreviewResolutionState, setIdjorPreviewResolutionState] =
+    useState<IdjorPreviewResolutionState>({ status: "idle" });
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [uploadFileError, setUploadFileError] = useState<string | null>(null);
   const [ragUploadIntakeState, setRagUploadIntakeState] = useState<RagUploadIntakeState>({
@@ -2261,6 +2254,50 @@ export function IdjorFoundationPanel() {
 
     if (next) {
       void handleLoadDocumentUploads(next);
+    }
+  };
+
+  const handleToggleIdjorPreviewPanel = async (documentId: string) => {
+    const next = idjorPreviewPanelDocumentId === documentId ? null : documentId;
+    setIdjorPreviewPanelDocumentId(next);
+
+    if (!next) {
+      return;
+    }
+
+    setIdjorPreviewResolutionState({ status: "loading", documentId });
+
+    try {
+      const uploadsPage = await getIdjorRagDocumentUploads(documentId);
+      let resolved: { extractionId: string; uploadId: string } | null = null;
+
+      for (const upload of uploadsPage.uploads) {
+        const extractionsPage = await getIdjorRagUploadExtractions(upload.id);
+        const candidate =
+          extractionsPage.extractions.find((extraction) => extraction.status.startsWith("EXTRACTED")) ??
+          extractionsPage.extractions[0] ??
+          null;
+
+        if (candidate) {
+          resolved = { extractionId: candidate.id, uploadId: upload.id };
+          break;
+        }
+      }
+
+      if (resolved) {
+        setIdjorPreviewResolutionState({ status: "found", documentId, ...resolved });
+      } else {
+        setIdjorPreviewResolutionState({ status: "not-found", documentId });
+      }
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Impossible de resoudre une extraction compatible pour ce document.";
+
+      setIdjorPreviewResolutionState({ status: "error", documentId, message });
     }
   };
 
@@ -3218,8 +3255,134 @@ export function IdjorFoundationPanel() {
                       </button>
                     ),
                   },
+                  {
+                    key: "idjorPreview",
+                    header: "Idjor Preview",
+                    render: (document) => (
+                      <button
+                        type="button"
+                        onClick={() => void handleToggleIdjorPreviewPanel(document.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-cyan-800 dark:text-cyan-200 transition-colors hover:border-cyan-300/50"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        {idjorPreviewPanelDocumentId === document.id
+                          ? "Fermer"
+                          : "Idjor Preview Phase 5R"}
+                      </button>
+                    ),
+                  },
                 ]}
               />
+
+              {idjorPreviewPanelDocumentId ? (
+                <div className="space-y-4 rounded-[18px] border border-cyan-400/22 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-cyan-300" />
+                    <h3 className="font-medium text-slate-900 dark:text-white">
+                      Idjor Preview Phase 5R —{" "}
+                      {state.status === "ready"
+                        ? state.ragDocuments.documents.find(
+                            (document) => document.id === idjorPreviewPanelDocumentId,
+                          )?.title ?? idjorPreviewPanelDocumentId
+                        : idjorPreviewPanelDocumentId}
+                    </h3>
+                  </div>
+
+                  <p className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
+                    Execution controlee uniquement sur demande, par extraction. Analyse non
+                    decisionnelle — l&apos;institution decide.
+                  </p>
+
+                  {idjorPreviewResolutionState.status === "loading" &&
+                  idjorPreviewResolutionState.documentId === idjorPreviewPanelDocumentId ? (
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      Resolution de l&apos;extraction compatible...
+                    </p>
+                  ) : null}
+
+                  {idjorPreviewResolutionState.status === "error" &&
+                  idjorPreviewResolutionState.documentId === idjorPreviewPanelDocumentId ? (
+                    <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+                      {idjorPreviewResolutionState.message}
+                    </div>
+                  ) : null}
+
+                  {idjorPreviewResolutionState.status === "not-found" &&
+                  idjorPreviewResolutionState.documentId === idjorPreviewPanelDocumentId ? (
+                    <p className="rounded-xl border border-amber-300/40 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:border-amber-400/24 dark:bg-amber-400/10 dark:text-amber-300">
+                      Document pret, extraction compatible non trouvee pour l&apos;appel preview.
+                      Gap : aucune extraction exploitable n&apos;est encore disponible pour ce
+                      document — importez un fichier via la quarantaine ci-dessous, puis
+                      previsualisez son extraction avant de relancer Idjor Preview.
+                    </p>
+                  ) : null}
+
+                  {idjorPreviewResolutionState.status === "found" &&
+                  idjorPreviewResolutionState.documentId === idjorPreviewPanelDocumentId ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleRequestLlmPreview(
+                              idjorPreviewResolutionState.extractionId,
+                              idjorPreviewPanelDocumentId,
+                            )
+                          }
+                          disabled={
+                            ragLlmPreviewRequestState.status === "loading" &&
+                            ragLlmPreviewRequestState.extractionId ===
+                              idjorPreviewResolutionState.extractionId
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200 disabled:opacity-60"
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          {ragLlmPreviewRequestState.status === "loading" &&
+                          ragLlmPreviewRequestState.extractionId ===
+                            idjorPreviewResolutionState.extractionId
+                            ? "Analyse en cours..."
+                            : "Lancer Idjor Preview"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openIdjorCompanion({
+                              kind: "extraction",
+                              extractionId: idjorPreviewResolutionState.extractionId,
+                              documentId: idjorPreviewPanelDocumentId,
+                              documentTitle:
+                                (state.status === "ready"
+                                  ? state.ragDocuments.documents.find(
+                                      (document) => document.id === idjorPreviewPanelDocumentId,
+                                    )?.title
+                                  : null) ?? idjorPreviewPanelDocumentId,
+                            })
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-full border border-slate-400/16 bg-slate-400/8 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-800 dark:text-cyan-200"
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          Demander a Idjor
+                        </button>
+                      </div>
+
+                      {ragLlmPreviewRequestState.status === "error" &&
+                      ragLlmPreviewRequestState.extractionId ===
+                        idjorPreviewResolutionState.extractionId ? (
+                        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+                          {ragLlmPreviewRequestState.message}
+                        </div>
+                      ) : null}
+
+                      {ragLlmPreviewRequestState.status === "success" &&
+                      ragLlmPreviewRequestState.extractionId ===
+                        idjorPreviewResolutionState.extractionId ? (
+                        <LlmPreviewResultPanel result={ragLlmPreviewRequestState.response} />
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {uploadPanelDocumentId ? (
                 <div className="space-y-4 rounded-[18px] border border-cyan-400/14 bg-brand-surfaceRaised/72 dark:bg-[#0c1322]/75 p-4">
