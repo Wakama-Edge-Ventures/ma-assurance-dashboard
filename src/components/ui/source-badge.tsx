@@ -5,20 +5,23 @@ interface SourceBadgeProps {
 }
 
 const BADGE_STYLES: Record<DataSource, string> = {
-  LIVE:
-    "border-emerald-400/30 bg-emerald-400/10 text-emerald-400",
-  SEED_DEMO:
-    "border-amber-400/30 bg-amber-400/10 text-amber-400",
-  MANUAL_ESTIMATE:
-    "border-sky-400/30 bg-sky-400/10 text-sky-300",
-  EXCEL_IMPORT:
-    "border-blue-400/30 bg-blue-400/10 text-blue-300",
-  UNAVAILABLE:
-    "border-rose-400/30 bg-rose-400/10 text-rose-300",
-  DEGRADED:
-    "border-orange-400/30 bg-orange-400/10 text-orange-300",
-  MANUAL_ENTRY:
-    "border-cyan-400/30 bg-cyan-400/10 text-cyan-300",
+  LIVE: "bg-wk-liveSoft text-wk-liveInk",
+  SEED_DEMO: "bg-wk-violetSoft text-wk-violetInk",
+  MANUAL_ESTIMATE: "bg-wk-tealSoft text-wk-tealInk",
+  EXCEL_IMPORT: "bg-wk-tealSoft text-wk-tealInk",
+  UNAVAILABLE: "bg-wk-coralSoft text-wk-coralInk",
+  DEGRADED: "bg-wk-amberSoft text-wk-amberInk",
+  MANUAL_ENTRY: "bg-wk-surface3 text-wk-muted",
+};
+
+const DOT_STYLES: Record<DataSource, string> = {
+  LIVE: "bg-wk-live",
+  SEED_DEMO: "bg-wk-violet",
+  MANUAL_ESTIMATE: "bg-wk-teal",
+  EXCEL_IMPORT: "bg-wk-teal",
+  UNAVAILABLE: "bg-wk-coral",
+  DEGRADED: "bg-wk-amber",
+  MANUAL_ENTRY: "bg-wk-faint",
 };
 
 const BADGE_LABELS: Record<DataSource, string> = {
@@ -32,15 +35,13 @@ const BADGE_LABELS: Record<DataSource, string> = {
 };
 
 export function SourceBadge({ source }: SourceBadgeProps) {
-  const showDot = source === "LIVE";
+  const showPulse = source === "LIVE";
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-medium ${BADGE_STYLES[source]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10.5px] font-bold ${BADGE_STYLES[source]}`}
     >
-      {showDot ? (
-        <span className="oracle-live-dot h-1.5 w-1.5 flex-none rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.75)]" />
-      ) : null}
+      <span className={`h-1.5 w-1.5 flex-none rounded-full ${DOT_STYLES[source]} ${showPulse ? "oracle-live-dot" : ""}`} />
       {BADGE_LABELS[source]}
     </span>
   );

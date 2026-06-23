@@ -16,14 +16,14 @@ export function IdjorAttachmentButton() {
         onBlur={() => setShowHint(false)}
         onMouseEnter={() => setShowHint(true)}
         onMouseLeave={() => setShowHint(false)}
-        className="grid h-9 w-9 flex-none cursor-not-allowed place-items-center rounded-full border border-slate-400/14 bg-slate-400/5 text-slate-500"
+        className="grid h-9 w-9 flex-none cursor-not-allowed place-items-center rounded-full border border-wk-border bg-wk-surface2 text-wk-faint"
         aria-label="Joindre un fichier (bientôt disponible)"
       >
         <Paperclip className="h-4 w-4" />
       </button>
 
       {showHint ? (
-        <span className="absolute bottom-full left-1/2 mb-2 w-56 -translate-x-1/2 rounded-xl border border-slate-400/14 bg-[#0b0f1a] px-3 py-2 text-[11px] leading-relaxed text-slate-300 shadow-premium-dark">
+        <span className="absolute bottom-full left-1/2 mb-2 w-56 -translate-x-1/2 rounded-xl border border-wk-border bg-wk-surface px-3 py-2 text-[11px] font-medium leading-relaxed text-wk-muted shadow-wk-lg">
           Bientôt disponible ici — utilisez le workflow documentaire pour importer un fichier.
         </span>
       ) : null}

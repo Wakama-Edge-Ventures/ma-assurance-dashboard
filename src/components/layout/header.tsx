@@ -10,7 +10,6 @@ import { useTenant } from "@/components/tenant/useTenant";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { AUTH_CHANGED_EVENT, getAuthenticatedUser, signOut } from "@/lib/auth";
 import { DESIGN_TOKENS } from "@/lib/design-tokens";
-import { withAlpha } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
 
 import { Button } from "../ui/button";
@@ -59,35 +58,37 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-20 flex items-center gap-[18px] px-[30px] py-[18px] backdrop-blur-lg",
+        "sticky top-0 z-20 flex items-center gap-[18px] px-[28px] py-[14px]",
         DESIGN_TOKENS.header.shell,
       )}
     >
-      <div className="flex flex-col leading-[1.15]">
-        <span
-          className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em]"
-          style={{ color: tenant.colors.primary }}
-        >
-          <Activity className="h-3 w-3" />
-          {titlePrefix}
-        </span>
-        <span
-          className={cn(
-            "mt-0.5 font-display text-[20px] font-semibold tracking-[-0.01em]",
-            DESIGN_TOKENS.header.title,
-          )}
-        >
-          {currentPage.charAt(0).toUpperCase() + currentPage.slice(1)}
-        </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2.5">
+          <Activity className="h-3.5 w-3.5 flex-none" style={{ color: tenant.colors.primary }} />
+          <h2
+            className={cn(
+              "truncate font-display text-[17px] font-extrabold tracking-[-0.01em]",
+              DESIGN_TOKENS.header.title,
+            )}
+          >
+            {currentPage.charAt(0).toUpperCase() + currentPage.slice(1)}
+          </h2>
+          <span className="rounded-md bg-wk-surface2 px-1.5 py-0.5 font-mono text-[11px] font-medium text-wk-faint">
+            {pathname}
+          </span>
+        </div>
+        <p className="mt-0.5 truncate text-[12px] font-semibold text-wk-muted">
+          {titlePrefix} · {tenantScopeLabel}
+        </p>
       </div>
 
       <div
         className={cn(
-          "hidden items-center gap-2.5 rounded-full px-4 py-2.5 md:flex md:w-[360px]",
+          "hidden items-center gap-2.5 rounded-[11px] px-3.5 py-2 md:flex md:w-[260px]",
           DESIGN_TOKENS.header.searchShell,
         )}
       >
-        <Search className="h-[15px] w-[15px] flex-none text-brand-textMuted" />
+        <Search className="h-4 w-4 flex-none text-wk-faint" />
         <input
           placeholder={searchPlaceholder}
           className={cn(
@@ -99,60 +100,45 @@ export function Header() {
         />
       </div>
 
-      <div className="ml-auto flex items-center gap-3">
-        <span
-          className="hidden items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] md:inline-flex"
-          style={{
-            borderColor: withAlpha(tenant.colors.primary, "45"),
-            backgroundColor: withAlpha(tenant.colors.primary, "12"),
-            color: tenant.colors.primary,
-          }}
-        >
-          {tenantScopeLabel}
-        </span>
-
+      <div className="flex items-center gap-2.5">
         <TenantDemoSwitcher />
         <TenantBadge className="hidden md:inline-flex" />
-        <ThemeToggle />
 
         {isApplicationsPage ? (
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em]",
+              "hidden items-center gap-1.5 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.04em] md:inline-flex",
               DESIGN_TOKENS.pill.neutral,
             )}
           >
             Source par dossier
           </span>
         ) : isIdjorPage ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-amber-700 dark:border-amber-400/28 dark:text-amber-300">
+          <span className="hidden items-center gap-1.5 rounded-full bg-wk-violetSoft px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.04em] text-wk-violetInk md:inline-flex">
             Socle gouverne
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.04em] text-emerald-700 dark:border-emerald-400/28 dark:text-emerald-400">
+          <span className="hidden items-center gap-1.5 rounded-full bg-wk-liveSoft px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.04em] text-wk-liveInk md:inline-flex">
             {tenant.demoMode ? "Vue demo" : "Vue active"}
           </span>
         )}
 
-        <div className="flex items-center gap-2.5 border-l border-brand-border/10 pl-3.5">
+        <ThemeToggle />
+
+        <div className="flex items-center gap-2.5 border-l border-wk-border pl-3">
           <div
             className={cn(
               "grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]",
-              "font-mono text-[12px] font-semibold",
+              "text-[12px] font-extrabold",
               DESIGN_TOKENS.header.avatarText,
             )}
-            style={{
-              background: `linear-gradient(135deg, ${tenant.colors.accent}, ${tenant.colors.primary})`,
-              boxShadow: `0 0 16px ${withAlpha(tenant.colors.accent, "4D")}`,
-            }}
+            style={{ background: `linear-gradient(135deg, ${tenant.colors.accent}, ${tenant.colors.primary})` }}
           >
             {initials || "DW"}
           </div>
           <div className="hidden leading-tight xl:block">
-            <p className={cn("text-[12.5px] font-medium", DESIGN_TOKENS.header.userName)}>{userName}</p>
-            <p className={cn("text-[10.5px] uppercase tracking-[0.08em]", DESIGN_TOKENS.text.faint)}>
-              {tenant.shortName}
-            </p>
+            <p className={cn("text-[12.5px] font-bold", DESIGN_TOKENS.header.userName)}>{userName}</p>
+            <p className={cn("text-[10.5px] font-semibold", DESIGN_TOKENS.text.faint)}>{tenant.shortName}</p>
           </div>
         </div>
 
@@ -162,7 +148,7 @@ export function Header() {
             await signOut();
             router.push("/fr/login");
           }}
-          className="gap-1.5 whitespace-nowrap rounded-[10px] border border-brand-border/10 text-brand-textMuted hover:border-red-400/30 hover:text-red-500 dark:hover:text-red-400"
+          className="gap-1.5 whitespace-nowrap rounded-[10px] hover:text-wk-coral"
         >
           <LogOut className="h-4 w-4" />
           <span className="hidden sm:inline">Deconnexion</span>

@@ -47,7 +47,7 @@ export function ProtectedShell({ children }: Readonly<{ children: React.ReactNod
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-bg text-sm text-brand-textMuted">
+      <div className="flex min-h-screen items-center justify-center bg-wk-bg text-sm font-medium text-wk-muted">
         Verification de session...
       </div>
     );
@@ -55,7 +55,7 @@ export function ProtectedShell({ children }: Readonly<{ children: React.ReactNod
 
   return (
     <IdjorCompanionProvider>
-      <div className="flex min-h-screen flex-col bg-brand-bg text-slate-900 dark:text-slate-100">
+      <div className="flex min-h-screen flex-col bg-wk-bg text-wk-text">
         <div className="flex flex-1 lg:flex-row">
           <Sidebar
             collapsed={sidebarCollapsed}

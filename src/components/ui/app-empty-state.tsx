@@ -11,8 +11,8 @@ interface AppEmptyStateProps {
 export function AppEmptyState({ title, description, action }: AppEmptyStateProps) {
   return (
     <AppCard tone="subtle" className="space-y-2.5 p-4 text-center">
-      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{title}</p>
-      <p className="text-xs text-brand-textMuted">{description}</p>
+      <p className="text-sm font-semibold text-wk-text">{title}</p>
+      <p className="text-xs text-wk-muted">{description}</p>
       {action ? <div className="pt-1">{action}</div> : null}
     </AppCard>
   );

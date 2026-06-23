@@ -11,7 +11,7 @@ interface AppCardProps {
 
 export function AppCard({ children, className, tone = "base" }: AppCardProps) {
   return (
-    <section className={cn(CARD_PRESETS[tone], CARD_PRESETS.hover, "text-slate-900 dark:text-slate-100", className)}>
+    <section className={cn(CARD_PRESETS[tone], CARD_PRESETS.hover, "text-wk-text", className)}>
       {children}
     </section>
   );

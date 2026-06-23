@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, LogOut, ShieldAlert } from "lucide-react";
+import { AlertTriangle, EyeOff, LogOut, ShieldAlert } from "lucide-react";
 
 import { AppCard } from "@/components/ui/app-card";
 import { Button } from "@/components/ui/button";
@@ -56,21 +56,23 @@ export function TenantSessionMismatchCard({
   }
 
   return (
-    <AppCard className="space-y-4 border-amber-400/30 bg-amber-400/5 p-5" tone="soft">
-      <div className="flex items-center gap-2">
-        {isMismatch ? (
-          <ShieldAlert className="h-5 w-5 text-amber-400" />
-        ) : (
-          <AlertTriangle className="h-5 w-5 text-amber-400" />
-        )}
-        <p className="font-display text-base font-semibold text-white">
+    <AppCard className="space-y-4 p-5" tone="soft">
+      <div className="flex items-start gap-3">
+        <div className="grid h-11 w-11 flex-none place-items-center rounded-[14px] bg-wk-amberSoft">
+          {isMismatch ? (
+            <ShieldAlert className="h-5 w-5 text-wk-amberInk" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 text-wk-amberInk" />
+          )}
+        </div>
+        <p className="pt-2 font-display text-base font-extrabold text-wk-text">
           {isMismatch
             ? "Contexte demo incompatible"
             : "Verification du contexte de session impossible"}
         </p>
       </div>
 
-      <div className="space-y-2 text-sm text-slate-300">
+      <div className="space-y-2 text-sm font-medium text-wk-muted">
         {isMismatch ? (
           <>
             <p>Session reelle : {backendLabel}.</p>
@@ -96,7 +98,14 @@ export function TenantSessionMismatchCard({
         )}
       </div>
 
-      <p className="rounded-xl border border-slate-400/15 bg-slate-900/40 px-3 py-2 font-mono text-[11px] text-slate-400">
+      <div className="flex items-center gap-2.5 rounded-[13px] bg-wk-coralSoft px-3.5 py-3">
+        <EyeOff className="h-4 w-4 flex-none text-wk-coralInk" />
+        <span className="text-[13px] font-bold text-wk-coralInk">
+          Les donnees reelles sont masquees dans ce contexte.
+        </span>
+      </div>
+
+      <p className="rounded-xl bg-wk-surface2 px-3 py-2 font-mono text-[11px] font-medium text-wk-faint">
         Session backend : {backendTenantKey ?? "inconnue"}
         {resolutionMode ? ` — Resolution : ${resolutionMode}` : ""}
       </p>

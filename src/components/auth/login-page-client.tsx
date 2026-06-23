@@ -2,9 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LockKeyhole } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sprout } from "lucide-react";
 
-import { TenantBadge } from "@/components/tenant/TenantBadge";
 import { TenantLogo } from "@/components/tenant/TenantLogo";
 import {
   clearAuth,
@@ -21,10 +20,13 @@ import {
   TENANT_COOKIE_NAME,
   withAlpha,
 } from "@/lib/tenant";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+
+const TRUST_BADGES = [
+  { icon: ShieldCheck, label: "Audit append-only" },
+  { icon: Sprout, label: "Terrain partagé Wakama" },
+];
 
 function readTenantIdFromCookie() {
   if (typeof document === "undefined") return null;
@@ -173,23 +175,70 @@ export function LoginPageClient() {
       : `Acces demo ${tenant.countryLabel} - ${tenant.vertical}. Le backend reste celui du dashboard existant.`;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-brand-bg p-4">
+    <main className="grid min-h-screen bg-wk-bg lg:grid-cols-[1.05fr_0.95fr]">
       <div
-        className="pointer-events-none absolute left-[-80px] top-[-110px] h-64 w-64 rounded-full blur-3xl"
-        style={{ backgroundColor: withAlpha(tenant.colors.primary, "29") }}
-      />
-      <div
-        className="pointer-events-none absolute bottom-[-120px] right-[-60px] h-72 w-72 rounded-full blur-3xl"
-        style={{ backgroundColor: withAlpha(tenant.colors.accent, "2E") }}
-      />
-      <Card className="w-full max-w-md p-5">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <TenantBadge />
-          <ThemeToggle />
+        className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:flex"
+        style={{
+          background: `linear-gradient(150deg, ${tenant.colors.accent} 0%, ${tenant.colors.primary} 48%, ${tenant.colors.secondary} 120%)`,
+        }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.16]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 18% 22%, #fff 0, transparent 38%), repeating-linear-gradient(115deg, rgba(255,255,255,.5) 0 1px, transparent 1px 26px)",
+          }}
+        />
+
+        <div className="relative flex items-center gap-3">
+          <div className="grid h-[42px] w-[42px] place-items-center rounded-[13px] border border-white/28 bg-white/16 backdrop-blur">
+            <Sprout className="h-[23px] w-[23px] text-white" />
+          </div>
+          <div>
+            <div className="text-[18px] font-extrabold tracking-[-0.3px]">Wakama</div>
+            <div className="-mt-0.5 text-[12px] font-semibold opacity-80">Assurance Dashboard</div>
+          </div>
         </div>
 
-        <div className="mb-5 space-y-3">
-          <div className="flex items-center gap-3">
+        <div className="relative max-w-[430px]">
+          <div className="mb-[18px] text-[13px] font-bold uppercase tracking-[0.14em] opacity-80">
+            Plateforme institutionnelle
+          </div>
+          <div className="text-[38px] font-extrabold leading-[1.12] tracking-[-1px]">
+            L&apos;assurance agricole, structurée et documentée.
+          </div>
+          <div className="mt-5 text-[16px] font-normal leading-relaxed opacity-90">
+            Idjor assiste, explique, structure et alerte. L&apos;institution garde la décision finale.
+          </div>
+        </div>
+
+        <div className="relative flex flex-wrap gap-2.5">
+          {TRUST_BADGES.map((trust) => (
+            <div
+              key={trust.label}
+              className="flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-3.5 py-2 text-[13px] font-semibold"
+            >
+              <trust.icon className="h-[15px] w-[15px]" />
+              {trust.label}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-[382px]">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <span
+              className="inline-flex items-center gap-2 rounded-full px-3 py-[7px] text-[12.5px] font-bold"
+              style={{ backgroundColor: "var(--wk-primary-soft)", color: "var(--wk-primary-ink)" }}
+            >
+              <span className="h-2 w-2 rounded-full bg-wk-live" />
+              {tenant.displayName} · {tenant.country}
+            </span>
+            <ThemeToggle />
+          </div>
+
+          <div className="mb-2 flex items-center gap-3">
             <TenantLogo
               alt={tenant.displayName}
               className="h-9 w-auto object-contain"
@@ -197,80 +246,69 @@ export function LoginPageClient() {
               height={72}
               priority
             />
-            <div className="leading-tight">
-              <p className="font-display text-[15px] font-semibold text-slate-900 dark:text-slate-100">
-                {tenant.displayName}
-              </p>
-              <p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-brand-textMuted">
-                {[tenant.countryLabel, tenant.institutionType].filter(Boolean).join(" · ")}
-              </p>
-            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <LockKeyhole className="h-4 w-4" style={{ color: tenant.colors.primary }} />
-            <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {contextualLoginTitle}
-            </h1>
-          </div>
-          <p className="text-sm text-brand-textMuted">{contextualLoginDescription}</p>
+          <h1 className="text-[27px] font-extrabold tracking-[-0.6px] text-wk-text">
+            {contextualLoginTitle}
+          </h1>
+          <p className="mt-[7px] text-[15px] font-medium text-wk-muted">{contextualLoginDescription}</p>
           {tenant.demoMode ? (
             <p
-              className="rounded-lg border px-3 py-2 text-xs text-slate-300"
+              className="mt-3 rounded-xl px-3 py-2.5 text-xs font-semibold"
               style={{
-                borderColor: withAlpha(tenant.colors.primary, "40"),
                 backgroundColor: withAlpha(tenant.colors.primary, "12"),
+                color: tenant.colors.primary,
               }}
             >
               Demo institutionnelle - maquette d&apos;illustration. Les donnees et decisions
               restent sous controle de l&apos;institution.
             </p>
           ) : null}
-        </div>
 
-        <form className="space-y-4" onSubmit={onSubmit}>
-          {notice ? (
-            <p className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-              {notice}
-            </p>
-          ) : null}
+          <form className="mt-7 space-y-4" onSubmit={onSubmit}>
+            {notice ? (
+              <p className="rounded-xl bg-wk-amberSoft px-3 py-2 text-xs font-semibold text-wk-amberInk">
+                {notice}
+              </p>
+            ) : null}
 
-          <label className="block space-y-1">
-            <span className="text-sm text-brand-textMuted">Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-xl border border-brand-border/22 bg-brand-surfaceRaised/75 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400/55 focus:ring-2 focus:ring-cyan-400/20 dark:border-brand-border/28 dark:text-slate-100"
-              required
-            />
-          </label>
+            <label className="block space-y-1.5">
+              <span className="text-[13px] font-bold text-wk-text">Email professionnel</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="h-[46px] w-full rounded-xl border border-wk-border2 bg-wk-surface px-[15px] text-[14.5px] text-wk-text outline-none transition focus:border-wk-primary"
+                required
+              />
+            </label>
 
-          <label className="block space-y-1">
-            <span className="text-sm text-brand-textMuted">Mot de passe</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-xl border border-brand-border/22 bg-brand-surfaceRaised/75 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400/55 focus:ring-2 focus:ring-cyan-400/20 dark:border-brand-border/28 dark:text-slate-100"
-              required
-            />
-          </label>
+            <label className="block space-y-1.5">
+              <span className="text-[13px] font-bold text-wk-text">Mot de passe</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="h-[46px] w-full rounded-xl border border-wk-border2 bg-wk-surface px-[15px] text-[14.5px] text-wk-text outline-none transition focus:border-wk-primary"
+                required
+              />
+            </label>
 
-          {error ? <p className="text-sm text-red-600 dark:text-red-300">{error}</p> : null}
+            {error ? <p className="text-sm font-semibold text-wk-coralInk">{error}</p> : null}
 
-          <Button className="w-full" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Connexion..." : "Se connecter"}
-          </Button>
-        </form>
+            <Button className="h-[48px] w-full gap-2 rounded-xl text-[15px]" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Connexion..." : "Se connecter"}
+              {!isSubmitting && <ArrowRight className="h-[17px] w-[17px]" />}
+            </Button>
+          </form>
 
-        <div className="mt-4 space-y-2 rounded-xl border border-brand-border/18 bg-brand-surfaceRaised/60 p-3 text-xs text-brand-textMuted dark:border-brand-border/24">
-          <p>{tenant.terminology.decisionDisclaimer}</p>
-          <div className="flex items-center gap-2">
-            <span>Source attendue:</span>
-            <DataSourceBadge source="LIVE" />
+          <div className="mt-[18px] flex items-start gap-2.5 rounded-xl border border-wk-border bg-wk-surface2 p-[13px]">
+            <ShieldCheck className="mt-[1px] h-4 w-4 flex-none text-wk-violet" />
+            <span className="text-[12.5px] font-medium leading-relaxed text-wk-muted">
+              {tenant.terminology.decisionDisclaimer}
+            </span>
           </div>
         </div>
-      </Card>
+      </div>
     </main>
   );
 }

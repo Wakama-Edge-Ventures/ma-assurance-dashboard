@@ -64,84 +64,80 @@ export function IdjorCompanionPanel() {
       aria-label="Idjor Compagnon"
       className="fixed inset-x-0 bottom-0 z-50 sm:inset-x-auto sm:bottom-6 sm:right-6"
     >
-      <div className="idjor-rainbow-border rounded-t-3xl sm:rounded-3xl">
-        <div
-          className={cn(
-            "idjor-rainbow-border-inner flex h-[80vh] w-full flex-col rounded-t-3xl bg-[#0b0f1a]",
-            "shadow-premium-dark sm:h-[640px] sm:w-[420px] sm:rounded-3xl",
-          )}
-        >
-          <header className="flex items-center gap-3 border-b border-slate-400/10 px-4 py-3.5">
-            <div
-              className="grid h-9 w-9 flex-none place-items-center rounded-full"
-              style={{
-                background: `linear-gradient(135deg, ${tenant.colors.accent}, ${tenant.colors.primary})`,
-              }}
-            >
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[13.5px] font-semibold text-white">Idjor Compagnon</p>
-              <p className="truncate text-[11px] text-brand-textMuted">{subtitle}</p>
-            </div>
-            <button
-              type="button"
-              onClick={close}
-              aria-label="Fermer Idjor Compagnon"
-              className="grid h-8 w-8 flex-none place-items-center rounded-full text-slate-400 transition-colors hover:bg-slate-400/10 hover:text-white"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </header>
-
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-            {messages.map((message) => (
-              <IdjorChatMessageBubble key={message.id} message={message} />
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-1.5 border-t border-slate-400/10 px-4 py-2.5">
-            {QUICK_ACTIONS.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                disabled={isBusy}
-                onClick={() => void runAction(action.id)}
-                className="rounded-full border border-slate-400/16 bg-slate-400/5 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-slate-300 transition-colors hover:border-cyan-400/36 hover:text-cyan-200 disabled:opacity-50"
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-
-          <form
-            className="flex items-center gap-2 border-t border-slate-400/10 px-3 py-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!draft.trim() || isBusy) return;
-              void sendMessage(draft);
-              setDraft("");
-            }}
+      <div
+        className={cn(
+          "flex h-[80vh] w-full flex-col rounded-t-3xl border border-wk-border bg-wk-surface",
+          "shadow-wk-lg sm:h-[640px] sm:w-[420px] sm:rounded-[22px]",
+        )}
+      >
+        <header className="flex items-center gap-3 border-b border-wk-border bg-gradient-to-r from-wk-violetSoft to-transparent px-4 py-3.5">
+          <div
+            className="grid h-9 w-9 flex-none place-items-center rounded-[11px]"
+            style={{ background: `linear-gradient(140deg, ${tenant.colors.accent}, ${tenant.colors.primary})` }}
           >
-            <IdjorAttachmentButton />
-            <input
-              ref={inputRef}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Écrire à Idjor…"
-              aria-label="Message pour Idjor"
-              className="flex-1 rounded-full border border-slate-400/16 bg-slate-400/5 px-3.5 py-2 text-[13px] text-white outline-none placeholder:text-slate-500 focus-visible:border-cyan-400/40"
-            />
-            <button
-              type="submit"
-              disabled={isBusy || !draft.trim()}
-              aria-label="Envoyer"
-              className="grid h-9 w-9 flex-none place-items-center rounded-full bg-cyan-500/90 text-[#0b0f1a] transition-opacity disabled:opacity-40"
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </form>
+            <Sparkles className="h-4 w-4 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] font-extrabold text-wk-text">Idjor</p>
+            <p className="truncate text-[11px] font-semibold text-wk-muted">{subtitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Fermer Idjor Compagnon"
+            className="grid h-8 w-8 flex-none place-items-center rounded-full text-wk-muted transition-colors hover:bg-wk-surface2 hover:text-wk-text"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+
+        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          {messages.map((message) => (
+            <IdjorChatMessageBubble key={message.id} message={message} />
+          ))}
         </div>
+
+        <div className="flex flex-wrap gap-1.5 border-t border-wk-border px-4 py-2.5">
+          {QUICK_ACTIONS.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              disabled={isBusy}
+              onClick={() => void runAction(action.id)}
+              className="rounded-full border border-wk-border bg-wk-surface2 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-wk-muted transition-colors hover:text-wk-violetInk disabled:opacity-50"
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+
+        <form
+          className="flex items-center gap-2 border-t border-wk-border px-3 py-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!draft.trim() || isBusy) return;
+            void sendMessage(draft);
+            setDraft("");
+          }}
+        >
+          <IdjorAttachmentButton />
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Écrire à Idjor…"
+            aria-label="Message pour Idjor"
+            className="flex-1 rounded-full border border-wk-border2 bg-wk-surface2 px-3.5 py-2 text-[13px] text-wk-text outline-none placeholder:text-wk-faint focus-visible:border-wk-violet"
+          />
+          <button
+            type="submit"
+            disabled={isBusy || !draft.trim()}
+            aria-label="Envoyer"
+            className="grid h-9 w-9 flex-none place-items-center rounded-full bg-wk-violet text-white transition-opacity disabled:opacity-40"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </form>
       </div>
     </div>
   );

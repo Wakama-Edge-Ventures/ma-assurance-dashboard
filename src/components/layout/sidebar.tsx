@@ -15,20 +15,20 @@ import {
   Handshake,
   Home,
   Landmark,
+  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Scale,
   Settings,
   Shield,
+  Sprout,
   Tractor,
   Users,
 } from "lucide-react";
 
 import { TenantBadge } from "@/components/tenant/TenantBadge";
-import { TenantLogo } from "@/components/tenant/TenantLogo";
 import { useTenant } from "@/components/tenant/useTenant";
 import { DESIGN_TOKENS } from "@/lib/design-tokens";
-import { withAlpha } from "@/lib/tenant";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -169,51 +169,46 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-screen flex-col py-[22px] backdrop-blur-md lg:flex",
+        "sticky top-0 hidden h-screen flex-col py-[18px] lg:flex",
         DESIGN_TOKENS.sidebar.shell,
         collapsed ? "w-[76px] items-center px-3" : "w-[252px] px-4",
         "transition-[width] duration-200",
       )}
     >
-      <div className={cn("mb-5 flex items-center", collapsed ? "justify-center" : "gap-3 px-1.5")}>
-        <TenantLogo
-          alt={tenant.displayName}
-          className="h-8 w-auto flex-none object-contain"
-          width={160}
-          height={64}
-          priority
-        />
+      <div className={cn("mb-4 flex items-center border-b border-wk-border pb-[14px]", collapsed ? "justify-center" : "gap-2.5 px-0.5")}>
+        <div
+          className="grid h-9 w-9 flex-none place-items-center rounded-[11px]"
+          style={{ background: `linear-gradient(145deg, ${tenant.colors.primary}, ${tenant.colors.secondary})` }}
+        >
+          <Sprout className="h-5 w-5 text-white" />
+        </div>
         {!collapsed && (
           <div className="flex min-w-0 flex-col leading-tight">
             <span
               className={cn(
-                "truncate font-display text-[15px] font-semibold tracking-[-0.01em]",
+                "truncate font-display text-[15px] font-extrabold tracking-[-0.01em]",
                 DESIGN_TOKENS.sidebar.brandTitle,
               )}
             >
               {tenant.displayName}
             </span>
-            <span
-              className="mt-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em]"
-              style={{ color: tenant.colors.primary }}
-            >
+            <span className="mt-0.5 truncate text-[11px] font-semibold text-wk-muted">
               {tenant.vertical}
             </span>
           </div>
         )}
       </div>
 
-      {!collapsed && <TenantBadge className="mb-4 self-start" />}
+      {!collapsed && <TenantBadge className="mb-3 self-start" />}
 
-      <div className={cn("mb-5", collapsed ? "flex justify-center" : "")}>
+      <div className={cn("mb-3", collapsed ? "flex justify-center" : "")}>
         <button
           type="button"
           onClick={onToggle}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-colors",
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
             DESIGN_TOKENS.sidebar.toggleButton,
           )}
-          style={{ borderColor: withAlpha(tenant.colors.primary, "30") }}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
@@ -227,13 +222,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </button>
       </div>
 
-      <nav className={cn("flex-1 space-y-5 overflow-y-auto", collapsed && "w-full")}>
+      <nav className={cn("flex-1 space-y-3.5 overflow-y-auto", collapsed && "w-full")}>
         {navGroups.map((group) => (
           <div key={group.label} className="space-y-0.5">
             {!collapsed && (
               <p
                 className={cn(
-                  "px-3 pb-1.5 font-mono text-[10px] uppercase tracking-[0.16em]",
+                  "px-2.5 pb-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.13em]",
                   DESIGN_TOKENS.sidebar.groupLabel,
                 )}
               >
@@ -250,36 +245,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   href={item.href}
                   title={collapsed ? item.label : undefined}
                   className={cn(
-                    "flex items-center rounded-[10px] text-[13.5px] font-medium transition-all duration-150",
-                    collapsed ? "justify-center p-[11px]" : "gap-3 py-[9px]",
-                    active
-                      ? cn(
-                          DESIGN_TOKENS.sidebar.active,
-                          "bg-gradient-to-r from-cyan-400/16 to-emerald-400/6",
-                          "border-l-[3px]",
-                          collapsed ? "pl-[11px]" : "pl-[9px]",
-                        )
-                      : cn(
-                          DESIGN_TOKENS.sidebar.item,
-                          collapsed ? "" : "pl-3",
-                        ),
+                    "flex items-center rounded-[10px] text-[13.5px] font-semibold transition-all duration-150",
+                    collapsed ? "justify-center p-[11px]" : "gap-2.5 px-2.5 py-[8.5px]",
+                    active ? DESIGN_TOKENS.sidebar.active : DESIGN_TOKENS.sidebar.item,
                   )}
-                  style={
-                    active
-                      ? {
-                          borderLeftColor: tenant.colors.primary,
-                          boxShadow: `inset 0 0 0 1px ${withAlpha(tenant.colors.primary, "24")}, 0 0 20px ${withAlpha(tenant.colors.primary, "14")}`,
-                        }
-                      : undefined
-                  }
                 >
-                  <span
-                    className="flex-none"
-                    style={active ? { color: tenant.colors.primary } : undefined}
-                  >
-                    <Icon className={cn("h-[18px] w-[18px]", active ? "" : DESIGN_TOKENS.sidebar.icon)} />
-                  </span>
-                  {!collapsed && <span>{item.label}</span>}
+                  <Icon className="h-[17px] w-[17px] flex-none" />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
@@ -289,20 +261,27 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       <div
         className={cn(
-          "mt-auto rounded-[14px]",
+          "mt-3 rounded-[11px]",
           DESIGN_TOKENS.sidebar.footer,
-          collapsed ? "flex justify-center p-[11px]" : "flex items-center gap-2.5 px-3 py-3",
+          "border-t-0",
+          collapsed ? "flex justify-center p-[9px]" : "flex items-center gap-2.5 px-2.5 py-2.5",
         )}
       >
-        <span
-          className="h-2 w-2 flex-none rounded-full shadow-[0_0_10px_rgba(52,211,153,0.8)]"
-          style={{ backgroundColor: tenant.colors.secondary }}
-        />
+        <div
+          className="grid h-8 w-8 flex-none place-items-center rounded-[9px] text-[12px] font-extrabold"
+          style={{ backgroundColor: "var(--wk-violet-soft)", color: "var(--wk-violet-ink)" }}
+        >
+          {(tenant.shortName || tenant.displayName).slice(0, 2).toUpperCase()}
+        </div>
         {!collapsed && (
-          <span className={cn("text-[12px]", DESIGN_TOKENS.sidebar.footerText)}>
-            {tenant.demoMode ? `${tenant.shortName} demo` : "Vue institutionnelle"} · v0.9 MVP
-          </span>
+          <div className="flex min-w-0 flex-1 flex-col leading-tight">
+            <span className="truncate text-[13px] font-bold text-wk-text">
+              {tenant.demoMode ? `${tenant.shortName} demo` : "Vue institutionnelle"}
+            </span>
+            <span className="text-[11px] font-semibold text-wk-muted">v0.9 MVP</span>
+          </div>
         )}
+        {!collapsed && <LogOut className="h-4 w-4 flex-none text-wk-muted" />}
       </div>
     </aside>
   );
@@ -314,10 +293,10 @@ export function MobileNav() {
   const flatItems = getTenantNavGroups(tenant).flatMap((group) => group.items);
 
   return (
-    <div className={cn("px-3 py-2 backdrop-blur lg:hidden", DESIGN_TOKENS.sidebar.shell)}>
+    <div className={cn("px-3 py-2 lg:hidden", DESIGN_TOKENS.sidebar.shell)}>
       <div className="mb-2 flex items-center gap-2">
         <TenantBadge />
-        <span className={cn("font-mono text-[10px] uppercase tracking-[0.08em]", DESIGN_TOKENS.text.faint)}>
+        <span className={cn("text-[10px] font-bold uppercase tracking-[0.08em]", DESIGN_TOKENS.text.faint)}>
           {tenant.shortName}
         </span>
       </div>
@@ -329,12 +308,9 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "whitespace-nowrap rounded-full border px-3 py-1 font-mono text-[11px] transition-colors",
-                active
-                  ? "border-cyan-400/40 bg-cyan-400/12 text-slate-900 dark:text-white"
-                  : "border-brand-border/15 bg-transparent text-brand-textMuted hover:text-slate-900 dark:hover:text-white",
+                "whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-bold transition-colors",
+                active ? "bg-wk-primarySoft text-wk-primaryInk" : "bg-wk-surface2 text-wk-muted hover:text-wk-text",
               )}
-              style={active ? { borderColor: withAlpha(tenant.colors.primary, "59") } : undefined}
             >
               {item.label}
             </Link>

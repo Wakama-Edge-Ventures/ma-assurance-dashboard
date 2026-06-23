@@ -21,13 +21,11 @@ export function ThemeToggle() {
   }, []);
 
   if (!mounted) {
-    return (
-      <div className="inline-flex h-8 w-[164px] items-center rounded-full border border-brand-border/25 bg-brand-surface px-1" />
-    );
+    return <div className="inline-flex h-9 w-[38px] items-center rounded-[11px] border border-wk-border bg-wk-surface2" />;
   }
 
   return (
-    <div className="inline-flex items-center rounded-full border border-brand-border/25 bg-brand-surfaceRaised/70 p-0.5">
+    <div className="inline-flex items-center gap-0.5 rounded-[11px] border border-wk-border bg-wk-surface2 p-0.5">
       {OPTIONS.map((option) => {
         const Icon = option.icon;
         const selected = theme === option.key;
@@ -36,11 +34,10 @@ export function ThemeToggle() {
             key={option.key}
             type="button"
             onClick={() => setTheme(option.key)}
+            title={option.label}
             className={cn(
-              "inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium transition",
-              selected
-                ? "bg-gradient-to-r from-cyan-500/20 to-violet-500/20 text-slate-900 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.28)] dark:text-slate-100"
-                : "text-brand-textMuted hover:text-slate-900 dark:text-brand-textMuted dark:hover:text-slate-100",
+              "inline-flex h-8 items-center gap-1 rounded-[9px] px-2 text-[11px] font-semibold transition",
+              selected ? "bg-wk-primarySoft text-wk-primaryInk" : "text-wk-muted hover:text-wk-text",
             )}
           >
             <Icon className="h-3.5 w-3.5" />

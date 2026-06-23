@@ -52,41 +52,34 @@ export function AppPageHeader({
       : `${tenant.shortName} · ${tenant.vertical}`;
 
   return (
-    <div
-      className="relative mb-4 overflow-hidden rounded-[26px] p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(248,250,252,0.04)] md:p-8"
-      style={{
-        border: `1px solid ${withAlpha(tenant.colors.primary, "24")}`,
-        background:
-          "radial-gradient(560px 320px at 8% 0%, rgba(34,211,238,0.14), transparent 62%), radial-gradient(620px 420px at 100% 120%, rgba(139,92,246,0.16), transparent 60%), linear-gradient(135deg, rgba(16,23,38,0.96), rgba(11,16,30,0.92))",
-      }}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(420px_200px_at_92%_-10%,rgba(52,211,153,0.12),transparent_70%)]" />
-
+    <div className="relative mb-4 overflow-hidden rounded-[20px] border border-wk-border bg-wk-surface p-6 shadow-wk-sm md:p-8">
       <div className="relative flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
           <p
-            className="font-mono text-[10px] uppercase tracking-[0.18em]"
+            className="font-mono text-[10px] font-bold uppercase tracking-[0.18em]"
             style={{ color: tenant.colors.primary }}
           >
             {kicker}
           </p>
-          <h1 className="font-display text-2xl font-semibold tracking-[-0.01em] text-white md:text-3xl">
+          <h1 className="font-display text-2xl font-extrabold tracking-[-0.02em] text-wk-text md:text-3xl">
             {title}
           </h1>
           {description ? (
-            <p className="max-w-2xl text-[14px] leading-relaxed text-slate-400">{description}</p>
+            <p className="max-w-2xl text-[14px] font-medium leading-relaxed text-wk-muted">{description}</p>
           ) : null}
           {note ? (
-            <p className="max-w-2xl border-l-2 pl-3 text-[12px] text-[#5B6B86]" style={{ borderColor: withAlpha(tenant.colors.secondary, "45") }}>
+            <p
+              className="max-w-2xl border-l-2 pl-3 text-[12px] font-medium text-wk-faint"
+              style={{ borderColor: withAlpha(tenant.colors.secondary, "45") }}
+            >
               {note}
             </p>
           ) : null}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <span
-              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase"
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-mono text-[10px] font-bold uppercase"
               style={{
-                borderColor: withAlpha(tenant.colors.primary, "45"),
-                backgroundColor: withAlpha(tenant.colors.primary, "12"),
+                backgroundColor: withAlpha(tenant.colors.primary, "14"),
                 color: tenant.colors.primary,
               }}
             >
@@ -95,25 +88,19 @@ export function AppPageHeader({
             <TenantBadge />
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase",
-                sharedLive
-                  ? "border-emerald-400/28 bg-emerald-400/10 text-emerald-400"
-                  : "border-amber-400/26 bg-amber-400/9 text-amber-400",
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] font-bold uppercase",
+                sharedLive ? "bg-wk-liveSoft text-wk-liveInk" : "bg-wk-amberSoft text-wk-amberInk",
               )}
             >
-              {sharedLive && (
-                <span className="oracle-live-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              )}
+              {sharedLive && <span className="oracle-live-dot h-1.5 w-1.5 rounded-full bg-wk-live" />}
               {forceNonLive
                 ? "Mode demo — donnees live masquees"
                 : `Donnees partagees ${sharedLive ? "LIVE" : "SEED_DEMO"}`}
             </span>
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase",
-                insuranceLive
-                  ? "border-emerald-400/28 bg-emerald-400/10 text-emerald-400"
-                  : "border-amber-400/26 bg-amber-400/9 text-amber-400",
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] font-bold uppercase",
+                insuranceLive ? "bg-wk-liveSoft text-wk-liveInk" : "bg-wk-amberSoft text-wk-amberInk",
               )}
             >
               {forceNonLive
