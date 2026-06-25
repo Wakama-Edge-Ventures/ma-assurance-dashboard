@@ -802,6 +802,10 @@ export interface Parcelle {
   areaHa?: number;
   lat?: number;
   lng?: number;
+  country?: string;
+  province?: string;
+  commune?: string;
+  regionCode?: string;
   polygone?: string;
   ndvi?: number;
   status?: string;

@@ -31,7 +31,7 @@ export function AppTabs({ tabs, defaultTabKey, className }: AppTabsProps) {
     <div className={cn("space-y-4", className)}>
       <div
         role="tablist"
-        className="flex flex-wrap gap-1.5 rounded-2xl border border-brand-border/10 bg-brand-surfaceRaised/60 p-1.5 dark:border-cyan-400/10 dark:bg-[#0b1422]/70"
+        className="flex flex-wrap gap-1.5 rounded-2xl border border-wk-border bg-wk-surface2 p-1.5"
       >
         {tabs.map((tab) => {
           const isActive = tab.key === activeTab.key;
@@ -47,8 +47,8 @@ export function AppTabs({ tabs, defaultTabKey, className }: AppTabsProps) {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[12.5px] font-medium transition-colors",
                 isActive
-                  ? "bg-brand-surface text-slate-900 shadow-premium dark:bg-[#111d31] dark:text-white"
-                  : "text-brand-textMuted hover:text-slate-900 dark:hover:text-slate-100",
+                  ? "bg-wk-surface text-wk-text shadow-wk-sm"
+                  : "text-wk-muted hover:text-wk-text",
               )}
             >
               {tab.icon}

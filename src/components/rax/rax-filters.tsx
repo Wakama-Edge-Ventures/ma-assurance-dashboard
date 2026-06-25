@@ -47,7 +47,7 @@ export function RaxFilters({ value, onChange, onReset }: RaxFiltersProps) {
         }
         className={DESIGN_TOKENS.controls.select}
       >
-        <option value="ALL">Tous WRS</option>
+        <option value="ALL">Tous indices</option>
         <option value="0_20">0-20</option>
         <option value="21_50">21-50</option>
         <option value="51_75">51-75</option>

@@ -524,3 +524,22 @@ export async function createApplicationEvidenceBundle(applicationId: string) {
     body: {},
   });
 }
+
+export async function getIdjorGovernanceThresholds(tenantKey: string) {
+  return request<UnknownRecord>("/v1/idjor/governance-thresholds", {
+    requiresAuth: true,
+    query: { tenantKey },
+  });
+}
+
+export async function updateIdjorGovernanceThresholds(
+  tenantKey: string,
+  patch: Record<string, number>,
+) {
+  return request<UnknownRecord>("/v1/idjor/governance-thresholds", {
+    method: "PATCH",
+    requiresAuth: true,
+    query: { tenantKey },
+    body: patch,
+  });
+}

@@ -159,7 +159,7 @@ const DEFAULT_CONFIG: SettingsConfig = {
 
 const TABS = [
   { id: "profile", label: "Profil assureur" },
-  { id: "rax", label: "RAX / WRS" },
+  { id: "rax", label: "Analyse risque" },
   { id: "pricing", label: "Tarification" },
   { id: "missions", label: "Missions terrain" },
   { id: "alerts", label: "Seuils alertes" },
@@ -371,7 +371,7 @@ function TabProfile({
 }
 
 // ---------------------------------------------------------------------------
-// Tab: RAX / WRS
+// Tab: Analyse risque (IRAX-D)
 // ---------------------------------------------------------------------------
 
 const TIER_ROWS: Array<{
@@ -381,25 +381,25 @@ const TIER_ROWS: Array<{
   color: string;
 }> = [
   {
-    range: "WRS 0–20",
+    range: "Indice 0–20",
     label: "Risque faible",
     tier: "LOW_RISK",
     color: "text-emerald-400",
   },
   {
-    range: "WRS 21–50",
+    range: "Indice 21–50",
     label: "Risque moyen",
     tier: "MEDIUM_RISK",
     color: "text-amber-400",
   },
   {
-    range: "WRS 51–75",
+    range: "Indice 51–75",
     label: "Risque élevé",
     tier: "HIGH_RISK",
     color: "text-orange-400",
   },
   {
-    range: "WRS 76–100",
+    range: "Indice 76–100",
     label: "Non assurable",
     tier: "UNINSURABLE",
     color: "text-red-400",
@@ -421,13 +421,13 @@ function TabRax({
 }) {
   return (
     <div className="space-y-6">
-      <SectionTitle>Configuration RAX / WRS</SectionTitle>
+      <SectionTitle>Configuration analyse risque (IRAX-D)</SectionTitle>
 
       {/* Formula display */}
       <div className="rounded-[14px] bg-[#0a0f1c]/80 p-4 font-mono text-[13px] text-cyan-400">
-        <p>RAX brut = G × F × D</p>
+        <p>R = G × F × D</p>
         <p className="mt-1 text-slate-500">
-          WRS = (RAX brut / 25) × 100
+          Indice IRAX-D = (R / 25) × 100
         </p>
       </div>
 
@@ -470,7 +470,7 @@ function TabRax({
             </p>
           </div>
           <div>
-            <p className="font-mono text-[10px] text-slate-500">WRS</p>
+            <p className="font-mono text-[10px] text-slate-500">Indice IRAX-D</p>
             <p className="font-mono text-[24px] font-semibold text-cyan-400">
               {simWrs.toFixed(1)}
             </p>
@@ -482,7 +482,7 @@ function TabRax({
             </p>
           </div>
         </div>
-        {/* WRS progress bar */}
+        {/* IRAX-D progress bar */}
         <div className="h-2 w-full overflow-hidden rounded-full bg-slate-700/40">
           <div
             className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-300"

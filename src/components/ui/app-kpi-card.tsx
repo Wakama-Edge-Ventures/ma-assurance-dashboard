@@ -28,27 +28,23 @@ export function AppKpiCard({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[20px] border border-slate-400/10 bg-[#101726]/92 p-[18px_20px_20px]",
-        "transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-400/20 hover:shadow-[0_20px_50px_-30px_rgba(34,211,238,0.3)]",
+        "relative overflow-hidden rounded-[20px] border border-wk-border bg-wk-surface p-[18px_20px_20px] shadow-wk-sm",
+        "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-wk",
         className,
       )}
     >
-      {/* top-right glow */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(160px_90px_at_88%_-10%,rgba(34,211,238,0.12),transparent_70%)] opacity-90" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(180px_80px_at_92%_-10%,rgba(19,138,94,0.14),transparent_70%)]" />
 
       <div className="relative mb-3.5 flex items-center justify-between">
-        <p className="font-mono text-[10px] uppercase tracking-[0.10em] text-[#5B6B86]">{title}</p>
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.10em] text-wk-faint">{title}</p>
         {Icon ? (
-          <span className="grid h-[34px] w-[34px] place-items-center rounded-[10px] border border-cyan-400/14 bg-cyan-400/10">
-            <Icon className="h-[17px] w-[17px] text-cyan-400" />
+          <span className="grid h-[34px] w-[34px] place-items-center rounded-[10px] bg-wk-primarySoft text-wk-primaryInk">
+            <Icon className="h-[17px] w-[17px]" />
           </span>
         ) : null}
       </div>
 
-      <div
-        className="bg-gradient-to-br from-cyan-400 to-emerald-400 bg-clip-text font-mono text-[40px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-transparent"
-        style={{ filter: "drop-shadow(0 0 6px rgba(34,211,238,0.22))" }}
-      >
+      <div className="text-[40px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-wk-text">
         {value}
       </div>
 
@@ -58,7 +54,7 @@ export function AppKpiCard({
       </div>
 
       {hint ? (
-        <p className="mt-1 font-mono text-[11px] text-[#5B6B86]">{hint}</p>
+        <p className="mt-1 text-[11px] font-semibold text-wk-muted">{hint}</p>
       ) : null}
     </div>
   );

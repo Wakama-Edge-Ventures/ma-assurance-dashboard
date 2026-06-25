@@ -59,6 +59,13 @@ const config: Config = {
           live: "var(--wk-live)",
           liveInk: "var(--wk-live-ink)",
           liveSoft: "var(--wk-live-soft)",
+          canvasBg: "var(--wk-canvas-bg)",
+          canvasSurface: "var(--wk-canvas-surface)",
+          canvasSurface2: "var(--wk-canvas-surface-2)",
+          canvasBorder: "var(--wk-canvas-border)",
+          canvasText: "var(--wk-canvas-text)",
+          canvasMuted: "var(--wk-canvas-muted)",
+          canvasFaint: "var(--wk-canvas-faint)",
         },
       },
       boxShadow: {

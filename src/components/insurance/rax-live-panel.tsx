@@ -1136,7 +1136,7 @@ export function RaxLivePanel() {
         <SourceBadge source={authRequired ? "UNAVAILABLE" : "LIVE"} />
       </div>
       <p className="text-xs text-slate-300">
-        Pre-dossier technique (phase 28/29): ce parcours prepare un score technique RAX/WRS.
+        Pre-dossier technique (phase 28/29): ce parcours prepare un score technique IRAX-D.
         Ce n&apos;est pas un onboarding farmer/cooperative/parcelle ni une decision assureur.
       </p>
 
@@ -1449,7 +1449,7 @@ export function RaxLivePanel() {
             disabled={submitting}
             className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? "Calcul..." : "Calculer RAX/WRS technique"}
+            {submitting ? "Calcul..." : "Calculer IRAX-D technique"}
           </button>
         </div>
       </form>

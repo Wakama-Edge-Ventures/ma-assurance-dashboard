@@ -13,11 +13,11 @@ export default function ApplicationsPage() {
   const isAssuranceTenant = tenant.id === "assurance-ma";
 
   const title = isAssuranceTenant
-    ? "Demandes d'assurance agricole - DCA"
+    ? "Dossiers assurance agricole"
     : tenant.terminology.applicationsLabel;
   const description = isAssuranceTenant
-    ? "Lecture seule des dossiers DCA, declaration de capacite agricole retournee par GET /v1/insurance/applications."
-    : "Vue institutionnelle en lecture seule des dossiers retournes par GET /v1/insurance/applications.";
+    ? "File operationnelle des dossiers, de leurs statuts et de leurs pieces de preuve en lecture encadree."
+    : "Vue institutionnelle en lecture seule des dossiers retournes par le pipeline documentaire.";
   const note = tenant.demoMode
     ? "Demo institutionnelle - maquette d'illustration. Les donnees et decisions restent sous controle de l'institution."
     : null;

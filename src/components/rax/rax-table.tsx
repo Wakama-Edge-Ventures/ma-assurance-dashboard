@@ -85,7 +85,7 @@ export function RaxTable({ rows }: RaxTableProps) {
               <th className={APP_TABLE_CLASSNAMES.headCell}>F</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>D</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>RAX brut</th>
-              <th className={APP_TABLE_CLASSNAMES.headCell}>WRS</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Indice</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>Tier</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>Action</th>

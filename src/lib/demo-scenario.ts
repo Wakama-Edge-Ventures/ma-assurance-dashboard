@@ -124,23 +124,23 @@ export const DEMO_SCENARIO: DemoScenario = {
       entityType: "audit",
       status: "completed",
       description:
-        "Revue back-office complétée. Écart de surface -2% dans les seuils acceptables. Aucune anomalie. Dossier transmis pour scoring RAX/WRS.",
+        "Revue back-office complétée. Écart de surface -2% dans les seuils acceptables. Aucune anomalie. Dossier transmis pour calcul IRAX-D.",
       evidenceSummary: "Écart surface : -2% · Actifs 4/0 · Anomalie : Non · Audit trail horodaté",
-      nextActionLabel: "Voir RAX/WRS →",
+      nextActionLabel: "Voir l'analyse risque →",
       complianceNote:
         "Audit trail horodaté produit par Wakama ; décision de souscription réservée à l'assureur.",
     },
     {
       id: "step-rax",
       stepNumber: 5,
-      label: "RAX / WRS",
+      label: "Analyse risque",
       route: "/fr/rax/rax_001",
       entityId: "rax_001",
       entityType: "rax",
       status: "completed",
       description:
-        "Score RAX/WRS calculé : WRS 46.4, tier MEDIUM_RISK. G=3.4, F=3.8, D=0.9. Framework v1 non décisionnel à calibrer.",
-      evidenceSummary: "rax_001 · WRS 46.4 · MEDIUM_RISK · G3.4 F3.8 D0.9",
+        "Indice IRAX-D calculé : Indice 46.4, tier MEDIUM_RISK. G=3.4, F=3.8, D=0.9. Framework v1 non décisionnel à calibrer.",
+      evidenceSummary: "rax_001 · Indice 46.4 · MEDIUM_RISK · G3.4 F3.8 D0.9",
       nextActionLabel: "Voir la tarification →",
       complianceNote:
         "Score technique non décisionnel — calibration sinistralité réservée à l'assureur.",

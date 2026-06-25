@@ -97,7 +97,7 @@ export default async function PricingPage() {
     <div className="space-y-6">
       <PageTitle
         title="Tarification"
-        description="Suggestions de primes techniques preparees a partir du WRS et du dossier de preuve."
+        description="Suggestions de primes techniques preparees a partir de l'indice IRAX-D et du dossier de preuve."
       />
       <p className="text-xs text-brand-textMuted">
         Wakama prepare une proposition technique ; l&apos;assureur conserve la validation

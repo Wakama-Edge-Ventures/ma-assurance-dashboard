@@ -937,6 +937,18 @@ export function toInsuranceClaim(raw: unknown): InsuranceClaim | null {
   };
 }
 
+function asPolygonString(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value;
+  if (value && typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 export function toParcelle(raw: unknown): Parcelle | null {
   const o = asObject(raw);
   if (!o) return null;
@@ -969,8 +981,14 @@ export function toParcelle(raw: unknown): Parcelle | null {
     areaHa: area,
     lat: asNumber(pickFirstValue(o, ["lat", "latitude"])) ?? undefined,
     lng: asNumber(pickFirstValue(o, ["lng", "longitude"])) ?? undefined,
+    country: asStringLike(pickFirstValue(o, ["country", "pays"])) ?? undefined,
+    province: asStringLike(pickFirstValue(o, ["province"])) ?? undefined,
+    commune: asStringLike(pickFirstValue(o, ["commune", "locality", "village"])) ?? undefined,
+    regionCode: asStringLike(pickFirstValue(o, ["regionCode", "region_code"])) ?? undefined,
     polygone:
-      asStringLike(pickFirstValue(o, ["polygone", "polygon", "geojson"])) ?? undefined,
+      asPolygonString(
+        pickFirstValue(o, ["polygone", "polygon", "geojson", "geometry", "gpsPolygon"]),
+      ) ?? undefined,
     ndvi:
       asNumber(pickFirstValue(o, ["ndvi", "ndviValue", "ndvi_value"])) ?? undefined,
     status: asStringLike(pickFirstValue(o, ["status", "statut"])) ?? undefined,
@@ -1035,7 +1053,8 @@ export function toNdviSnapshot(
   return {
     parcelleId,
     ndvi,
-    capturedAt: asString(o.capturedAt) ?? asString(o.captured_at) ?? undefined,
+    capturedAt:
+      asString(o.capturedAt) ?? asString(o.captured_at) ?? asString(o.lastUpdated) ?? undefined,
     provider: asString(o.provider) ?? undefined,
     source: asSource(o.source, "LIVE"),
   };

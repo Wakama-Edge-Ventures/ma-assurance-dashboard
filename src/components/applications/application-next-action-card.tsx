@@ -14,7 +14,7 @@ function getNextAction(status: ApplicationStatus) {
     return { label: "Passer a l'arbitrage", href: "/fr/arbitrage" };
   }
   if (status === "READY_FOR_SCORING" || status === "SCORED") {
-    return { label: "Consulter RAX/WRS", href: "/fr/rax" };
+    return { label: "Consulter l'analyse risque", href: "/fr/rax" };
   }
   if (status === "OFFER_SENT" || status === "FARMER_ACCEPTED" || status === "PRICED") {
     return { label: "Consulter la tarification", href: "/fr/pricing" };

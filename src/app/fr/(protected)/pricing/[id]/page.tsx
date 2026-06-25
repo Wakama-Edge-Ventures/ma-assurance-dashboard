@@ -132,7 +132,7 @@ export default async function PricingDetailPage({ params }: PricingDetailPagePro
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="space-y-3">
           <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
-            Risque lie RAX/WRS
+            Risque lie — Analyse IRAX-D
           </h2>
           {linkedRax ? (
             <>
@@ -140,7 +140,7 @@ export default async function PricingDetailPage({ params }: PricingDetailPagePro
                 <RiskTierBadge tier={linkedRax.riskTier} />
               </div>
               <div className="grid gap-2 text-[13px] text-slate-300 md:grid-cols-2">
-                <p>WRS: {formatScore(linkedRax.wrsScore)}</p>
+                <p>Indice IRAX-D: {formatScore(linkedRax.wrsScore)}</p>
                 <p>RAX brut: {formatScore(linkedRax.raxBrut ?? linkedRax.raxScore)}</p>
                 <p>G: {formatScore(linkedRax.gravity ?? 0)}</p>
                 <p>F: {formatScore(linkedRax.frequency ?? 0)}</p>
@@ -150,7 +150,7 @@ export default async function PricingDetailPage({ params }: PricingDetailPagePro
                 href={`/fr/rax/${linkedRax.id}`}
                 className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
               >
-                Ouvrir la fiche RAX/WRS
+                Ouvrir la fiche d&apos;analyse risque
               </Link>
             </>
           ) : (

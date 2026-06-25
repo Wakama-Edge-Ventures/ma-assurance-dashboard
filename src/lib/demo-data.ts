@@ -26,6 +26,8 @@ export const farmers: Farmer[] = [
     primaryCrop: "Blé tendre",
     totalAreaHa: 18,
     source: "SEED_DEMO",
+    lat: 33.916,
+    lng: -5.546,
   },
   {
     id: "far_002",
@@ -36,6 +38,8 @@ export const farmers: Farmer[] = [
     primaryCrop: "Olivier",
     totalAreaHa: 27,
     source: "SEED_DEMO",
+    lat: 32.145,
+    lng: -7.989,
   },
   {
     id: "far_003",
@@ -46,6 +50,8 @@ export const farmers: Farmer[] = [
     primaryCrop: "Maïs",
     totalAreaHa: 12,
     source: "SEED_DEMO",
+    lat: 32.331,
+    lng: -6.356,
   },
 ];
 
@@ -59,6 +65,8 @@ export const cooperatives: Cooperative[] = [
     aggregatedAreaHa: 340,
     contactName: "Nadia Ait Hamou",
     source: "SEED_DEMO",
+    lat: 33.92,
+    lng: -5.54,
   },
   {
     id: "coop_002",
@@ -69,8 +77,25 @@ export const cooperatives: Cooperative[] = [
     aggregatedAreaHa: 210,
     contactName: "Karim Tazi",
     source: "SEED_DEMO",
+    lat: 32.14,
+    lng: -7.99,
   },
 ];
+
+function squarePolygon(lat: number, lng: number, halfSideDeg = 0.004): string {
+  return JSON.stringify({
+    type: "Polygon",
+    coordinates: [
+      [
+        [lng - halfSideDeg, lat - halfSideDeg],
+        [lng + halfSideDeg, lat - halfSideDeg],
+        [lng + halfSideDeg, lat + halfSideDeg],
+        [lng - halfSideDeg, lat + halfSideDeg],
+        [lng - halfSideDeg, lat - halfSideDeg],
+      ],
+    ],
+  });
+}
 
 export const parcelles: Parcelle[] = [
   {
@@ -83,7 +108,8 @@ export const parcelles: Parcelle[] = [
     areaHa: 6.2,
     lat: 33.916,
     lng: -5.546,
-    polygone: "poly_par_001",
+    country: "MA",
+    polygone: squarePolygon(33.916, -5.546),
     ndvi: 0.63,
     status: "ACTIVE",
     source: "SEED_DEMO",
@@ -98,7 +124,8 @@ export const parcelles: Parcelle[] = [
     areaHa: 8.8,
     lat: 32.145,
     lng: -7.989,
-    polygone: "poly_par_002",
+    country: "MA",
+    polygone: squarePolygon(32.145, -7.989),
     ndvi: 0.48,
     status: "WATCH",
     source: "SEED_DEMO",
@@ -113,7 +140,8 @@ export const parcelles: Parcelle[] = [
     areaHa: 4.5,
     lat: 32.331,
     lng: -6.356,
-    polygone: "poly_par_003",
+    country: "MA",
+    polygone: squarePolygon(32.331, -6.356),
     ndvi: 0.59,
     status: "ACTIVE",
     source: "SEED_DEMO",

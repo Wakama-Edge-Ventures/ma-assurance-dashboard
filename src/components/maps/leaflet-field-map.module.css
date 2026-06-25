@@ -1,0 +1,181 @@
+.mapShell {
+  position: relative;
+  overflow: hidden;
+  height: 640px;
+  border-radius: 24px;
+  border: 1px solid var(--wk-border);
+  background: var(--wk-surface);
+}
+
+.mapCanvas {
+  height: 100%;
+  width: 100%;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(19, 138, 94, 0.08), transparent 28%),
+    linear-gradient(140deg, #eef3e8 0%, #e4efe8 48%, #e8eef4 100%);
+}
+
+.mapCanvasDark {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(126, 224, 180, 0.08), transparent 28%),
+    linear-gradient(140deg, #15211d 0%, #182922 48%, #19242c 100%);
+}
+
+.tileDark {
+  filter: brightness(0.62) saturate(0.82) contrast(1.02);
+}
+
+.tileDarkStrong {
+  filter: brightness(0.54) saturate(0.72) contrast(1.04);
+}
+
+.markerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--wk-border);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--wk-text);
+  box-shadow: var(--wk-shadow-sm);
+  white-space: nowrap;
+}
+
+.badgeDot {
+  height: 0.55rem;
+  width: 0.55rem;
+  border-radius: 999px;
+}
+
+.legendSwatch {
+  height: 0.8rem;
+  width: 0.8rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(43, 39, 34, 0.12);
+}
+
+.noteOverlay {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  max-width: 18rem;
+  border-radius: 16px;
+  border: 1px solid rgba(233, 226, 212, 0.95);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.85rem 0.95rem;
+  color: var(--wk-text);
+  box-shadow: var(--wk-shadow);
+  backdrop-filter: blur(8px);
+  z-index: 500;
+}
+
+.noteOverlayDark {
+  border-color: rgba(39, 57, 47, 0.95);
+  background: rgba(22, 36, 31, 0.92);
+  color: var(--wk-text);
+}
+
+.mapShell :global(.leaflet-container) {
+  height: 100%;
+  width: 100%;
+  font-family: inherit;
+}
+
+@media (max-width: 768px) {
+  .mapShell {
+    height: 420px;
+  }
+}
+
+.mapShell :global(.leaflet-control-zoom),
+.mapShell :global(.leaflet-control-attribution) {
+  border: 1px solid var(--wk-border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--wk-shadow-sm);
+}
+
+.mapShell :global(.leaflet-control-zoom a) {
+  color: var(--wk-text);
+  background: var(--wk-surface);
+  border-bottom-color: var(--wk-border);
+}
+
+.mapShell :global(.leaflet-control-zoom a:hover) {
+  background: var(--wk-surface-2);
+}
+
+.mapShell :global(.leaflet-control-attribution) {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--wk-muted);
+}
+
+.mapShell :global(.leaflet-popup-content-wrapper) {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--wk-text);
+  box-shadow: var(--wk-shadow);
+}
+
+.mapShell :global(.leaflet-popup-tip) {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.mapShell :global(.leaflet-control-attribution a) {
+  color: var(--wk-primary-ink);
+}
+
+.popupContent {
+  min-width: 220px;
+}
+
+.popupTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--wk-text);
+}
+
+.popupText {
+  margin-top: 0.35rem;
+  font-size: 12px;
+  color: var(--wk-muted);
+}
+
+.popupBadge {
+  display: inline-flex;
+  margin-top: 0.6rem;
+  border-radius: 999px;
+  background: var(--wk-primary-soft);
+  padding: 0.25rem 0.55rem;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wk-primary-ink);
+}
+
+.popupHint {
+  margin-top: 0.5rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wk-faint);
+}
+
+.popupButton {
+  margin-top: 0.7rem;
+  border: 1px solid var(--wk-border);
+  border-radius: 999px;
+  background: var(--wk-surface2);
+  padding: 0.45rem 0.8rem;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--wk-text);
+  cursor: pointer;
+}
+
+.popupButton:hover {
+  background: var(--wk-surface);
+}

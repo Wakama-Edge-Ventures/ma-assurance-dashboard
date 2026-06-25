@@ -1,53 +1,40 @@
+import Link from "next/link";
+import { ArrowRight, BookOpenText } from "lucide-react";
+
+import { AppCard } from "@/components/ui/app-card";
 import { PageTitle } from "@/components/ui/page-title";
-import { Card } from "@/components/ui/card";
 
 const DOCS_SECTIONS = [
   {
-    title: "Démarrage rapide",
+    title: "Parcours dossiers",
     items: [
-      { label: "Introduction à la plateforme Wakama Assurance", anchor: "#intro" },
-      { label: "Connexion et gestion des sessions", anchor: "#auth" },
-      { label: "Navigation et structure du tableau de bord", anchor: "#navigation" },
+      { label: "Tableau de bord institutionnel", href: "/fr/dashboard" },
+      { label: "Dossiers et file de travail", href: "/fr/applications" },
+      { label: "Missions et revue terrain", href: "/fr/missions" },
     ],
   },
   {
-    title: "Workflow assurance",
+    title: "Terrain & preuves",
     items: [
-      { label: "Demandes de souscription (Applications)", anchor: "#applications" },
-      { label: "Missions terrain et revue satellite", anchor: "#missions" },
-      { label: "Audit de surface et arbitrage back-office", anchor: "#arbitrage" },
-      { label: "Scoring RAX / WRS — framework de risque agricole", anchor: "#rax" },
-      { label: "Tarification et suggestions de prime technique", anchor: "#pricing" },
-      { label: "Polices — suivi opérationnel post-émission", anchor: "#policies" },
-      { label: "Monitoring 360° — signaux NDVI, météo, IoT", anchor: "#monitoring" },
-      { label: "Gestion des sinistres", anchor: "#claims" },
+      { label: "Agriculteurs et cooperatives", href: "/fr/farmers" },
+      { label: "Carte terrain", href: "/fr/field-map" },
+      { label: "Documents, preuves & gouvernance", href: "/fr/idjor" },
     ],
   },
   {
-    title: "Données et intégrité",
+    title: "Risque & contrat",
     items: [
-      { label: "Sources LIVE vs SEED_DEMO — transparence des données", anchor: "#sources" },
-      { label: "Preuve d'intégrité horodatée et audit trail", anchor: "#integrity" },
-      { label: "Vérification registre Blockchain", anchor: "#blockchain" },
-      { label: "Export de données — CSV, JSON, PDF", anchor: "#export" },
+      { label: "Score risque", href: "/fr/rax" },
+      { label: "Tarification", href: "/fr/pricing" },
+      { label: "Polices et sinistres", href: "/fr/policies" },
     ],
   },
   {
-    title: "Conformité et gouvernance",
+    title: "Support & controle",
     items: [
-      { label: "Positionnement Wakama — non-décisionnel", anchor: "#positioning" },
-      { label: "Cadre réglementaire ACAPS / CNDP", anchor: "#compliance" },
-      { label: "Politique de confidentialité et sécurité des données", anchor: "#privacy" },
-      { label: "Rôles et permissions utilisateurs", anchor: "#roles" },
-    ],
-  },
-  {
-    title: "Référence technique",
-    items: [
-      { label: "API Wakama — endpoints partagés (lecture seule)", anchor: "#api" },
-      { label: "Variables d'environnement", anchor: "#env" },
-      { label: "Configuration des seuils RAX/WRS", anchor: "#thresholds" },
-      { label: "Paramètres de tarification", anchor: "#pricing-config" },
+      { label: "Support", href: "/fr/support" },
+      { label: "Securite & confidentialite", href: "/fr/privacy" },
+      { label: "Verification blockchain", href: "/fr/blockchain" },
     ],
   },
 ] as const;
@@ -57,58 +44,36 @@ export default function DocumentationPage() {
     <div className="space-y-6">
       <PageTitle
         title="Documentation"
-        description="Guides, références techniques et procédures opérationnelles Wakama Assurance."
+        description="Repere de parcours et de pages utilitaires pour le dashboard institutionnel Wakama."
       />
-
-      <div className="rounded-[20px] border border-cyan-400/12 bg-cyan-500/5 px-5 py-4">
-        <p className="font-mono text-[11.5px] text-cyan-300/80">
-          Documentation en cours de rédaction — les sections marquées seront publiées au fil des phases de déploiement.
-          Pour toute question urgente, utilisez la{" "}
-          <a href="/fr/hotline" className="underline underline-offset-2 hover:text-cyan-200">
-            HotLine
-          </a>
-          .
-        </p>
-      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {DOCS_SECTIONS.map((section) => (
-          <Card key={section.title} className="space-y-3">
-            <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
-              {section.title}
-            </h2>
-            <ul className="space-y-1.5">
+          <AppCard key={section.title} className="space-y-4 p-5">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-wk-primarySoft text-wk-primaryInk">
+                <BookOpenText className="h-5 w-5" />
+              </span>
+              <h2 className="font-display text-[18px] font-extrabold tracking-[-0.02em] text-wk-text">
+                {section.title}
+              </h2>
+            </div>
+
+            <div className="space-y-2">
               {section.items.map((item) => (
-                <li key={item.anchor}>
-                  <a
-                    href={item.anchor}
-                    className="flex items-center gap-2 text-[13px] text-slate-400 transition-colors hover:text-slate-200"
-                  >
-                    <span className="font-mono text-[10px] text-slate-600">→</span>
-                    {item.label}
-                  </a>
-                </li>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center justify-between rounded-[14px] border border-wk-border bg-wk-surface2 px-4 py-3 text-[13px] font-semibold text-wk-text transition-colors hover:bg-wk-surface3"
+                >
+                  <span>{item.label}</span>
+                  <ArrowRight className="h-4 w-4 text-wk-primaryInk" />
+                </Link>
               ))}
-            </ul>
-          </Card>
+            </div>
+          </AppCard>
         ))}
       </div>
-
-      <Card>
-        <h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400">
-          Version et contact
-        </h2>
-        <div className="mt-3 space-y-1 text-[13px] text-slate-300">
-          <p>Version plateforme : MVP Phase 25</p>
-          <p>Dernière mise à jour : 2026-05-29</p>
-          <p>
-            Contact documentation :{" "}
-            <a href="mailto:docs@wakama.farm" className="text-cyan-400 hover:text-cyan-300">
-              docs@wakama.farm
-            </a>
-          </p>
-        </div>
-      </Card>
     </div>
   );
 }

@@ -105,11 +105,11 @@ export default async function RaxPage() {
   return (
     <div className="space-y-6">
       <PageTitle
-        title="RAX / WRS"
-        description="Framework de scoring technique du risque agricole pour l'assurance."
+        title="Analyse risque"
+        description="IRAX-D · Calcul deterministe du risque contrat, explicable et non decisionnel."
       />
       <p className="text-xs text-brand-textMuted">
-        RAX/WRS est une aide non decisionnelle ; l&apos;assureur conserve la decision
+        Cette analyse de risque est une aide non decisionnelle ; l&apos;assureur conserve la decision
         d&apos;eligibilite et de tarification.
       </p>
 
@@ -126,7 +126,7 @@ export default async function RaxPage() {
           icon={FileBarChart2}
         />
         <StatCard
-          title="WRS moyen"
+          title="Indice IRAX-D moyen"
           value={formatScore(wrsAverage)}
           source="SEED_DEMO"
           icon={Calculator}
@@ -156,7 +156,7 @@ export default async function RaxPage() {
           {(Object.keys(distribution) as RiskTier[]).map((tier) => (
             <div
               key={tier}
-              className="flex items-center gap-2 rounded-full border border-slate-400/10 bg-slate-800/60 px-3 py-1 font-mono text-[11px] text-slate-400"
+              className="flex items-center gap-2 rounded-full border border-wk-border bg-wk-surface2 px-3 py-1 text-[11px] font-semibold text-wk-muted"
             >
               <RiskTierBadge tier={tier} />
               <span>

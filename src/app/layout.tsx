@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import "leaflet/dist/leaflet.css";
 
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import "./globals.css";

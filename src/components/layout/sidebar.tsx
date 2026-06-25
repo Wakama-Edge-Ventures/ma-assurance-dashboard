@@ -6,6 +6,7 @@ import { type ComponentType } from "react";
 import {
   BarChart3,
   Bell,
+  Blocks,
   BriefcaseBusiness,
   ClipboardCheck,
   Cpu,
@@ -15,7 +16,9 @@ import {
   Handshake,
   Home,
   Landmark,
+  LifeBuoy,
   LogOut,
+  Map,
   PanelLeftClose,
   PanelLeftOpen,
   Scale,
@@ -50,63 +53,68 @@ interface SidebarProps {
 
 const BASE_NAV_GROUPS: NavGroup[] = [
   {
-    label: "Overview",
-    items: [
-      { key: "dashboard", href: "/fr/dashboard", label: "Tableau de bord", icon: Home },
-      { key: "idjor", href: "/fr/idjor", label: "Socle IDJOR", icon: Cpu },
-    ],
+    label: "Accueil",
+    items: [{ key: "dashboard", href: "/fr/dashboard", label: "Tableau de bord", icon: Home }],
   },
   {
-    label: "Donnees",
+    label: "Dossiers",
+    items: [{ key: "applications", href: "/fr/applications", label: "Dossiers", icon: BriefcaseBusiness }],
+  },
+  {
+    label: "Terrain",
     items: [
       { key: "farmers", href: "/fr/farmers", label: "Agriculteurs", icon: Tractor },
       { key: "cooperatives", href: "/fr/cooperatives", label: "Cooperatives", icon: Users },
-      { key: "alerts", href: "/fr/alerts", label: "Alertes Wakama", icon: Bell },
+      { key: "alerts", href: "/fr/alerts", label: "Alertes", icon: Bell },
+      { key: "missions", href: "/fr/missions", label: "Missions terrain", icon: ClipboardCheck },
+      { key: "arbitrage", href: "/fr/arbitrage", label: "Revue terrain", icon: Scale },
+      { key: "field-map", href: "/fr/field-map", label: "Carte terrain", icon: Map },
     ],
   },
   {
-    label: "Parcours",
+    label: "Risque & contrat",
     items: [
-      { key: "applications", href: "/fr/applications", label: "Demandes", icon: BriefcaseBusiness },
-      { key: "missions", href: "/fr/missions", label: "Missions", icon: ClipboardCheck },
-      { key: "arbitrage", href: "/fr/arbitrage", label: "Arbitrage", icon: Scale },
-      { key: "rax", href: "/fr/rax", label: "RAX / WRS", icon: FileWarning },
+      { key: "rax", href: "/fr/rax", label: "Score risque", icon: FileWarning },
       { key: "pricing", href: "/fr/pricing", label: "Tarification", icon: Landmark },
       { key: "policies", href: "/fr/policies", label: "Polices", icon: FileCheck2 },
+      { key: "claims", href: "/fr/claims", label: "Sinistres", icon: Handshake },
     ],
   },
   {
     label: "Suivi",
     items: [
       { key: "monitoring", href: "/fr/monitoring", label: "Monitoring", icon: Shield },
-      { key: "claims", href: "/fr/claims", label: "Sinistres", icon: Handshake },
       { key: "analytics", href: "/fr/analytics", label: "Analytics", icon: BarChart3 },
       { key: "reports", href: "/fr/reports", label: "Rapports", icon: FileChartColumnIncreasing },
+    ],
+  },
+  {
+    label: "Idjor",
+    items: [
+      { key: "idjor", href: "/fr/idjor", label: "Documents & preuves", icon: Cpu },
+      { key: "idjor-agents", href: "/fr/idjor/agents", label: "Agents & moteurs", icon: Blocks },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
       { key: "settings", href: "/fr/settings", label: "Parametres", icon: Settings },
+      { key: "support", href: "/fr/support", label: "Support", icon: LifeBuoy },
+      { key: "privacy", href: "/fr/privacy", label: "Securite & confidentialite", icon: Shield },
+      { key: "blockchain", href: "/fr/blockchain", label: "Verification blockchain", icon: FileCheck2 },
     ],
   },
 ];
 
 function getTenantNavGroups(tenant: ReturnType<typeof useTenant>["tenant"]): NavGroup[] {
-  const groupLabel = tenant.featureFlags.showInsuranceNavigation
-    ? "Assurance agricole"
-    : tenant.terminology.portfolioLabel;
-
-  return BASE_NAV_GROUPS.map((group) => {
-    const nextLabel =
-      group.label === "Donnees"
-        ? tenant.id === "assurance-ma"
-          ? "Donnees Wakama"
-          : "Donnees partagees"
-        : group.label === "Parcours"
-          ? groupLabel
-          : group.label;
-
-    const items = group.items
+  return BASE_NAV_GROUPS.map((group) => ({
+    label: group.label,
+    items: group.items
       .filter((item) => {
         if (item.key === "rax") return tenant.featureFlags.showRaxNavigation;
         if (item.key === "claims") return tenant.featureFlags.showClaimsNavigation;
         if (item.key === "policies") return tenant.featureFlags.showPoliciesNavigation;
+        if (item.key === "pricing" && !tenant.featureFlags.showInsuranceNavigation) return false;
         return true;
       })
       .map((item) => {
@@ -116,13 +124,13 @@ function getTenantNavGroups(tenant: ReturnType<typeof useTenant>["tenant"]): Nav
           case "missions":
             return {
               ...item,
-              label: tenant.featureFlags.showInsuranceNavigation ? "Missions" : "Collecte terrain",
+              label: tenant.featureFlags.showInsuranceNavigation ? "Missions terrain" : "Collecte terrain",
             };
           case "arbitrage":
             return {
               ...item,
               label: tenant.featureFlags.showInsuranceNavigation
-                ? "Arbitrage"
+                ? "Revue terrain"
                 : tenant.terminology.committeeLabel,
             };
           case "rax":
@@ -145,20 +153,20 @@ function getTenantNavGroups(tenant: ReturnType<typeof useTenant>["tenant"]): Nav
           case "alerts":
             return {
               ...item,
-              label: tenant.id === "assurance-ma" ? "Alertes Wakama" : "Alertes terrain",
+              label: tenant.id === "assurance-ma" ? "Alertes" : "Alertes terrain",
             };
           case "idjor":
-            return { ...item, label: tenant.terminology.idjorLabel };
+            return {
+              ...item,
+              label: tenant.featureFlags.showInsuranceNavigation
+                ? "Documents & preuves"
+                : tenant.terminology.idjorLabel,
+            };
           default:
             return item;
         }
-      });
-
-    return {
-      label: nextLabel,
-      items,
-    };
-  });
+      }),
+  }));
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -200,6 +208,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       {!collapsed && <TenantBadge className="mb-3 self-start" />}
+      {!collapsed && (
+        <div className="mb-3 rounded-[16px] border border-wk-border bg-wk-surface2 px-3 py-3 shadow-wk-sm">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-wk-faint">
+            Cadre demo
+          </p>
+          <p className="mt-1 text-[12px] font-semibold leading-relaxed text-wk-muted">
+            Idjor assiste, explique, structure et alerte. L&apos;institution conserve la validation finale.
+          </p>
+        </div>
+      )}
 
       <div className={cn("mb-3", collapsed ? "flex justify-center" : "")}>
         <button
@@ -245,7 +263,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   href={item.href}
                   title={collapsed ? item.label : undefined}
                   className={cn(
-                    "flex items-center rounded-[10px] text-[13.5px] font-semibold transition-all duration-150",
+                    "flex items-center rounded-[10px] text-[13px] font-semibold transition-all duration-150",
                     collapsed ? "justify-center p-[11px]" : "gap-2.5 px-2.5 py-[8.5px]",
                     active ? DESIGN_TOKENS.sidebar.active : DESIGN_TOKENS.sidebar.item,
                   )}
@@ -278,7 +296,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <span className="truncate text-[13px] font-bold text-wk-text">
               {tenant.demoMode ? `${tenant.shortName} demo` : "Vue institutionnelle"}
             </span>
-            <span className="text-[11px] font-semibold text-wk-muted">v0.9 MVP</span>
+            <span className="text-[11px] font-semibold text-wk-muted">Gouvernance tracee</span>
           </div>
         )}
         {!collapsed && <LogOut className="h-4 w-4 flex-none text-wk-muted" />}

@@ -557,31 +557,38 @@ export async function getNdviSnapshotByParcelleId(
     const rawList = extractArrayFromApiResponse(payload, ["items", "results", "data"]);
     debugApiShape(endpoint, payload, rawList);
 
-    if (isPayloadNonEmpty(payload) && rawList.length === 0) {
-      warnShape(endpoint, payload);
-      return seedMatch;
-    }
+    if (rawList.length > 0) {
+      const mapped = rawList
+        .map((item) => toNdviSnapshot(item, parcelleId))
+        .filter((item): item is NdviSnapshot => item !== null)
+        .map((item) => withSource(item, "LIVE"));
 
-    const mapped = rawList
-      .map((item) => toNdviSnapshot(item, parcelleId))
-      .filter((item): item is NdviSnapshot => item !== null)
-      .map((item) => withSource(item, "LIVE"));
+      if (mapped.length > 0) {
+        return mapped.sort((a, b) => {
+          const da = new Date(a.capturedAt ?? 0).getTime();
+          const db = new Date(b.capturedAt ?? 0).getTime();
+          return db - da;
+        })[0];
+      }
 
-    if (rawList.length > 0 && mapped.length === 0) {
       warnMappedEmpty(endpoint, rawList.length, "toNdviSnapshot", getFirstItemKeys(rawList));
       return seedMatch;
     }
 
-    if (mapped.length > 0) {
-      return mapped.sort((a, b) => {
-        const da = new Date(a.capturedAt ?? 0).getTime();
-        const db = new Date(b.capturedAt ?? 0).getTime();
-        return db - da;
-      })[0];
-    }
-
+    // The live endpoint returns a flat object ({ parcelleId, ndvi, status }), not a list.
     const single = toNdviSnapshot(payload, parcelleId);
     if (single) return withSource(single, "LIVE");
+
+    const status = asObject(payload)?.status;
+    if (status === "no_data") {
+      // Backend genuinely computed and found no satellite signal: this is an honest
+      // "unavailable" answer, not an unusable shape, so it must not be masked by demo data.
+      return null;
+    }
+
+    if (isPayloadNonEmpty(payload)) {
+      warnShape(endpoint, payload);
+    }
     return seedMatch;
   } catch (error) {
     warnFallback(endpoint, error);

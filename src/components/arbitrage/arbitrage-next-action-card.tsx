@@ -13,7 +13,7 @@ export function ArbitrageNextActionCard({ audit }: ArbitrageNextActionCardProps)
   const primary =
     severity === "CRITICAL"
       ? { label: "Revue manuelle requise avant RAX", href: "/fr/arbitrage" }
-      : { label: "Envoyer vers RAX / WRS", href: "/fr/rax" };
+      : { label: "Envoyer vers l'analyse risque", href: "/fr/rax" };
 
   return (
     <Card>

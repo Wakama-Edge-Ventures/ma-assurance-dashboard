@@ -18,7 +18,7 @@ function nextAction(mission: InsuranceMission) {
     return { label: "Passer a l'arbitrage", href: "/fr/arbitrage" };
   }
   if (mission.status === "REVIEW_COMPLETE") {
-    return { label: "Consulter RAX/WRS", href: "/fr/rax" };
+    return { label: "Consulter l'analyse risque", href: "/fr/rax" };
   }
   return { label: "Consulter la demande", href: `/fr/applications/${mission.applicationId}` };
 }

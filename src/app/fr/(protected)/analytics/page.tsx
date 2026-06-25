@@ -3,7 +3,7 @@
  * Rich server-rendered analytics center for Wakama Assurance.
  * Computes portfolio analytics from all available data sources and renders
  * a comprehensive multi-section view: risk, regional, culture, alerts,
- * RAX/WRS, missions, and claims intelligence.
+ * IRAX-D, missions, and claims intelligence.
  */
 
 import {
@@ -327,7 +327,7 @@ export default async function AnalyticsPage() {
             accent={criticalAlerts > 0 ? "amber" : "cyan"}
           />
           <StatPill
-            label="WRS moyen"
+            label="Indice IRAX-D moyen"
             value={avgWrs.toFixed(1)}
             icon={Activity}
             accent="emerald"
@@ -348,7 +348,7 @@ export default async function AnalyticsPage() {
       </AppSection>
 
       {/* ── Section B: Risk tier distribution ─────────────────────────────── */}
-      <AppSection title="Distribution du risque WRS" badge={<SeedBadge />}>
+      <AppSection title="Distribution du risque (IRAX-D)" badge={<SeedBadge />}>
         <div className="flex flex-col gap-4 rounded-[20px] bg-[#101726]/92 p-5 sm:flex-row sm:items-center sm:gap-8">
           {/* Conic ring */}
           <div
@@ -372,28 +372,28 @@ export default async function AnalyticsPage() {
                 {
                   tier: "LOW_RISK" as RiskTier,
                   label: "Risque faible",
-                  range: "WRS 0–20",
+                  range: "Indice 0–20",
                   color: "bg-cyan-400",
                   textColor: "text-cyan-400",
                 },
                 {
                   tier: "MEDIUM_RISK" as RiskTier,
                   label: "Risque moyen",
-                  range: "WRS 21–50",
+                  range: "Indice 21–50",
                   color: "bg-amber-400",
                   textColor: "text-amber-400",
                 },
                 {
                   tier: "HIGH_RISK" as RiskTier,
                   label: "Risque élevé",
-                  range: "WRS 51–75",
+                  range: "Indice 51–75",
                   color: "bg-orange-400",
                   textColor: "text-orange-400",
                 },
                 {
                   tier: "UNINSURABLE" as RiskTier,
                   label: "Non assurable",
-                  range: "WRS 76–100",
+                  range: "Indice 76–100",
                   color: "bg-red-400",
                   textColor: "text-red-400",
                 },
@@ -440,7 +440,7 @@ export default async function AnalyticsPage() {
                   "Farmers",
                   "Alertes",
                   "Critiques",
-                  "WRS moy.",
+                  "Indice moy.",
                   "Culture dominante",
                   "Niveau",
                 ].map((h) => (
@@ -701,8 +701,8 @@ export default async function AnalyticsPage() {
         </div>
       </AppSection>
 
-      {/* ── Section F: RAX/WRS intelligence ───────────────────────────────── */}
-      <AppSection title="Intelligence RAX/WRS" badge={<SeedBadge />}>
+      {/* ── Section F: IRAX-D intelligence ───────────────────────────────── */}
+      <AppSection title="Intelligence IRAX-D" badge={<SeedBadge />}>
         <div className="space-y-4">
           {/* KPI row */}
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -711,7 +711,7 @@ export default async function AnalyticsPage() {
                 {avgWrs.toFixed(1)}
               </div>
               <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.10em] text-slate-500">
-                WRS moyen portfolio
+                Indice IRAX-D moyen portfolio
               </div>
               {/* Mini fill bar */}
               <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-700/40">
@@ -753,7 +753,7 @@ export default async function AnalyticsPage() {
               <table className={APP_TABLE_CLASSNAMES.table}>
                 <thead className={APP_TABLE_CLASSNAMES.head}>
                   <tr>
-                    {["ID", "Application", "WRS", "RAX Brut", "Tier"].map(
+                    {["ID", "Application", "Indice", "RAX Brut", "Tier"].map(
                       (h) => (
                         <th
                           key={h}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, LogOut, Search } from "lucide-react";
+import { Activity, Gavel, LogOut, Search } from "lucide-react";
 
 import { TenantBadge } from "@/components/tenant/TenantBadge";
 import { TenantDemoSwitcher } from "@/components/tenant/TenantDemoSwitcher";
@@ -52,13 +52,13 @@ export function Header() {
   const tenantScopeLabel = [tenant.countryLabel, tenant.institutionType].filter(Boolean).join(" · ");
   const searchPlaceholder =
     tenant.id === "assurance-ma"
-      ? "Rechercher agriculteur, parcelle, alerte..."
+      ? "Rechercher dossier, agriculteur, alerte..."
       : "Rechercher dossier, portefeuille, alerte...";
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-20 flex items-center gap-[18px] px-[28px] py-[14px]",
+        "sticky top-0 z-20 flex items-center gap-[18px] px-[24px] py-[14px] backdrop-blur-sm",
         DESIGN_TOKENS.header.shell,
       )}
     >
@@ -77,9 +77,15 @@ export function Header() {
             {pathname}
           </span>
         </div>
-        <p className="mt-0.5 truncate text-[12px] font-semibold text-wk-muted">
-          {titlePrefix} · {tenantScopeLabel}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <p className="truncate text-[12px] font-semibold text-wk-muted">
+            {titlePrefix} · {tenantScopeLabel}
+          </p>
+          <span className="inline-flex items-center gap-1 rounded-full bg-wk-primarySoft px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-wk-primaryInk">
+            <Gavel className="h-3 w-3" />
+            Decision institutionnelle
+          </span>
+        </div>
       </div>
 
       <div
@@ -111,11 +117,11 @@ export function Header() {
               DESIGN_TOKENS.pill.neutral,
             )}
           >
-            Source par dossier
+            Source dossier
           </span>
         ) : isIdjorPage ? (
           <span className="hidden items-center gap-1.5 rounded-full bg-wk-violetSoft px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.04em] text-wk-violetInk md:inline-flex">
-            Socle gouverne
+            Gouvernance documentaire
           </span>
         ) : (
           <span className="hidden items-center gap-1.5 rounded-full bg-wk-liveSoft px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.04em] text-wk-liveInk md:inline-flex">

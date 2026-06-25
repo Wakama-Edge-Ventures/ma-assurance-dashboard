@@ -87,7 +87,7 @@ export default async function ArbitragePage() {
       </div>
 
       <AppSection title="Statuts missions liees">
-        <p className="text-[13px] text-brand-textMuted">
+        <p className="text-[13px] font-medium text-wk-muted">
           {missions.length} missions reliees au pipeline d&apos;arbitrage.
         </p>
       </AppSection>

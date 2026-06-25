@@ -176,13 +176,13 @@ export default async function PolicyDetailPage({ params }: PolicyDetailPageProps
               <div className="flex items-center gap-2">
                 <RiskTierBadge tier={linkedRax.riskTier} />
               </div>
-              <p>WRS: {formatScore(linkedRax.wrsScore)}</p>
+              <p>Indice IRAX-D: {formatScore(linkedRax.wrsScore)}</p>
               <p>G/F/D: {formatScore(linkedRax.gravity ?? 0)} / {formatScore(linkedRax.frequency ?? 0)} / {formatScore(linkedRax.detection ?? 0)}</p>
               <Link
                 href={`/fr/rax/${linkedRax.id}`}
                 className="inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
               >
-                Ouvrir la fiche RAX/WRS
+                Ouvrir la fiche d&apos;analyse risque
               </Link>
             </div>
           ) : (

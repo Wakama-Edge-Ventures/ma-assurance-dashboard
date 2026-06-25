@@ -15,11 +15,11 @@ export function EmptyLiveDataCard({
   return (
     <AppCard className="space-y-2 p-4">
       <div className="flex items-center gap-2">
-        <Inbox className="h-4 w-4 text-slate-300" />
-        <p className="text-sm font-medium text-white">{title}</p>
+        <Inbox className="h-4 w-4 text-wk-muted" />
+        <p className="text-sm font-bold text-wk-text">{title}</p>
         <SourceBadge source="LIVE" />
       </div>
-      <p className="text-xs text-slate-300">{description}</p>
+      <p className="text-xs font-medium text-wk-muted">{description}</p>
     </AppCard>
   );
 }

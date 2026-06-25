@@ -12,15 +12,15 @@ interface AppSectionProps {
 
 export function AppSection({ title, subtitle, badge, children, className }: AppSectionProps) {
   return (
-    <section className={cn("space-y-3.5", className)}>
+    <section className={cn("space-y-4", className)}>
       <div className="flex items-center gap-3">
-        <h2 className="whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.16em] text-slate-400">
+        <h2 className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.16em] text-wk-faint">
           {title}
         </h2>
         {badge}
-        <div className="h-px flex-1 bg-gradient-to-r from-cyan-400/14 to-transparent" />
+        <div className="h-px flex-1 bg-gradient-to-r from-wk-border2 via-wk-border to-transparent" />
       </div>
-      {subtitle ? <p className="text-[12.5px] text-[#5B6B86]">{subtitle}</p> : null}
+      {subtitle ? <p className="max-w-3xl text-[13px] font-medium leading-relaxed text-wk-muted">{subtitle}</p> : null}
       {children}
     </section>
   );

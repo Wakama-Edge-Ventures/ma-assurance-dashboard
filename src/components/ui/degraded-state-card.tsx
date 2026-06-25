@@ -15,11 +15,11 @@ export function DegradedStateCard({
   return (
     <AppCard className="space-y-2 p-4">
       <div className="flex items-center gap-2">
-        <AlertTriangle className="h-4 w-4 text-orange-300" />
-        <p className="text-sm font-medium text-white">{title}</p>
+        <AlertTriangle className="h-4 w-4 text-wk-amberInk" />
+        <p className="text-sm font-bold text-wk-text">{title}</p>
         <SourceBadge source="DEGRADED" />
       </div>
-      <p className="text-xs text-slate-300">{description}</p>
+      <p className="text-xs font-medium text-wk-muted">{description}</p>
     </AppCard>
   );
 }

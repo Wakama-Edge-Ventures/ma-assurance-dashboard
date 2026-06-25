@@ -469,7 +469,7 @@ export function ReportsPanel({
                   className="accent-cyan-400"
                 />
                 <span className="font-mono text-[12px] text-slate-400">
-                  Inclure détails RAX/WRS
+                  Inclure détails IRAX-D
                 </span>
               </label>
               <label className="flex cursor-pointer items-center gap-2">

@@ -73,7 +73,7 @@ export const TENANTS: Record<TenantId, TenantConfig> = {
       applicationsLabel: "Demandes d'assurance",
       applicationSingular: "demande assurance",
       riskLabel: "Risque assurance",
-      scoreLabel: "RAX / WRS",
+      scoreLabel: "Analyse risque",
       committeeLabel: "Arbitrage",
       evidenceLabel: "Preuves terrain",
       portfolioLabel: "Portefeuille assurance",

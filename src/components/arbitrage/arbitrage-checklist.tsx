@@ -28,7 +28,7 @@ export function ArbitrageChecklist({ audit }: ArbitrageChecklistProps) {
     },
     { label: "Hash d'integrite", state: audit.integrityHash ? "done" : "pending" },
     {
-      label: "Donnees pretes pour RAX/WRS",
+      label: "Donnees pretes pour l'analyse risque",
       state: severity === "CRITICAL" ? "pending" : "done",
     },
   ];

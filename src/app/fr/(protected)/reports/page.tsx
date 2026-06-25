@@ -1,13 +1,14 @@
-import { DataSourceBadge } from "@/components/ui/data-source-badge";
 import { ReportsPanel } from "@/components/reports/reports-panel";
+import { AppCard } from "@/components/ui/app-card";
+import { PageTitle } from "@/components/ui/page-title";
 import {
+  getCooperatives,
+  getFarmers,
   getInsuranceApplications,
   getInsuranceClaims,
   getInsurancePolicies,
-  getWakamaAlerts,
-  getFarmers,
-  getCooperatives,
   getSharedWakamaDataOverview,
+  getWakamaAlerts,
 } from "@/lib/insurance-service";
 
 export const dynamic = "force-dynamic";
@@ -35,16 +36,16 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-[24px] font-semibold text-white">Rapports</h1>
-          <p className="mt-0.5 text-[13px] text-slate-400">
-            Génération, prévisualisation et export des rapports portefeuille, risques, missions
-            et conformité.
-          </p>
-        </div>
-        <DataSourceBadge source={sharedMode} />
-      </div>
+      <PageTitle
+        title="Rapports"
+        description="Bibliotheque de syntheses, d'exports et de lectures portefeuille pour les operations institutionnelles."
+      />
+
+      <AppCard className="space-y-3 p-5">
+        <p className="text-[13px] font-medium leading-relaxed text-wk-muted">
+          Les rapports presentent une lecture de pilotage et de documentation. Ils ne doivent pas etre interpretes comme une decision automatique sur les dossiers, les polices ou les sinistres.
+        </p>
+      </AppCard>
 
       <ReportsPanel
         farmers={farmers}

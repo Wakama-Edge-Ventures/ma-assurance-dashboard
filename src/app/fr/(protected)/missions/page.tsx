@@ -98,7 +98,7 @@ export default async function MissionsPage() {
           {Object.entries(distribution).map(([status, count]) => (
             <span
               key={status}
-              className="rounded-full border border-slate-400/10 bg-slate-800/60 px-3 py-1 font-mono text-[11px] text-slate-400"
+              className="rounded-full border border-wk-border bg-wk-surface2 px-3 py-1 text-[11px] font-semibold text-wk-muted"
             >
               {getMissionStatusLabel(status as (typeof missions)[number]["status"])}: {count}
             </span>

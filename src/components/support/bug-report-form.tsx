@@ -3,18 +3,18 @@
 import { useState } from "react";
 
 const PRIORITY_LEVELS = [
-  { value: "LOW", label: "Mineur — cosmétique ou amélioration", color: "text-slate-400" },
-  { value: "MEDIUM", label: "Modéré — comportement inattendu", color: "text-cyan-400" },
-  { value: "HIGH", label: "Important — fonctionnalité dégradée", color: "text-amber-400" },
-  { value: "CRITICAL", label: "Critique — bloquant en production", color: "text-red-400" },
+  { value: "LOW", label: "Mineur — cosmétique ou amélioration", color: "text-wk-muted" },
+  { value: "MEDIUM", label: "Modere — comportement inattendu", color: "text-wk-primaryInk" },
+  { value: "HIGH", label: "Important — fonctionnalite degradee", color: "text-wk-amberInk" },
+  { value: "CRITICAL", label: "Critique — bloquant en production", color: "text-wk-coralInk" },
 ] as const;
 
 type Priority = typeof PRIORITY_LEVELS[number]["value"];
 
 const INPUT_CLS =
-  "w-full rounded-[10px] border border-slate-700/60 bg-[#0b1422]/75 px-3 py-2.5 text-[13px] text-white outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-400/40";
+  "w-full rounded-[12px] border border-wk-border2 bg-wk-surface2 px-3 py-2.5 text-[13px] text-wk-text outline-none transition-colors placeholder:text-wk-faint focus:border-wk-primary";
 
-const LABEL_CLS = "font-mono text-[10.5px] uppercase tracking-[0.12em] text-slate-400";
+const LABEL_CLS = "text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-wk-faint";
 
 export function BugReportForm() {
   const [priority, setPriority] = useState<Priority>("MEDIUM");
@@ -44,17 +44,17 @@ export function BugReportForm() {
 
   if (status === "sent") {
     return (
-      <div className="rounded-[20px] border border-emerald-400/20 bg-emerald-500/8 p-8 text-center space-y-3">
-        <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-emerald-400">
+      <div className="space-y-3 rounded-[20px] border border-wk-border bg-wk-primarySoft p-8 text-center">
+        <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-wk-primaryInk">
           Bug signalé
         </div>
-        <p className="text-[14px] font-semibold text-white">Merci pour votre signalement.</p>
-        <p className="text-[13px] text-slate-400">
+        <p className="text-[14px] font-semibold text-wk-text">Merci pour votre signalement.</p>
+        <p className="text-[13px] text-wk-muted">
           L&apos;équipe technique Wakama a été notifiée. Nous traçons chaque rapport pour amélioration continue.
         </p>
         <button
           onClick={() => setStatus("idle")}
-          className="mt-2 inline-flex items-center rounded-full border border-slate-400/18 bg-transparent px-3.5 py-1.5 font-mono text-[12.5px] text-slate-300 transition-colors hover:border-cyan-400/30 hover:text-white"
+          className="mt-2 inline-flex items-center rounded-full border border-wk-border bg-wk-surface px-3.5 py-1.5 text-[12.5px] font-semibold text-wk-text transition-colors hover:bg-wk-surface2"
         >
           Nouveau rapport
         </button>
@@ -73,8 +73,8 @@ export function BugReportForm() {
               key={level.value}
               className={`flex cursor-pointer items-start gap-2.5 rounded-[12px] border px-3 py-2.5 transition-colors ${
                 priority === level.value
-                  ? "border-cyan-400/30 bg-cyan-500/8"
-                  : "border-slate-700/40 bg-[#0b1422]/60 hover:border-slate-600/60"
+                  ? "border-wk-primary bg-wk-primarySoft"
+                  : "border-wk-border bg-wk-surface2 hover:border-wk-border2"
               }`}
             >
               <input
@@ -87,7 +87,7 @@ export function BugReportForm() {
               />
               <span
                 className={`mt-0.5 h-3.5 w-3.5 flex-none rounded-full border-2 transition-colors ${
-                  priority === level.value ? "border-cyan-400 bg-cyan-400" : "border-slate-600"
+                  priority === level.value ? "border-wk-primary bg-wk-primary" : "border-wk-border2"
                 }`}
               />
               <span className={`text-[12px] leading-tight ${level.color}`}>{level.label}</span>
@@ -165,12 +165,12 @@ export function BugReportForm() {
         <button
           type="submit"
           disabled={status === "sending" || !title.trim() || !steps.trim()}
-          className="inline-flex items-center rounded-full border border-cyan-400/25 bg-cyan-500/10 px-5 py-2 font-mono text-[13px] text-cyan-200 transition-colors hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center rounded-full bg-wk-primary px-5 py-2 text-[13px] font-bold text-white transition-colors hover:bg-wk-primaryInk disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === "sending" ? "Envoi…" : "Envoyer le rapport"}
         </button>
         {status === "error" && (
-          <p className="font-mono text-[11.5px] text-red-400">Erreur — réessayez.</p>
+          <p className="text-[11.5px] font-semibold text-wk-coralInk">Erreur — reessayez.</p>
         )}
       </div>
     </form>

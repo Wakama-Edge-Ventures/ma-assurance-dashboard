@@ -20,9 +20,7 @@ export function DisclosureNote({ variant = "general", className }: DisclosureNot
         : tenant.terminology.decisionDisclaimer;
 
   return (
-    <p
-      className={`rounded-xl border border-cyan-400/15 bg-cyan-400/5 px-3 py-2 text-xs leading-relaxed text-slate-300 ${className ?? ""}`}
-    >
+    <p className={`rounded-xl bg-wk-surface2 px-3 py-2 text-xs font-medium leading-relaxed text-wk-muted ${className ?? ""}`}>
       {message}
     </p>
   );

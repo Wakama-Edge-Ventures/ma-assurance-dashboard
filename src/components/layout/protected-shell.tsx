@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { DashboardFooter } from "@/components/layout/dashboard-footer";
 import { Header } from "@/components/layout/header";
@@ -11,8 +11,14 @@ import { IdjorCompanionPanel } from "@/components/idjor/idjor-companion-panel";
 import { IdjorCompanionProvider } from "@/components/idjor/idjor-companion-provider";
 import { restoreAuthSession } from "@/lib/auth";
 
+// Full-bleed workspace pages (visual cockpits) opt out of the centered, max-width
+// content column so they can use the full area between the sidebar and the viewport edge.
+const FULL_BLEED_ROUTE_PREFIXES = ["/fr/idjor/agents"];
+
 export function ProtectedShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isFullBleed = FULL_BLEED_ROUTE_PREFIXES.some((prefix) => pathname?.startsWith(prefix));
   const [ready, setReady] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -70,7 +76,13 @@ export function ProtectedShell({ children }: Readonly<{ children: React.ReactNod
           <div className="flex min-w-0 flex-1 flex-col">
             <Header />
             <MobileNav />
-            <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col px-4 py-4 md:px-6 md:py-5">
+            <main
+              className={
+                isFullBleed
+                  ? "flex w-full flex-1 flex-col"
+                  : "mx-auto flex w-full max-w-[1280px] flex-1 flex-col px-4 py-5 md:px-6 md:py-6"
+              }
+            >
               {children}
             </main>
           </div>

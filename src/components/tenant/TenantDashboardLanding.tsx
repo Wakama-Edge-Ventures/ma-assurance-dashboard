@@ -91,16 +91,10 @@ export function TenantDashboardLanding() {
   }
 
   return (
-    <div className="space-y-6">
-      <section
-        className="relative overflow-hidden rounded-[28px] border p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.85)] md:p-8"
-        style={{
-          borderColor: withAlpha(tenant.colors.primary, "2E"),
-          background: `radial-gradient(520px 260px at 0% 0%, ${withAlpha(tenant.colors.primary, "24")}, transparent 62%), radial-gradient(520px 260px at 100% 100%, ${withAlpha(tenant.colors.accent, "24")}, transparent 60%), linear-gradient(135deg, rgba(16,23,38,0.96), rgba(11,16,30,0.94))`,
-        }}
-      >
-        <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-5">
+    <div className="max-w-[1280px] space-y-6">
+      <section className="relative overflow-hidden rounded-[20px] border border-wk-border bg-wk-surface p-7 shadow-wk-sm md:p-8">
+        <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <TenantBadge />
               <Badge variant="muted">Maquette d&apos;illustration</Badge>
@@ -110,78 +104,66 @@ export function TenantDashboardLanding() {
             <div className="flex items-center gap-4">
               <TenantLogo
                 alt={tenant.displayName}
-                className="h-12 w-auto object-contain md:h-14"
+                className="h-11 w-auto object-contain md:h-12"
                 width={220}
                 height={88}
                 priority
               />
               <div className="space-y-1">
-                <p
-                  className="font-mono text-[11px] uppercase tracking-[0.18em]"
-                  style={{ color: tenant.colors.primary }}
-                >
+                <p className="text-[12px] font-bold" style={{ color: tenant.colors.primary }}>
                   {tenant.shortName} · {tenant.vertical}
                 </p>
-                <h1 className="font-display text-[30px] font-semibold leading-[1.02] tracking-[-0.02em] text-white md:text-[38px]">
+                <h1 className="text-[27px] font-extrabold leading-[1.1] tracking-[-0.5px] text-wk-text md:text-[30px]">
                   {config.title}
                 </h1>
               </div>
             </div>
 
-            <p className="max-w-3xl text-[15px] leading-[1.55] text-slate-300">{config.subtitle}</p>
+            <p className="max-w-3xl text-[14.5px] font-medium leading-relaxed text-wk-muted">{config.subtitle}</p>
             <p
-              className="max-w-3xl rounded-[18px] border px-4 py-3 text-[12.5px] leading-[1.55] text-slate-300"
+              className="max-w-3xl rounded-[14px] px-4 py-3 text-[12.5px] font-semibold leading-relaxed"
               style={{
-                borderColor: withAlpha(tenant.colors.primary, "36"),
                 backgroundColor: withAlpha(tenant.colors.primary, "12"),
+                color: tenant.colors.primary,
               }}
             >
               {config.disclaimer}
             </p>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 pt-1">
               <Link
                 href={config.actionPrimary.href}
-                className="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center rounded-xl px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
                 style={{ backgroundColor: tenant.colors.primary }}
               >
                 {config.actionPrimary.label}
               </Link>
               <Link
                 href={config.actionSecondary.href}
-                className="inline-flex items-center rounded-full border px-4 py-2 text-sm text-slate-200 transition-colors hover:bg-white/5"
-                style={{ borderColor: withAlpha(tenant.colors.primary, "45") }}
+                className="inline-flex items-center rounded-xl border border-wk-border2 bg-wk-surface px-4 py-2 text-sm font-bold text-wk-text transition-colors hover:bg-wk-surface2"
               >
                 {config.actionSecondary.label}
               </Link>
             </div>
           </div>
 
-          <div
-            className="rounded-[24px] border p-5"
-            style={{
-              borderColor: withAlpha(tenant.colors.primary, "22"),
-              backgroundColor: "rgba(7,11,23,0.54)",
-            }}
-          >
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-slate-500">
-              Positionnement
-            </p>
-            <p className="mt-3 text-[18px] font-semibold text-white">{config.spotlight}</p>
-            <div className="mt-5 space-y-3">
-              <div className="rounded-[16px] border border-slate-400/10 bg-white/[0.03] px-4 py-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                  Donnees affichees
+          <div className="rounded-[16px] border border-wk-border bg-wk-surface2 p-5">
+            <p className="text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-wk-faint">Positionnement</p>
+            <p className="mt-3 text-[16px] font-bold text-wk-text">{config.spotlight}</p>
+            <div className="mt-4 space-y-2.5">
+              <div className="rounded-[13px] bg-wk-surface px-4 py-3">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-wk-faint">
+                  Données affichées
                 </p>
-                <p className="mt-1 text-sm text-slate-300">
-                  Indicateurs de demonstration, clairement separes du backend operationnel.
+                <p className="mt-1 text-[13px] font-medium text-wk-muted">
+                  Indicateurs de démonstration, clairement séparés du backend opérationnel.
                 </p>
               </div>
-              <div className="rounded-[16px] border border-slate-400/10 bg-white/[0.03] px-4 py-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+              <div className="rounded-[13px] bg-wk-surface px-4 py-3">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-wk-faint">
                   Gouvernance
                 </p>
-                <p className="mt-1 text-sm text-slate-300">{tenant.terminology.decisionDisclaimer}</p>
+                <p className="mt-1 text-[13px] font-medium text-wk-muted">{tenant.terminology.decisionDisclaimer}</p>
               </div>
             </div>
           </div>
@@ -199,6 +181,12 @@ export function TenantDashboardLanding() {
           />
         ))}
       </section>
+
+      <div className="flex items-center gap-3.5 rounded-[16px] bg-wk-violetSoft px-[18px] py-[15px]">
+        <p className="text-[13px] font-semibold leading-relaxed text-wk-violetInk">
+          Wakama structure et documente le risque. <b>La décision finale reste réservée à l&apos;institution.</b>
+        </p>
+      </div>
     </div>
   );
 }

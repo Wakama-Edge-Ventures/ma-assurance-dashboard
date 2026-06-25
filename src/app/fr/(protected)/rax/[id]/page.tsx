@@ -76,7 +76,7 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
 
   return (
     <div className="space-y-6">
-      <PageTitle title={`Evaluation ${evaluation.id}`} description="Detail RAX/WRS technique." />
+      <PageTitle title={`Évaluation IRAX-D ${evaluation.id}`} description="Detail du calcul deterministe du risque contrat." />
       {demoStepId && <PipelineStepper activeStepId={demoStepId} />}
 
       <Card className="space-y-4">
@@ -93,38 +93,38 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
         <div className="grid gap-3 text-[13px] text-slate-300 md:grid-cols-3">
           <p>Demande liee: {application?.reference ?? evaluation.applicationId}</p>
           <p>Agriculteur: {farmer?.fullName ?? "N/A"}</p>
-          <p>WRS: {formatScore(metrics.wrs)}</p>
+          <p>Indice de risque contrat: {formatScore(metrics.wrs)}</p>
           <p>Tier risque: {getRiskTierLabel(evaluation.riskTier)}</p>
           <p>Source: {evaluation.source}</p>
         </div>
         <p className="text-xs text-brand-textMuted">
-          Score technique non decisionnel - decision finale reservee a l&apos;assureur.
+          Validation humaine requise - decision finale reservee a l&apos;assureur.
         </p>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <RaxBreakdownCard
-          title="Gravite G"
+          title="Gravité (G)"
           value={formatScore(metrics.gravity)}
           description="Impact financier potentiel."
         />
         <RaxBreakdownCard
-          title="Frequence F"
+          title="Fréquence (F)"
           value={formatScore(metrics.frequency)}
           description="Recurrence historique/proxy NDVI et climat."
         />
         <RaxBreakdownCard
-          title="Detection D"
+          title="Détectabilité (D)"
           value={formatScore(metrics.detection)}
           description="Capacite de surveillance et mitigation active."
         />
         <RaxBreakdownCard
-          title="RAX brut"
+          title="R = G × F × D"
           value={formatScore(metrics.raxBrut)}
           description="Produit des composantes."
         />
         <RaxBreakdownCard
-          title="WRS normalise"
+          title="Indice IRAX-D"
           value={formatScore(metrics.wrs)}
           description="Normalisation sur une echelle 0-100."
         />
@@ -138,7 +138,7 @@ export default async function RaxDetailPage({ params }: RaxDetailPageProps) {
           Plus la surveillance active est forte, plus le coefficient D diminue.
         </p>
         <p className="mt-2 text-xs text-brand-textMuted">
-          Un D plus faible reduit le RAX brut et le WRS, a gravite/frequence constantes.
+          Un D plus faible reduit le RAX brut et l&apos;indice IRAX-D, a gravite/frequence constantes.
         </p>
       </Card>
 

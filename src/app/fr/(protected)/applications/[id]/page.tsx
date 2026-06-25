@@ -4687,7 +4687,7 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
               <Irax3JsonSection title="4. Fréquence" value={iraxDecisionAssessment.frequencyAssessment} />
               <Irax3JsonSection title="5. Détectabilité" value={iraxDecisionAssessment.detectabilityAssessment} />
               <Irax3JsonSection title="6. Calcul RAX (R = G x F x D)" value={iraxDecisionAssessment.raxCalculation} />
-              <Irax3JsonSection title="7. Calcul WRS" value={iraxDecisionAssessment.wrsCalculation} />
+              <Irax3JsonSection title="7. Calcul IRAX-D" value={iraxDecisionAssessment.wrsCalculation} />
               <Irax3JsonSection title="8. Niveau de risque (tier)" value={iraxDecisionAssessment.riskTier} />
               <Irax3JsonSection title="10. Limitations" value={iraxDecisionAssessment.limitations} />
             </div>

@@ -65,7 +65,7 @@ export function LiveHealthPanel() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4 text-xs text-slate-400">
+      <div className="rounded-2xl border border-wk-border bg-wk-surface p-4 text-xs font-medium text-wk-muted">
         Vérification de la santé API en cours...
       </div>
     );
@@ -91,15 +91,15 @@ export function LiveHealthPanel() {
     (state.evidence.state === "DEGRADED" ? "DISABLED_SAFE" : "READY");
 
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-400/10 bg-[#101726]/92 p-4">
+    <div className="space-y-3 rounded-2xl border border-wk-border bg-wk-surface p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-mono text-[11px] uppercase tracking-[0.12em] text-slate-300">
-          Santé intégrations live
+        <h3 className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-wk-faint">
+          Santé intégrations
         </h3>
         <SourceBadge source={state.api.source} />
         <SourceBadge source={state.evidence.source} />
       </div>
-      <div className="grid gap-2 text-xs text-slate-300 md:grid-cols-2">
+      <div className="grid gap-2 text-xs font-medium text-wk-muted md:grid-cols-2">
         <p>API status: {state.api.ok ? "UP" : state.api.state}</p>
         <p>Evidence API status: {state.evidence.ok ? "UP" : state.evidence.state}</p>
         <p>Pinata upload: {renderStatus(pinataEnabled)}</p>

@@ -141,7 +141,7 @@ export default async function FarmersPage() {
       </AppSection>
 
       {showDemoWarningBanner ? (
-        <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+        <div className="rounded-2xl border border-wk-border bg-wk-amberSoft px-4 py-3 text-sm font-medium text-wk-amberInk">
           Les agriculteurs affiches ci-dessous sont des exemples SEED_DEMO. Aucun agriculteur LIVE n&apos;est encore enregistre dans le backend assurance.
         </div>
       ) : null}
@@ -158,7 +158,7 @@ export default async function FarmersPage() {
           title="Portefeuille agriculteurs — données live ou fallback demo selon disponibilité"
           subtitle="Les lignes SEED_DEMO servent uniquement à prévisualiser l’interface tant qu’aucun farmer live n’est enregistré."
         >
-          <p className="text-[13px] text-slate-300">Portefeuille live — agriculteurs enregistrés</p>
+          <p className="text-[13px] font-medium text-wk-muted">Portefeuille live — agriculteurs enregistres</p>
           <div className="mt-3">
             <FarmersTable rows={liveRows} />
           </div>
@@ -170,7 +170,7 @@ export default async function FarmersPage() {
           title="Prévisualisation SEED_DEMO"
           subtitle="Les lignes SEED_DEMO servent uniquement à prévisualiser l’interface tant qu’aucun farmer live n’est enregistré."
         >
-          <p className="text-[13px] text-slate-300">Portefeuille demo — exemples non réels</p>
+          <p className="text-[13px] font-medium text-wk-muted">Portefeuille demo — exemples non reels</p>
           <div className="mt-3">
             <FarmersTable rows={seedDemoRows} />
           </div>

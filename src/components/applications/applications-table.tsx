@@ -81,7 +81,7 @@ export function ApplicationsTable({ rows }: ApplicationsTableProps) {
               <th className={APP_TABLE_CLASSNAMES.headCell}>Culture</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>Surface</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>Statut</th>
-              <th className={APP_TABLE_CLASSNAMES.headCell}>WRS / Tier</th>
+              <th className={APP_TABLE_CLASSNAMES.headCell}>Indice / Tier</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>Source</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>Date</th>
               <th className={APP_TABLE_CLASSNAMES.headCell}>Action</th>
